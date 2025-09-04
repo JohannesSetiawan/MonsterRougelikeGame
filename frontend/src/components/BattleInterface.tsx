@@ -345,7 +345,7 @@ const BattleInterface: React.FC = () => {
           <div className="moves-grid">
             {playerMonster.moves.map((moveId) => {
               const move = getMoveData(moveId);
-              const currentPP = playerMonster.movePP[moveId] || 0;
+              const currentPP = (playerMonster.movePP && playerMonster.movePP[moveId]) || 0;
               const maxPP = move.pp;
               const isOutOfPP = currentPP <= 0;
               

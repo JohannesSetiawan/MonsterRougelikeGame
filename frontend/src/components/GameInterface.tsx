@@ -217,25 +217,29 @@ const GameInterface: React.FC = () => {
           )}
           {state.currentEncounter.type === 'rest_site' && (
             <div>
-              <p>You found a rest site. Your team recovers 50% HP.</p>
+              <p>You found a rest site. Your team will be fully healed and all PP restored!</p>
               <button 
                 disabled={isProcessingEncounter || state.isLoading}
-                onClick={() => {
+                onClick={async () => {
                 if (isProcessingEncounter) return;
                 setIsProcessingEncounter(true);
                 
-                if (state.currentRun) {
-                  // Heal all monsters by 50%
-                  const healedTeam = state.currentRun.team.map(monster => ({
-                    ...monster,
-                    currentHp: Math.min(monster.maxHp, monster.currentHp + Math.floor(monster.maxHp * 0.5))
-                  }));
-                  
-                  const updatedRun = { ...state.currentRun, team: healedTeam };
-                  dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
+                try {
+                  if (state.currentRun) {
+                    const result = await gameApi.useRestSite(state.currentRun.id);
+                    
+                    if (result.success) {
+                      // Update the run with the healed team
+                      const updatedRun = { ...state.currentRun, team: result.team };
+                      dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error using rest site:', error);
+                } finally {
+                  dispatch({ type: 'SET_ENCOUNTER', payload: null });
+                  setIsProcessingEncounter(false);
                 }
-                dispatch({ type: 'SET_ENCOUNTER', payload: null });
-                setIsProcessingEncounter(false);
               }}>
                 {isProcessingEncounter ? 'Resting...' : 'Rest and Continue'}
               </button>

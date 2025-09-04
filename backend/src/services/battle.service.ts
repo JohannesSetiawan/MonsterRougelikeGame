@@ -122,7 +122,17 @@ export class BattleService {
     }
 
     // Check if the move has PP remaining
-    const remainingPP = attacker.movePP[moveId] || 0;
+    const remainingPP = attacker.movePP?.[moveId] || 0;
+    
+    // Initialize PP if it doesn't exist (backwards compatibility)
+    if (!attacker.movePP) {
+      attacker.movePP = {};
+      attacker.moves.forEach(mId => {
+        const moveData = this.monsterService.getMoveData(mId);
+        attacker.movePP[mId] = moveData ? moveData.pp : 20;
+      });
+    }
+    
     if (remainingPP <= 0) {
       return { 
         success: false, 

@@ -197,4 +197,13 @@ export class GameController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Post('run/:runId/rest-site')
+  useRestSite(@Param('runId') runId: string) {
+    try {
+      return this.gameService.useRestSite(runId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

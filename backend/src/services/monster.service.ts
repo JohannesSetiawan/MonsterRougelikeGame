@@ -126,19 +126,27 @@ export class MonsterService {
 
   // PP Management Methods
   restoreAllPP(monster: MonsterInstance): void {
+    // Initialize movePP if it doesn't exist (for backwards compatibility)
+    if (!monster.movePP) {
+      monster.movePP = {};
+    }
+    
     monster.moves.forEach(moveId => {
       const moveData = this.dataLoaderService.getMove(moveId);
-      if (moveData) {
-        monster.movePP[moveId] = moveData.pp;
-      }
+      monster.movePP[moveId] = moveData ? moveData.pp : 20; // default to 20 if move not found
     });
   }
 
   restoreMovePP(monster: MonsterInstance, moveId: string, amount?: number): void {
+    // Initialize movePP if it doesn't exist (for backwards compatibility)
+    if (!monster.movePP) {
+      monster.movePP = {};
+    }
+    
     const moveData = this.dataLoaderService.getMove(moveId);
-    if (moveData && monster.movePP[moveId] !== undefined) {
+    if (moveData && monster.moves.includes(moveId)) {
       if (amount) {
-        monster.movePP[moveId] = Math.min(moveData.pp, monster.movePP[moveId] + amount);
+        monster.movePP[moveId] = Math.min(moveData.pp, (monster.movePP[moveId] || 0) + amount);
       } else {
         monster.movePP[moveId] = moveData.pp;
       }
@@ -146,6 +154,15 @@ export class MonsterService {
   }
 
   getMovePP(monster: MonsterInstance, moveId: string): { current: number; max: number } {
+    // Initialize movePP if it doesn't exist (for backwards compatibility)
+    if (!monster.movePP) {
+      monster.movePP = {};
+      monster.moves.forEach(mId => {
+        const moveData = this.dataLoaderService.getMove(mId);
+        monster.movePP[mId] = moveData ? moveData.pp : 20;
+      });
+    }
+    
     const moveData = this.dataLoaderService.getMove(moveId);
     return {
       current: monster.movePP[moveId] || 0,

@@ -305,4 +305,23 @@ export class GameService {
 
     return { success: true, team: run.team };
   }
+
+  useRestSite(runId: string) {
+    const run = this.gameRuns.get(runId);
+    if (!run) {
+      throw new Error('Game run not found');
+    }
+
+    // Fully restore HP and PP for all team members
+    run.team.forEach(monster => {
+      monster.currentHp = monster.maxHp; // Full HP restoration
+      this.monsterService.restoreAllPP(monster); // Full PP restoration
+    });
+
+    return { 
+      success: true, 
+      message: 'Your team has been fully healed and all PP has been restored!',
+      team: run.team 
+    };
+  }
 }

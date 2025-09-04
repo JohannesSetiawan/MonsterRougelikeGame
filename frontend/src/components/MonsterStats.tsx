@@ -194,7 +194,7 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
             <h4>Moves</h4>
             <div className="moves-list">
               {monster.moves.map((moveId, index) => {
-                const currentPP = monster.movePP[moveId] || 0;
+                const currentPP = (monster.movePP && monster.movePP[moveId]) || 0;
                 const moveData = movesData[moveId];
                 const maxPP = moveData ? moveData.pp : 20;
                 const isOutOfPP = currentPP <= 0;

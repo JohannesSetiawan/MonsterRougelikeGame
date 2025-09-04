@@ -149,6 +149,11 @@ export const gameApi = {
     });
     return response.data;
   },
+
+  useRestSite: async (runId: string): Promise<{ success: boolean; message: string; team: MonsterInstance[] }> => {
+    const response = await api.post(`/game/run/${runId}/rest-site`);
+    return response.data;
+  },
 };
 
 export default api;
