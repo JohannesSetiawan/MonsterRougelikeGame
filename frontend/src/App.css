@@ -278,7 +278,6 @@ input[type="text"]::placeholder {
   color: var(--error);
   margin-bottom: var(--spacing-md);
 }
-}
 
 .create-player, .load-player {
   background: #2a2a2a;
@@ -589,6 +588,38 @@ input[type="text"]::placeholder {
   box-shadow: var(--shadow-md);
 }
 
+.header-buttons {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.team-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.team-button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.team-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .player-info {
   display: flex;
   flex-direction: column;
@@ -853,6 +884,67 @@ input[type="text"]::placeholder {
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(8px);
   position: relative;
+}
+
+.ability-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: var(--spacing-sm);
+  text-transform: capitalize;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.ability-info:hover {
+  opacity: 1;
+}
+
+.opponent-monster .ability-info {
+  text-align: center;
+}
+
+.player-monster .ability-info {
+  text-align: left;
+}
+
+.monster-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.stats-button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  height: 2.5rem;
+}
+
+.stats-button:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.stats-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stats-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .opponent-monster {
@@ -1233,8 +1325,6 @@ button:disabled {
   background: var(--border) !important;
   transform: none !important;
   box-shadow: none !important;
-}
-  transform: none;
 }
 
 .battle-actions {

@@ -12,6 +12,44 @@ export class BattleController {
     private monsterService: MonsterService
   ) {}
 
+  @Post(':runId/initialize')
+  initializeBattle(
+    @Param('runId') runId: string,
+    @Body() body: {
+      playerMonsterId: string;
+      opponentMonster: MonsterInstance;
+    }
+  ) {
+    try {
+      const run = this.gameService.getGameRun(runId);
+      if (!run || !run.isActive) {
+        throw new HttpException('Game run not found or not active', HttpStatus.BAD_REQUEST);
+      }
+
+      const playerMonster = run.team.find(m => m.id === body.playerMonsterId);
+      if (!playerMonster) {
+        throw new HttpException('Player monster not found', HttpStatus.BAD_REQUEST);
+      }
+
+      // Apply battle start effects (like Intimidate)
+      const battleStartEffects = this.battleService.applyBattleStartEffects(playerMonster, body.opponentMonster);
+      
+      // Determine turn order with speed abilities applied
+      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
+      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
+      const playerGoesFirst = playerSpeed >= opponentSpeed;
+
+      return {
+        effects: battleStartEffects,
+        playerGoesFirst,
+        updatedPlayerMonster: playerMonster,
+        updatedOpponentMonster: body.opponentMonster
+      };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   @Post(':runId/action')
   performBattleAction(
     @Param('runId') runId: string,

@@ -1,12 +1,14 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
+import TeamManagement from './TeamManagement';
 
 const GameInterface: React.FC = () => {
   const { state, dispatch } = useGame();
   const [isProcessingEncounter, setIsProcessingEncounter] = React.useState(false);
   const [processingItemId, setProcessingItemId] = React.useState<string | null>(null);
   const [isEndingRun, setIsEndingRun] = React.useState(false);
+  const [showTeamManagement, setShowTeamManagement] = React.useState(false);
 
   const handleEndRun = React.useCallback(async (reason: 'victory' | 'defeat') => {
     if (!state.currentRun || isEndingRun) return;
@@ -100,12 +102,22 @@ const GameInterface: React.FC = () => {
       <div className="game-header">
         <h2>Stage {state.currentRun.currentStage}</h2>
         <div className="currency">Coins: {state.currentRun.currency}</div>
-        <button 
-          onClick={() => handleEndRun('defeat')}
-          disabled={isEndingRun || state.isLoading}
-        >
-          {isEndingRun ? 'Ending...' : 'End Run'}
-        </button>
+        <div className="header-buttons">
+          <button 
+            className="team-button"
+            onClick={() => setShowTeamManagement(true)}
+            disabled={state.isLoading}
+            title="View team details"
+          >
+            👥 Team
+          </button>
+          <button 
+            onClick={() => handleEndRun('defeat')}
+            disabled={isEndingRun || state.isLoading}
+          >
+            {isEndingRun ? 'Ending...' : 'End Run'}
+          </button>
+        </div>
       </div>
 
       <div className="team-section">
@@ -230,6 +242,14 @@ const GameInterface: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Team Management Modal */}
+      {showTeamManagement && (
+        <TeamManagement
+          team={state.currentRun.team}
+          onClose={() => setShowTeamManagement(false)}
+        />
       )}
     </div>
   );

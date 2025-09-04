@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
 import ItemBag from './ItemBag';
+import MonsterStatsModal from './MonsterStatsModal';
 import type { BattleAction, Move } from '../api/types';
 
 const BattleInterface: React.FC = () => {
@@ -11,6 +12,9 @@ const BattleInterface: React.FC = () => {
   const [battleEnded, setBattleEnded] = useState(false);
   const [movesData, setMovesData] = useState<Record<string, Move>>({});
   const [showItemBag, setShowItemBag] = useState(false);
+  const [battleInitialized, setBattleInitialized] = useState(false);
+  const [showPlayerStats, setShowPlayerStats] = useState(false);
+  const [showOpponentStats, setShowOpponentStats] = useState(false);
 
   const playerMonster = state.battleState.playerMonster;
   const opponentMonster = state.battleState.opponentMonster;
@@ -30,6 +34,46 @@ const BattleInterface: React.FC = () => {
     };
     loadMovesData();
   }, []);
+
+  // Initialize battle on first render
+  React.useEffect(() => {
+    if (playerMonster && opponentMonster && currentRun && !battleInitialized) {
+      initializeBattle();
+    }
+  }, [playerMonster, opponentMonster, currentRun, battleInitialized]);
+
+  const initializeBattle = async () => {
+    if (!playerMonster || !opponentMonster || !currentRun || battleInitialized) return;
+    
+    try {
+      setIsProcessing(true);
+      const battleInit = await gameApi.initializeBattle(
+        currentRun.id,
+        playerMonster.id,
+        opponentMonster
+      );
+
+      if (battleInit.effects && battleInit.effects.length > 0) {
+        setBattleLog(prev => [...prev, ...battleInit.effects]);
+      }
+
+      // Update monsters with battle start effects
+      dispatch({
+        type: 'UPDATE_BATTLE_MONSTERS',
+        payload: {
+          player: battleInit.updatedPlayerMonster,
+          opponent: battleInit.updatedOpponentMonster
+        }
+      });
+
+      setBattleInitialized(true);
+    } catch (error) {
+      console.error('Failed to initialize battle:', error);
+      setBattleLog(prev => [...prev, 'Battle initialization failed!']);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   if (!playerMonster || !opponentMonster || !currentRun) return null;
 
@@ -192,7 +236,18 @@ const BattleInterface: React.FC = () => {
         {/* Opponent Monster */}
         <div className="opponent-section">
           <div className="monster-info opponent-monster">
-            <h3>{opponentMonster.name} (Lv.{opponentMonster.level})</h3>
+            <div className="monster-header-row">
+              <h3>{opponentMonster.name} (Lv.{opponentMonster.level})</h3>
+              <button 
+                className="stats-button opponent-stats-button"
+                onClick={() => setShowOpponentStats(true)}
+                disabled={isProcessing}
+                title="View opponent stats"
+              >
+                📊
+              </button>
+            </div>
+            <div className="ability-info">Ability: {opponentMonster.ability}</div>
             <div className="health-bar">
               <div 
                 className="health-fill" 
@@ -212,7 +267,18 @@ const BattleInterface: React.FC = () => {
         {/* Player Monster */}
         <div className="player-section">
           <div className="monster-info player-monster">
-            <h3>{playerMonster.name} (Lv.{playerMonster.level})</h3>
+            <div className="monster-header-row">
+              <h3>{playerMonster.name} (Lv.{playerMonster.level})</h3>
+              <button 
+                className="stats-button player-stats-button"
+                onClick={() => setShowPlayerStats(true)}
+                disabled={isProcessing}
+                title="View your monster's stats"
+              >
+                📊
+              </button>
+            </div>
+            <div className="ability-info">Ability: {playerMonster.ability}</div>
             <div className="health-bar">
               <div 
                 className="health-fill" 
@@ -297,6 +363,21 @@ const BattleInterface: React.FC = () => {
           onUseItem={handleUseItem}
           onClose={handleCloseBag}
           isProcessing={isProcessing}
+        />
+      )}
+
+      {/* Monster Stats Modals */}
+      {showPlayerStats && (
+        <MonsterStatsModal
+          monster={playerMonster}
+          onClose={() => setShowPlayerStats(false)}
+        />
+      )}
+
+      {showOpponentStats && (
+        <MonsterStatsModal
+          monster={opponentMonster}
+          onClose={() => setShowOpponentStats(false)}
         />
       )}
     </div>

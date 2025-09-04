@@ -92,6 +92,23 @@ export const gameApi = {
   },
 
   // Battle endpoints
+  initializeBattle: async (
+    runId: string,
+    playerMonsterId: string,
+    opponentMonster: MonsterInstance
+  ): Promise<{
+    effects: string[];
+    playerGoesFirst: boolean;
+    updatedPlayerMonster: MonsterInstance;
+    updatedOpponentMonster: MonsterInstance;
+  }> => {
+    const response = await api.post(`/battle/${runId}/initialize`, {
+      playerMonsterId,
+      opponentMonster,
+    });
+    return response.data;
+  },
+
   performBattleAction: async (
     runId: string,
     action: BattleAction,

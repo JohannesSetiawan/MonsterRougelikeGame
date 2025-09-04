@@ -18,13 +18,17 @@ export class BattleService {
     if (!move || move.power === 0) return 0;
 
     // Base attack and defense stats
-    const attack = move.category === MoveCategory.PHYSICAL 
+    let attack = move.category === MoveCategory.PHYSICAL 
       ? attacker.stats.attack 
       : attacker.stats.specialAttack;
     
-    const defense = move.category === MoveCategory.PHYSICAL 
+    let defense = move.category === MoveCategory.PHYSICAL 
       ? defender.stats.defense 
       : defender.stats.specialDefense;
+
+    // Apply ability effects to stats
+    attack = this.applyAbilityEffectsToStat(attacker, 'attack', attack, move);
+    defense = this.applyAbilityEffectsToStat(defender, 'defense', defense, move);
 
     // Level factor
     const levelFactor = (2 * attacker.level / 5 + 2);
@@ -36,7 +40,10 @@ export class BattleService {
     }
 
     // STAB (Same Type Attack Bonus)
-    const stab = attackerData.type.includes(move.type) ? 1.5 : 1;
+    let stab = attackerData.type.includes(move.type) ? 1.5 : 1;
+
+    // Apply ability effects to damage multipliers
+    stab = this.applyAbilityEffectsToStab(attacker, stab, move);
 
     // Random factor (85-100%)
     const randomFactor = (Math.random() * 0.15) + 0.85;
@@ -228,5 +235,111 @@ export class BattleService {
     const selectedMove = enemy.moves[randomMoveIndex];
 
     return { type: 'attack', moveId: selectedMove };
+  }
+
+  // Ability effect methods
+  private applyAbilityEffectsToStat(
+    monster: MonsterInstance, 
+    statType: 'attack' | 'defense', 
+    baseStat: number, 
+    move: any
+  ): number {
+    const abilityData = this.monsterService.getAbilityData(monster.ability);
+    if (!abilityData) return baseStat;
+
+    let modifiedStat = baseStat;
+
+    switch (abilityData.effect) {
+      case 'lower_opponent_attack':
+        // Intimidate: Lower opponent's attack (only applies to defense calculations when this monster is defending)
+        if (statType === 'attack') {
+          // This will be handled in the battle start logic
+        }
+        break;
+        
+      default:
+        break;
+    }
+
+    return modifiedStat;
+  }
+
+  private applyAbilityEffectsToStab(
+    attacker: MonsterInstance, 
+    baseSTab: number, 
+    move: any
+  ): number {
+    const abilityData = this.monsterService.getAbilityData(attacker.ability);
+    if (!abilityData) return baseSTab;
+
+    const isLowHp = attacker.currentHp / attacker.maxHp <= 0.33; // Low HP threshold
+    let modifiedStab = baseSTab;
+
+    switch (abilityData.effect) {
+      case 'fire_boost_low_hp':
+        // Blaze: Boost Fire-type moves when HP is low
+        if (isLowHp && move.type === 'fire') {
+          modifiedStab *= 1.5; // Additional 50% boost when low HP
+        }
+        break;
+        
+      case 'water_boost_low_hp':
+        // Torrent: Boost Water-type moves when HP is low
+        if (isLowHp && move.type === 'water') {
+          modifiedStab *= 1.5; // Additional 50% boost when low HP
+        }
+        break;
+        
+      default:
+        break;
+    }
+
+    return modifiedStab;
+  }
+
+  // Apply battle start effects (like Intimidate)
+  applyBattleStartEffects(
+    playerMonster: MonsterInstance, 
+    opponentMonster: MonsterInstance
+  ): string[] {
+    const effects: string[] = [];
+
+    // Check player monster's ability
+    const playerAbility = this.monsterService.getAbilityData(playerMonster.ability);
+    if (playerAbility?.effect === 'lower_opponent_attack') {
+      // Intimidate reduces opponent's attack
+      opponentMonster.stats.attack = Math.max(1, Math.floor(opponentMonster.stats.attack * 0.75));
+      effects.push(`${playerMonster.name}'s Intimidate lowered ${opponentMonster.name}'s Attack!`);
+    }
+
+    // Check opponent monster's ability
+    const opponentAbility = this.monsterService.getAbilityData(opponentMonster.ability);
+    if (opponentAbility?.effect === 'lower_opponent_attack') {
+      // Intimidate reduces player's attack
+      playerMonster.stats.attack = Math.max(1, Math.floor(playerMonster.stats.attack * 0.75));
+      effects.push(`${opponentMonster.name}'s Intimidate lowered ${playerMonster.name}'s Attack!`);
+    }
+
+    return effects;
+  }
+
+  // Apply speed-based abilities
+  applySpeedAbilities(monster: MonsterInstance): number {
+    const abilityData = this.monsterService.getAbilityData(monster.ability);
+    if (!abilityData) return monster.stats.speed;
+
+    let modifiedSpeed = monster.stats.speed;
+
+    switch (abilityData.effect) {
+      case 'speed_boost_water':
+        // Swift Swim: Double speed in water environments (for now, just a 50% boost)
+        modifiedSpeed = Math.floor(modifiedSpeed * 1.5);
+        break;
+        
+      default:
+        break;
+    }
+
+    return modifiedSpeed;
   }
 }
