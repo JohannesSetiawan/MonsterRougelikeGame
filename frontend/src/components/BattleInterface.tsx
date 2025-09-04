@@ -3,6 +3,8 @@ import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
+import MoveInfo from './MoveInfo';
+import AbilityInfo from './AbilityInfo';
 import type { BattleAction, Move } from '../api/types';
 
 const BattleInterface: React.FC = () => {
@@ -15,6 +17,8 @@ const BattleInterface: React.FC = () => {
   const [battleInitialized, setBattleInitialized] = useState(false);
   const [showPlayerStats, setShowPlayerStats] = useState(false);
   const [showOpponentStats, setShowOpponentStats] = useState(false);
+  const [selectedMove, setSelectedMove] = useState<string | null>(null);
+  const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
 
   const playerMonster = state.battleState.playerMonster;
   const opponentMonster = state.battleState.opponentMonster;
@@ -247,7 +251,16 @@ const BattleInterface: React.FC = () => {
                 📊
               </button>
             </div>
-            <div className="ability-info">Ability: {opponentMonster.ability}</div>
+            <div className="ability-info">
+              Ability: 
+              <button 
+                className="ability-button"
+                onClick={() => setSelectedAbility(opponentMonster.ability)}
+                title="Click to view ability details"
+              >
+                {opponentMonster.ability}
+              </button>
+            </div>
             <div className="health-bar">
               <div 
                 className="health-fill" 
@@ -278,7 +291,16 @@ const BattleInterface: React.FC = () => {
                 📊
               </button>
             </div>
-            <div className="ability-info">Ability: {playerMonster.ability}</div>
+            <div className="ability-info">
+              Ability: 
+              <button 
+                className="ability-button"
+                onClick={() => setSelectedAbility(playerMonster.ability)}
+                title="Click to view ability details"
+              >
+                {playerMonster.ability}
+              </button>
+            </div>
             <div className="health-bar">
               <div 
                 className="health-fill" 
@@ -322,17 +344,25 @@ const BattleInterface: React.FC = () => {
             {playerMonster.moves.map((moveId) => {
               const move = getMoveData(moveId);
               return (
-                <button
-                  key={moveId}
-                  className="move-button"
-                  onClick={() => handleAttack(moveId)}
-                  disabled={isProcessing || battleEnded}
-                >
-                  <div className="move-name">{move.name}</div>
-                  <div className="move-info">
-                    PWR: {move.power} | ACC: {move.accuracy}%
-                  </div>
-                </button>
+                <div key={moveId} className="move-button-container">
+                  <button
+                    className="move-button"
+                    onClick={() => handleAttack(moveId)}
+                    disabled={isProcessing || battleEnded}
+                  >
+                    <div className="move-name">{move.name}</div>
+                    <div className="move-info">
+                      PWR: {move.power} | ACC: {move.accuracy}%
+                    </div>
+                  </button>
+                  <button
+                    className="move-info-button"
+                    onClick={() => setSelectedMove(moveId)}
+                    title="View move details"
+                  >
+                    ℹ️
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -378,6 +408,22 @@ const BattleInterface: React.FC = () => {
         <MonsterStatsModal
           monster={opponentMonster}
           onClose={() => setShowOpponentStats(false)}
+        />
+      )}
+
+      {/* Move Info Modal */}
+      {selectedMove && (
+        <MoveInfo 
+          moveId={selectedMove} 
+          onClose={() => setSelectedMove(null)} 
+        />
+      )}
+
+      {/* Ability Info Modal */}
+      {selectedAbility && (
+        <AbilityInfo 
+          abilityId={selectedAbility} 
+          onClose={() => setSelectedAbility(null)} 
         />
       )}
     </div>

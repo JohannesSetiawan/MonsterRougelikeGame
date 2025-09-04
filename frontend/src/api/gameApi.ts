@@ -80,6 +80,17 @@ export const gameApi = {
     return response.data;
   },
 
+  // Ability data endpoints
+  getAllAbilities: async (): Promise<Record<string, any>> => {
+    const response = await api.get('/game/abilities');
+    return response.data;
+  },
+
+  getAbilityData: async (abilityId: string): Promise<any> => {
+    const response = await api.get(`/game/ability/${abilityId}`);
+    return response.data;
+  },
+
   // Monster data endpoints
   getAllMonsters: async (): Promise<Record<string, any>> => {
     const response = await api.get('/game/monsters');

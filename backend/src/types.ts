@@ -112,6 +112,25 @@ export interface BattleResult {
   winner?: 'player' | 'opponent' | 'draw';
 }
 
+export interface BattleContext {
+  playerMonster: MonsterInstance;
+  opponentMonster: MonsterInstance;
+  playerStatModifiers: {
+    attack?: number;
+    defense?: number;
+    specialAttack?: number;
+    specialDefense?: number;
+    speed?: number;
+  };
+  opponentStatModifiers: {
+    attack?: number;
+    defense?: number;
+    specialAttack?: number;
+    specialDefense?: number;
+    speed?: number;
+  };
+}
+
 // Type effectiveness chart
 export const TYPE_EFFECTIVENESS: Record<MonsterType, Record<MonsterType, number>> = {
   [MonsterType.FIRE]: {

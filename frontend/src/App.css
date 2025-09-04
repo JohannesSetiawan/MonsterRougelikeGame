@@ -1236,6 +1236,56 @@ input[type="text"]::placeholder {
   background: linear-gradient(135deg, #6b7280, #4b5563);
 }
 
+/* Move Button Containers with Info Buttons */
+.move-button-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.move-info-button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.move-info-button:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+/* Ability Buttons */
+.ability-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  margin-left: 0.5rem;
+}
+
+.ability-button:hover {
+  background: var(--primary-bg);
+  text-decoration-color: var(--primary);
+  transform: translateY(-1px);
+}
+
 /* Inventory and Items */
 .inventory-item {
   background: var(--card-bg);

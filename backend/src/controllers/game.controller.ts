@@ -148,6 +148,20 @@ export class GameController {
     return move;
   }
 
+  @Get('abilities')
+  getAllAbilities() {
+    return this.dataLoaderService.getAbilities();
+  }
+
+  @Get('ability/:abilityId')
+  getAbilityData(@Param('abilityId') abilityId: string) {
+    const ability = this.monsterService.getAbilityData(abilityId);
+    if (!ability) {
+      throw new HttpException('Ability not found', HttpStatus.NOT_FOUND);
+    }
+    return ability;
+  }
+
   @Get('monsters')
   getAllMonsters() {
     return this.monsterService.getAllMonsters();

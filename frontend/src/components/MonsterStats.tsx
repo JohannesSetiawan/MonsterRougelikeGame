@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { MonsterInstance } from '../api/types';
+import MoveInfo from './MoveInfo';
+import AbilityInfo from './AbilityInfo';
 
 interface MonsterStatsProps {
   monster: MonsterInstance;
@@ -12,6 +14,8 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
   showDetailed = false, 
   className = '' 
 }) => {
+  const [selectedMove, setSelectedMove] = useState<string | null>(null);
+  const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
   const getStatBarWidth = (stat: number, maxStat: number = 200) => {
     return Math.min((stat / maxStat) * 100, 100);
   };
@@ -48,7 +52,13 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
         </div>
         <div className="monster-ability">
           <span className="ability-label">Ability:</span>
-          <span className="ability-name">{monster.ability}</span>
+          <button 
+            className="ability-name clickable-ability" 
+            onClick={() => setSelectedAbility(monster.ability)}
+            title="Click to view ability details"
+          >
+            {monster.ability}
+          </button>
         </div>
       </div>
 
@@ -164,9 +174,14 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
             <h4>Moves</h4>
             <div className="moves-list">
               {monster.moves.map((moveId, index) => (
-                <div key={index} className="move-item">
+                <button 
+                  key={index} 
+                  className="move-item clickable-move"
+                  onClick={() => setSelectedMove(moveId)}
+                  title="Click to view move details"
+                >
                   <span className="move-name">{moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -229,6 +244,28 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           padding: 0.25rem 0.5rem;
           background: var(--accent-bg);
           border-radius: var(--radius-sm);
+        }
+
+        .clickable-ability {
+          border: none;
+          color: var(--primary);
+          font-weight: 600;
+          cursor: pointer;
+          padding: 0.25rem 0.5rem;
+          background: var(--primary-bg);
+          border-radius: var(--radius-sm);
+          transition: all 0.2s ease;
+          text-transform: capitalize;
+          text-decoration: underline;
+          text-decoration-color: transparent;
+        }
+
+        .clickable-ability:hover {
+          background: var(--primary);
+          color: white;
+          text-decoration-color: currentColor;
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-sm);
         }
 
         .stat-section {
@@ -332,6 +369,28 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           text-align: center;
         }
 
+        .clickable-move {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: var(--spacing-sm);
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          width: 100%;
+        }
+
+        .clickable-move:hover {
+          background: var(--primary-bg);
+          border-color: var(--primary);
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md);
+        }
+
+        .clickable-move:active {
+          transform: translateY(0);
+        }
+
         .move-name {
           font-size: 0.875rem;
           color: var(--text-primary);
@@ -367,6 +426,22 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           }
         }
       `}</style>
+
+      {/* Move Info Modal */}
+      {selectedMove && (
+        <MoveInfo 
+          moveId={selectedMove} 
+          onClose={() => setSelectedMove(null)} 
+        />
+      )}
+
+      {/* Ability Info Modal */}
+      {selectedAbility && (
+        <AbilityInfo 
+          abilityId={selectedAbility} 
+          onClose={() => setSelectedAbility(null)} 
+        />
+      )}
     </div>
   );
 };

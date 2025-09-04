@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, TYPE_EFFECTIVENESS, MoveCategory } from '../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, MoveCategory } from '../types';
 import { MonsterService } from './monster.service';
 
 @Injectable()
@@ -9,7 +9,8 @@ export class BattleService {
   calculateDamage(
     attacker: MonsterInstance, 
     defender: MonsterInstance, 
-    moveId: string
+    moveId: string,
+    battleContext?: BattleContext
   ): number {
     const move = this.monsterService.getMoveData(moveId);
     const attackerData = this.monsterService.getMonsterData(attacker.monsterId);
@@ -17,7 +18,7 @@ export class BattleService {
 
     if (!move || move.power === 0) return 0;
 
-    // Base attack and defense stats
+    // Get base stats
     let attack = move.category === MoveCategory.PHYSICAL 
       ? attacker.stats.attack 
       : attacker.stats.specialAttack;
@@ -25,6 +26,36 @@ export class BattleService {
     let defense = move.category === MoveCategory.PHYSICAL 
       ? defender.stats.defense 
       : defender.stats.specialDefense;
+
+    // Apply battle context stat modifiers if available
+    if (battleContext) {
+      const isPlayerAttacker = battleContext.playerMonster.id === attacker.id;
+      const isPlayerDefender = battleContext.playerMonster.id === defender.id;
+
+      if (isPlayerAttacker) {
+        const modifier = move.category === MoveCategory.PHYSICAL 
+          ? battleContext.playerStatModifiers.attack 
+          : battleContext.playerStatModifiers.specialAttack;
+        if (modifier !== undefined) attack = Math.floor(attack * modifier);
+      } else {
+        const modifier = move.category === MoveCategory.PHYSICAL 
+          ? battleContext.opponentStatModifiers.attack 
+          : battleContext.opponentStatModifiers.specialAttack;
+        if (modifier !== undefined) attack = Math.floor(attack * modifier);
+      }
+
+      if (isPlayerDefender) {
+        const modifier = move.category === MoveCategory.PHYSICAL 
+          ? battleContext.playerStatModifiers.defense 
+          : battleContext.playerStatModifiers.specialDefense;
+        if (modifier !== undefined) defense = Math.floor(defense * modifier);
+      } else {
+        const modifier = move.category === MoveCategory.PHYSICAL 
+          ? battleContext.opponentStatModifiers.defense 
+          : battleContext.opponentStatModifiers.specialDefense;
+        if (modifier !== undefined) defense = Math.floor(defense * modifier);
+      }
+    }
 
     // Apply ability effects to stats
     attack = this.applyAbilityEffectsToStat(attacker, 'attack', attack, move);
@@ -81,7 +112,8 @@ export class BattleService {
   private processAttack(
     attacker: MonsterInstance,
     defender: MonsterInstance,
-    moveId: string
+    moveId: string,
+    battleContext?: BattleContext
   ): BattleResult {
     const move = this.monsterService.getMoveData(moveId);
     
@@ -98,7 +130,7 @@ export class BattleService {
       };
     }
 
-    const damage = this.calculateDamage(attacker, defender, moveId);
+    const damage = this.calculateDamage(attacker, defender, moveId, battleContext);
     const newHp = Math.max(0, defender.currentHp - damage);
     
     const effects = [
@@ -297,30 +329,45 @@ export class BattleService {
     return modifiedStab;
   }
 
-  // Apply battle start effects (like Intimidate)
-  applyBattleStartEffects(
+  // Apply battle start effects (like Intimidate) and return battle context
+  initializeBattleContext(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance
-  ): string[] {
+  ): { battleContext: BattleContext; effects: string[] } {
     const effects: string[] = [];
+    const battleContext: BattleContext = {
+      playerMonster,
+      opponentMonster,
+      playerStatModifiers: {},
+      opponentStatModifiers: {}
+    };
 
     // Check player monster's ability
     const playerAbility = this.monsterService.getAbilityData(playerMonster.ability);
     if (playerAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces opponent's attack
-      opponentMonster.stats.attack = Math.max(1, Math.floor(opponentMonster.stats.attack * 0.75));
+      // Intimidate reduces opponent's attack by 25%
+      battleContext.opponentStatModifiers.attack = 0.75;
       effects.push(`${playerMonster.name}'s Intimidate lowered ${opponentMonster.name}'s Attack!`);
     }
 
     // Check opponent monster's ability
     const opponentAbility = this.monsterService.getAbilityData(opponentMonster.ability);
     if (opponentAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces player's attack
-      playerMonster.stats.attack = Math.max(1, Math.floor(playerMonster.stats.attack * 0.75));
+      // Intimidate reduces player's attack by 25%
+      battleContext.playerStatModifiers.attack = 0.75;
       effects.push(`${opponentMonster.name}'s Intimidate lowered ${playerMonster.name}'s Attack!`);
     }
 
-    return effects;
+    return { battleContext, effects };
+  }
+
+  // Legacy method for compatibility - now deprecated
+  applyBattleStartEffects(
+    playerMonster: MonsterInstance, 
+    opponentMonster: MonsterInstance
+  ): string[] {
+    const result = this.initializeBattleContext(playerMonster, opponentMonster);
+    return result.effects;
   }
 
   // Apply speed-based abilities
