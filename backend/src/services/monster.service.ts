@@ -22,6 +22,13 @@ export class MonsterService {
     // Select starting moves (up to 4, prioritize lower level moves)
     const availableMoves = monster.learnableMoves.slice(0, Math.min(4, monster.learnableMoves.length));
 
+    // Initialize PP for each move
+    const movePP: Record<string, number> = {};
+    availableMoves.forEach(moveId => {
+      const moveData = this.dataLoaderService.getMove(moveId);
+      movePP[moveId] = moveData ? moveData.pp : 20; // default to 20 if move not found
+    });
+
     return {
       id: this.generateId(),
       monsterId,
@@ -31,6 +38,7 @@ export class MonsterService {
       maxHp,
       stats,
       moves: availableMoves,
+      movePP,
       ability,
       experience: 0,
       isShiny: Math.random() < 0.001 // 0.1% chance for shiny
@@ -114,5 +122,34 @@ export class MonsterService {
 
   getAbilityData(abilityId: string) {
     return this.dataLoaderService.getAbility(abilityId);
+  }
+
+  // PP Management Methods
+  restoreAllPP(monster: MonsterInstance): void {
+    monster.moves.forEach(moveId => {
+      const moveData = this.dataLoaderService.getMove(moveId);
+      if (moveData) {
+        monster.movePP[moveId] = moveData.pp;
+      }
+    });
+  }
+
+  restoreMovePP(monster: MonsterInstance, moveId: string, amount?: number): void {
+    const moveData = this.dataLoaderService.getMove(moveId);
+    if (moveData && monster.movePP[moveId] !== undefined) {
+      if (amount) {
+        monster.movePP[moveId] = Math.min(moveData.pp, monster.movePP[moveId] + amount);
+      } else {
+        monster.movePP[moveId] = moveData.pp;
+      }
+    }
+  }
+
+  getMovePP(monster: MonsterInstance, moveId: string): { current: number; max: number } {
+    const moveData = this.dataLoaderService.getMove(moveId);
+    return {
+      current: monster.movePP[moveId] || 0,
+      max: moveData ? moveData.pp : 0
+    };
   }
 }

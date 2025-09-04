@@ -101,6 +101,11 @@ export class GameService {
       player.bestStage = run.currentStage;
     }
 
+    // Restore PP for all team monsters when progressing to next stage
+    run.team.forEach(monster => {
+      this.monsterService.restoreAllPP(monster);
+    });
+
     // Check for victory condition (reaching stage 20)
     if (run.currentStage > 200000) {
       this.endRun(runId, 'victory');
@@ -262,5 +267,42 @@ export class GameService {
 
   private generateId(): string {
     return Math.random().toString(36).substr(2, 9);
+  }
+
+  restoreMonsterPP(
+    runId: string, 
+    monsterId: string, 
+    options: { moveId?: string; amount?: number; restoreAll?: boolean }
+  ) {
+    const run = this.gameRuns.get(runId);
+    if (!run) {
+      throw new Error('Game run not found');
+    }
+
+    const monster = run.team.find(m => m.id === monsterId);
+    if (!monster) {
+      throw new Error('Monster not found in team');
+    }
+
+    if (options.restoreAll) {
+      this.monsterService.restoreAllPP(monster);
+    } else if (options.moveId) {
+      this.monsterService.restoreMovePP(monster, options.moveId, options.amount);
+    }
+
+    return { success: true, monster };
+  }
+
+  restoreTeamPP(runId: string) {
+    const run = this.gameRuns.get(runId);
+    if (!run) {
+      throw new Error('Game run not found');
+    }
+
+    run.team.forEach(monster => {
+      this.monsterService.restoreAllPP(monster);
+    });
+
+    return { success: true, team: run.team };
   }
 }

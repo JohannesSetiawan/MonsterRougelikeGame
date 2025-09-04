@@ -175,4 +175,26 @@ export class GameController {
     }
     return monster;
   }
+
+  @Post('run/:runId/monster/:monsterId/restore-pp')
+  restoreMonsterPP(
+    @Param('runId') runId: string,
+    @Param('monsterId') monsterId: string,
+    @Body() body: { moveId?: string; amount?: number; restoreAll?: boolean }
+  ) {
+    try {
+      return this.gameService.restoreMonsterPP(runId, monsterId, body);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post('run/:runId/team/restore-pp')
+  restoreTeamPP(@Param('runId') runId: string) {
+    try {
+      return this.gameService.restoreTeamPP(runId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

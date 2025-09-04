@@ -1377,6 +1377,23 @@ button:disabled {
   box-shadow: none !important;
 }
 
+/* Out of PP move styling */
+.move-button.out-of-pp {
+  background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.move-button.out-of-pp .move-info {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.move-button.out-of-pp::before {
+  background: rgba(239, 68, 68, 0.2) !important;
+}
+
 .battle-actions {
   display: grid;
   grid-template-columns: 2fr 1fr;

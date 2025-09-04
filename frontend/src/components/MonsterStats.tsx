@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { MonsterInstance } from '../api/types';
+import { gameApi } from '../api/gameApi';
 import MoveInfo from './MoveInfo';
 import AbilityInfo from './AbilityInfo';
 
@@ -16,6 +17,25 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
 }) => {
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
+  const [movesData, setMovesData] = useState<Record<string, any>>({});
+
+  // Load moves data when component mounts
+  useEffect(() => {
+    const loadMovesData = async () => {
+      try {
+        const allMoves = await gameApi.getAllMoves();
+        const movesMap: Record<string, any> = {};
+        allMoves.forEach((move: any) => {
+          movesMap[move.id] = move;
+        });
+        setMovesData(movesMap);
+      } catch (error) {
+        console.error('Failed to load moves data:', error);
+      }
+    };
+    
+    loadMovesData();
+  }, []);
   const getStatBarWidth = (stat: number, maxStat: number = 200) => {
     return Math.min((stat / maxStat) * 100, 100);
   };
@@ -173,16 +193,28 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           <div className="moves-section">
             <h4>Moves</h4>
             <div className="moves-list">
-              {monster.moves.map((moveId, index) => (
-                <button 
-                  key={index} 
-                  className="move-item clickable-move"
-                  onClick={() => setSelectedMove(moveId)}
-                  title="Click to view move details"
-                >
-                  <span className="move-name">{moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                </button>
-              ))}
+              {monster.moves.map((moveId, index) => {
+                const currentPP = monster.movePP[moveId] || 0;
+                const moveData = movesData[moveId];
+                const maxPP = moveData ? moveData.pp : 20;
+                const isOutOfPP = currentPP <= 0;
+                
+                return (
+                  <button 
+                    key={index} 
+                    className={`move-item clickable-move ${isOutOfPP ? 'out-of-pp' : ''}`}
+                    onClick={() => setSelectedMove(moveId)}
+                    title="Click to view move details"
+                  >
+                    <div className="move-name">
+                      {moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </div>
+                    <div className="move-pp">
+                      PP: {currentPP}/{maxPP}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -395,6 +427,29 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           font-size: 0.875rem;
           color: var(--text-primary);
           font-weight: 500;
+          margin-bottom: 0.25rem;
+        }
+
+        .move-pp {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          font-weight: 600;
+        }
+
+        .clickable-move.out-of-pp {
+          background: var(--surface);
+          border-color: var(--error);
+          opacity: 0.6;
+          cursor: not-allowed;
+          pointer-events: none;
+        }
+
+        .clickable-move.out-of-pp .move-name {
+          color: var(--text-muted);
+        }
+
+        .clickable-move.out-of-pp .move-pp {
+          color: var(--error);
         }
 
         /* Compact version for battle */

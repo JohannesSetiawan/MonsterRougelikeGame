@@ -207,30 +207,32 @@ const BattleInterface: React.FC = () => {
     return '#F44336';
   };
 
-  const getMoveData = (moveId: string): { name: string; power: number; accuracy: number } => {
+  const getMoveData = (moveId: string): { name: string; power: number; accuracy: number; pp: number } => {
     // Use loaded moves data from API if available
     if (movesData[moveId]) {
       return {
         name: movesData[moveId].name,
         power: movesData[moveId].power,
-        accuracy: movesData[moveId].accuracy
+        accuracy: movesData[moveId].accuracy,
+        pp: movesData[moveId].pp
       };
     }
     
     // Fallback data for basic moves if API data not yet loaded
-    const fallbackMoves: Record<string, { name: string; power: number; accuracy: number }> = {
-      'scratch': { name: 'Scratch', power: 40, accuracy: 100 },
-      'ember': { name: 'Ember', power: 40, accuracy: 100 },
-      'flame_burst': { name: 'Flame Burst', power: 70, accuracy: 100 },
-      'water_gun': { name: 'Water Gun', power: 40, accuracy: 100 },
-      'bubble_beam': { name: 'Bubble Beam', power: 65, accuracy: 100 },
-      'hydro_pump': { name: 'Hydro Pump', power: 110, accuracy: 80 },
+    const fallbackMoves: Record<string, { name: string; power: number; accuracy: number; pp: number }> = {
+      'scratch': { name: 'Scratch', power: 40, accuracy: 100, pp: 35 },
+      'ember': { name: 'Ember', power: 40, accuracy: 100, pp: 25 },
+      'flame_burst': { name: 'Flame Burst', power: 70, accuracy: 100, pp: 15 },
+      'water_gun': { name: 'Water Gun', power: 40, accuracy: 100, pp: 25 },
+      'bubble_beam': { name: 'Bubble Beam', power: 65, accuracy: 100, pp: 20 },
+      'hydro_pump': { name: 'Hydro Pump', power: 110, accuracy: 80, pp: 5 },
     };
     
     return fallbackMoves[moveId] || { 
       name: moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()), 
       power: 50, 
-      accuracy: 100 
+      accuracy: 100,
+      pp: 20
     };
   };
 
@@ -343,16 +345,20 @@ const BattleInterface: React.FC = () => {
           <div className="moves-grid">
             {playerMonster.moves.map((moveId) => {
               const move = getMoveData(moveId);
+              const currentPP = playerMonster.movePP[moveId] || 0;
+              const maxPP = move.pp;
+              const isOutOfPP = currentPP <= 0;
+              
               return (
                 <div key={moveId} className="move-button-container">
                   <button
-                    className="move-button"
+                    className={`move-button ${isOutOfPP ? 'out-of-pp' : ''}`}
                     onClick={() => handleAttack(moveId)}
-                    disabled={isProcessing || battleEnded}
+                    disabled={isProcessing || battleEnded || isOutOfPP}
                   >
                     <div className="move-name">{move.name}</div>
                     <div className="move-info">
-                      PWR: {move.power} | ACC: {move.accuracy}%
+                      PWR: {move.power} | ACC: {move.accuracy}% | PP: {currentPP}/{maxPP}
                     </div>
                   </button>
                   <button

@@ -121,6 +121,18 @@ export class BattleService {
       return { success: false, effects: ['Move not found'] };
     }
 
+    // Check if the move has PP remaining
+    const remainingPP = attacker.movePP[moveId] || 0;
+    if (remainingPP <= 0) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
+      };
+    }
+
+    // Consume PP
+    attacker.movePP[moveId] = Math.max(0, remainingPP - 1);
+
     // Check accuracy
     const hitChance = Math.random() * 100;
     if (hitChance > move.accuracy) {

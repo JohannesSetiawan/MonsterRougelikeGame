@@ -57,6 +57,7 @@ export interface MonsterInstance {
   maxHp: number;
   stats: MonsterStats;
   moves: string[]; // move ids (max 4)
+  movePP: Record<string, number>; // current PP for each move
   ability: string; // ability id
   experience: number;
   isShiny?: boolean;
