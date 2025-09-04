@@ -1,0 +1,26 @@
+{
+  "blaze": {
+    "id": "blaze",
+    "name": "Blaze",
+    "description": "Powers up Fire-type moves when HP is low",
+    "effect": "fire_boost_low_hp"
+  },
+  "torrent": {
+    "id": "torrent",
+    "name": "Torrent",
+    "description": "Powers up Water-type moves when HP is low",
+    "effect": "water_boost_low_hp"
+  },
+  "intimidate": {
+    "id": "intimidate",
+    "name": "Intimidate",
+    "description": "Lowers the opponent's Attack stat",
+    "effect": "lower_opponent_attack"
+  },
+  "swift_swim": {
+    "id": "swift_swim",
+    "name": "Swift Swim",
+    "description": "Boosts Speed in rain or water environments",
+    "effect": "speed_boost_water"
+  }
+}

@@ -1,0 +1,69 @@
+.orientation-hint {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 1rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: slideDown 0.3s ease-out;
+}
+
+.hint-content {
+  text-align: center;
+  max-width: 300px;
+}
+
+.phone-icon, .rotate-icon {
+  font-size: 2rem;
+  margin: 0.5rem 0;
+  display: block;
+}
+
+.rotate-icon {
+  animation: rotate 2s infinite linear;
+}
+
+.orientation-hint p {
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hide after 5 seconds */
+.orientation-hint {
+  animation: slideDown 0.3s ease-out, slideUp 0.3s ease-in 4.7s forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}

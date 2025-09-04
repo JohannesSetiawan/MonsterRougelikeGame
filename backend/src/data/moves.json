@@ -1,0 +1,64 @@
+{
+  "scratch": {
+    "id": "scratch",
+    "name": "Scratch",
+    "type": "fire",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 35,
+    "description": "The target is raked with sharp claws or scythes to inflict damage."
+  },
+  "ember": {
+    "id": "ember",
+    "name": "Ember",
+    "type": "fire",
+    "category": "special",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 25,
+    "description": "The target is attacked with small flames that may also leave the target with a burn.",
+    "effect": "burn_chance_10"
+  },
+  "flame_burst": {
+    "id": "flame_burst",
+    "name": "Flame Burst",
+    "type": "fire",
+    "category": "special",
+    "power": 70,
+    "accuracy": 100,
+    "pp": 15,
+    "description": "The user attacks the target with a bursting flame that damages nearby allies."
+  },
+  "water_gun": {
+    "id": "water_gun",
+    "name": "Water Gun",
+    "type": "water",
+    "category": "special",
+    "power": 40,
+    "accuracy": 100,
+    "pp": 25,
+    "description": "The target is blasted with a forceful shot of water."
+  },
+  "bubble_beam": {
+    "id": "bubble_beam",
+    "name": "Bubble Beam",
+    "type": "water",
+    "category": "special",
+    "power": 65,
+    "accuracy": 100,
+    "pp": 20,
+    "description": "A spray of bubbles is forcefully ejected at the target.",
+    "effect": "speed_lower_chance_10"
+  },
+  "hydro_pump": {
+    "id": "hydro_pump",
+    "name": "Hydro Pump",
+    "type": "water",
+    "category": "special",
+    "power": 110,
+    "accuracy": 80,
+    "pp": 5,
+    "description": "The target is blasted by a huge volume of water launched under great pressure."
+  }
+}

@@ -1,0 +1,266 @@
+import { Injectable } from '@nestjs/common';
+import { GameRun, Player, MonsterInstance, Item } from '../types';
+import { MonsterService } from './monster.service';
+import { DataLoaderService } from './data-loader.service';
+
+@Injectable()
+export class GameService {
+  private players: Map<string, Player> = new Map();
+  private gameRuns: Map<string, GameRun> = new Map();
+
+  constructor(
+    private monsterService: MonsterService,
+    private dataLoaderService: DataLoaderService
+  ) {}
+
+  createPlayer(username: string): Player {
+    const player: Player = {
+      id: this.generateId(),
+      username,
+      permanentCurrency: 100, // Starting currency
+      unlockedStarters: [...this.dataLoaderService.getStarterMonsters()],
+      unlockedAbilities: [],
+      totalRuns: 0,
+      bestStage: 0,
+      createdAt: new Date()
+    };
+
+    this.players.set(player.id, player);
+    return player;
+  }
+
+  getPlayer(playerId: string): Player | undefined {
+    return this.players.get(playerId);
+  }
+
+  startNewRun(playerId: string, starterId: string): GameRun {
+    const player = this.players.get(playerId);
+    if (!player) {
+      throw new Error('Player not found');
+    }
+
+    if (!player.unlockedStarters.includes(starterId)) {
+      throw new Error('Starter not unlocked');
+    }
+
+    // End any active runs
+    const activeRun = this.getActiveRun(playerId);
+    if (activeRun) {
+      activeRun.isActive = false;
+      activeRun.endedAt = new Date();
+    }
+
+    // Create starter monster
+    const starterMonster = this.monsterService.createMonsterInstance(starterId, 5);
+
+    // Create new run
+    const gameRun: GameRun = {
+      id: this.generateId(),
+      playerId,
+      currentStage: 1,
+      team: [starterMonster],
+      inventory: [
+        { id: 'potion', name: 'Potion', description: 'Restores 50 HP', type: 'healing', effect: 'heal_50', quantity: 3 },
+        { id: 'monster_ball', name: 'Monster Ball', description: 'Used to catch monsters', type: 'capture', effect: 'catch', quantity: 5 }
+      ],
+      currency: this.players.get(playerId)?.permanentCurrency || 100,
+      isActive: true,
+      createdAt: new Date()
+    };
+
+    this.gameRuns.set(gameRun.id, gameRun);
+    player.totalRuns++;
+
+    return gameRun;
+  }
+
+  getActiveRun(playerId: string): GameRun | undefined {
+    for (const run of this.gameRuns.values()) {
+      if (run.playerId === playerId && run.isActive) {
+        return run;
+      }
+    }
+    return undefined;
+  }
+
+  getGameRun(runId: string): GameRun | undefined {
+    return this.gameRuns.get(runId);
+  }
+
+  progressStage(runId: string): GameRun {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    run.currentStage++;
+    
+    // Update player's best stage
+    const player = this.players.get(run.playerId);
+    if (player && run.currentStage > player.bestStage) {
+      player.bestStage = run.currentStage;
+    }
+
+    // Check for victory condition (reaching stage 20)
+    if (run.currentStage > 200000) {
+      this.endRun(runId, 'victory');
+      return run;
+    }
+
+    return run;
+  }
+
+  addMonsterToTeam(runId: string, monster: MonsterInstance): GameRun {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    if (run.team.length < 6) { // Max team size
+      run.team.push(monster);
+    } else {
+      throw new Error('Team is full');
+    }
+
+    return run;
+  }
+
+  addCurrency(runId: string, amount: number): GameRun {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    run.currency += amount;
+    return run;
+  }
+
+  addItem(runId: string, item: Item): GameRun {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    const existingItem = run.inventory.find(i => i.id === item.id);
+    if (existingItem) {
+      existingItem.quantity += item.quantity;
+    } else {
+      run.inventory.push(item);
+    }
+
+    return run;
+  }
+
+  useItem(runId: string, itemId: string, targetMonsterId?: string): { success: boolean; message: string; run: GameRun } {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    const item = run.inventory.find(i => i.id === itemId && i.quantity > 0);
+    if (!item) {
+      return { success: false, message: 'Item not found or out of stock', run };
+    }
+
+    const targetMonster = targetMonsterId 
+      ? run.team.find(m => m.id === targetMonsterId)
+      : run.team.find(m => m.currentHp < m.maxHp); // Auto-target injured monster
+
+    if (!targetMonster && item.type === 'healing') {
+      return { success: false, message: 'No valid target for this item', run };
+    }
+
+    let success = false;
+    let message = '';
+
+    switch (item.effect) {
+      case 'heal_50':
+        if (targetMonster) {
+          const healAmount = Math.min(50, targetMonster.maxHp - targetMonster.currentHp);
+          targetMonster.currentHp += healAmount;
+          success = true;
+          message = `${targetMonster.name} recovered ${healAmount} HP!`;
+        }
+        break;
+      
+      default:
+        message = 'Unknown item effect';
+        break;
+    }
+
+    if (success) {
+      item.quantity--;
+      if (item.quantity === 0) {
+        run.inventory = run.inventory.filter(i => i.id !== itemId);
+      }
+    }
+
+    return { success, message, run };
+  }
+
+  endRun(runId: string, reason: 'victory' | 'defeat'): GameRun {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    run.isActive = false;
+    run.endedAt = new Date();
+
+    // Award permanent currency based on performance
+    const player = this.players.get(run.playerId);
+    if (player) {
+      const currencyReward = run.currentStage * 10 + (reason === 'victory' ? 100 : 0);
+      player.permanentCurrency += currencyReward;
+    }
+
+    return run;
+  }
+
+  generateRandomEncounter(stageLevel: number): {
+    type: 'wild_monster' | 'trainer' | 'item' | 'rest_site';
+    data?: any;
+  } {
+    const encounterTypes = ['wild_monster', 'wild_monster','wild_monster', 'wild_monster','wild_monster', 'wild_monster', 'item', 'rest_site']; // Higher chance for monsters
+    const randomType = encounterTypes[Math.floor(Math.random() * encounterTypes.length)] as any;
+
+    switch (randomType) {
+      case 'wild_monster':
+        return {
+          type: 'wild_monster',
+          data: this.monsterService.getRandomWildMonster(stageLevel)
+        };
+      
+      case 'item':
+        return {
+          type: 'item',
+          data: this.generateRandomItem()
+        };
+      
+      case 'rest_site':
+        return {
+          type: 'rest_site',
+          data: { healPercentage: 50 }
+        };
+      
+      default:
+        return {
+          type: 'wild_monster',
+          data: this.monsterService.getRandomWildMonster(stageLevel)
+        };
+    }
+  }
+
+  private generateRandomItem(): Item {
+    const items = [
+      { id: 'potion', name: 'Potion', description: 'Restores 50 HP', type: 'healing', effect: 'heal_50', quantity: 1 },
+      { id: 'monster_ball', name: 'Monster Ball', description: 'Used to catch monsters', type: 'capture', effect: 'catch', quantity: 1 }
+    ];
+
+    return items[Math.floor(Math.random() * items.length)] as Item;
+  }
+
+  private generateId(): string {
+    return Math.random().toString(36).substr(2, 9);
+  }
+}
