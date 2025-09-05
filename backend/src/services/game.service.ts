@@ -234,16 +234,9 @@ export class GameService {
       
       case 'level_up':
         if (targetMonster) {
-          targetMonster.level += 1;
-          // Recalculate stats based on new level (simplified)
-          const statIncrease = 5;
-          targetMonster.maxHp += statIncrease;
-          targetMonster.currentHp += statIncrease;
-          targetMonster.stats.attack += statIncrease;
-          targetMonster.stats.defense += statIncrease;
-          targetMonster.stats.specialAttack += statIncrease;
-          targetMonster.stats.specialDefense += statIncrease;
-          targetMonster.stats.speed += statIncrease;
+          const leveledUpMonster = this.monsterService.levelUpMonster(targetMonster);
+          // Update the target monster with the leveled up stats
+          Object.assign(targetMonster, leveledUpMonster);
           success = true;
           message = `${targetMonster.name} leveled up to level ${targetMonster.level}!`;
         }

@@ -129,8 +129,13 @@ export class BattleController {
       }
 
       if (body.action.type === 'flee') {
-        battleEnded = true;
-        allEffects.push(`${playerMonster.name} fled from battle!`);
+        if (playerResult.success) {
+          battleEnded = true;
+          allEffects = [...(playerResult.effects || [])];
+        } else {
+          // Flee failed, continue with enemy turn
+          allEffects = [...(playerResult.effects || [])];
+        }
       }
 
       // Handle item usage
@@ -183,8 +188,10 @@ export class BattleController {
         allEffects.push(`Wild ${body.opponentMonster.name} fainted!`);
       }
 
-      // Process enemy turn if battle hasn't ended and action wasn't flee or catch or successful monster ball
-      if (!battleEnded && body.action.type !== 'flee' && !playerResult.monsterCaught) {
+      // Process enemy turn if battle hasn't ended and action wasn't successful flee or catch or successful monster ball
+      if (!battleEnded && 
+          !(body.action.type === 'flee' && playerResult.success) && 
+          !playerResult.monsterCaught) {
         const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
         const enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,

@@ -57,10 +57,6 @@ export class BattleService {
       }
     }
 
-    // Apply ability effects to stats
-    attack = this.applyAbilityEffectsToStat(attacker, 'attack', attack, move);
-    defense = this.applyAbilityEffectsToStat(defender, 'defense', defense, move);
-
     // Level factor
     const levelFactor = (2 * attacker.level / 5 + 2);
 
@@ -99,7 +95,7 @@ export class BattleService {
         return this.processCatch(opponentMonster);
       
       case 'flee':
-        return this.processFlee();
+        return this.processFlee(playerMonster, opponentMonster);
       
       case 'item':
         return this.processItem(action.itemId);
@@ -207,13 +203,36 @@ export class BattleService {
     }
   }
 
-  private processFlee(): BattleResult {
-    // For now, flee always succeeds
-    return {
-      success: true,
-      effects: ['Got away safely!'],
-      battleEnded: true
-    };
+  private processFlee(playerMonster: MonsterInstance, opponentMonster: MonsterInstance): BattleResult {
+    const levelDiff = opponentMonster.level - playerMonster.level;
+
+    // If player monster level is same or higher, guaranteed flee
+    if (levelDiff <= 0) {
+      return {
+        success: true,
+        effects: ['Got away safely!'],
+        battleEnded: true
+      };
+    }
+
+    // Calculate flee chance based on level difference
+    const maxRange = 2 * levelDiff;
+    const randomNumber = Math.floor(Math.random() * (maxRange + 1)); // 0 to maxRange inclusive
+    const fleeThreshold = levelDiff;
+
+    if (randomNumber < fleeThreshold) {
+      return {
+        success: true,
+        effects: ['Got away safely!'],
+        battleEnded: true
+      };
+    } else {
+      return {
+        success: false,
+        effects: ['Could not escape!'],
+        battleEnded: false
+      };
+    }
   }
 
   private processItem(itemId: string): BattleResult {
@@ -292,32 +311,6 @@ export class BattleService {
   }
 
   // Ability effect methods
-  private applyAbilityEffectsToStat(
-    monster: MonsterInstance, 
-    statType: 'attack' | 'defense', 
-    baseStat: number, 
-    move: any
-  ): number {
-    const abilityData = this.monsterService.getAbilityData(monster.ability);
-    if (!abilityData) return baseStat;
-
-    let modifiedStat = baseStat;
-
-    switch (abilityData.effect) {
-      case 'lower_opponent_attack':
-        // Intimidate: Lower opponent's attack (only applies to defense calculations when this monster is defending)
-        if (statType === 'attack') {
-          // This will be handled in the battle start logic
-        }
-        break;
-        
-      default:
-        break;
-    }
-
-    return modifiedStat;
-  }
-
   private applyAbilityEffectsToStab(
     attacker: MonsterInstance, 
     baseSTab: number, 
