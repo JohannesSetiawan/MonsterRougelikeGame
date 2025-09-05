@@ -11,7 +11,7 @@
       "specialDefense": 60,
       "speed": 75
     },
-    "abilities": ["blaze", "intimidate"],
+    "abilities": ["intimidate"],
     "learnableMoves": ["scratch", "ember", "flame_burst"],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
     "rarity": "uncommon"
@@ -21,7 +21,7 @@
     "name": "Aquafin",
     "type": ["water"],
     "baseStats": {
-      "hp": 70,
+      "hp": 80,
       "attack": 55,
       "defense": 65,
       "specialAttack": 80,

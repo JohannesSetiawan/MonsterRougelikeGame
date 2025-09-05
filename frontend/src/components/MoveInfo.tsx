@@ -19,11 +19,13 @@ const MoveInfo: React.FC<MoveInfoProps> = ({ moveId, onClose }) => {
     const loadMoveData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const data = await gameApi.getMoveData(moveId);
         setMoveData(data);
       } catch (err) {
-        setError('Failed to load move data');
         console.error('Error loading move data:', err);
+        setError('Failed to load move data. Please try again.');
+        // Don't use fallback data - let the error be handled by the UI
       } finally {
         setLoading(false);
       }
@@ -90,9 +92,14 @@ const MoveInfo: React.FC<MoveInfoProps> = ({ moveId, onClose }) => {
           <DialogHeader>
             <DialogTitle className="text-destructive">Error</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
             <p className="text-muted-foreground mb-4">{error || 'Move not found'}</p>
-            <Button onClick={onClose} className="w-full">Close</Button>
+            <div className="space-x-2">
+              <Button onClick={() => window.location.reload()} variant="outline" className="w-full">
+                Retry
+              </Button>
+              <Button onClick={onClose} className="w-full">Close</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -103,22 +110,12 @@ const MoveInfo: React.FC<MoveInfoProps> = ({ moveId, onClose }) => {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg bg-background text-foreground">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <DialogTitle className="text-xl text-foreground mb-2">{moveData.name}</DialogTitle>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{getCategoryIcon(moveData.category)}</span>
-                <span className="text-sm text-muted-foreground capitalize">{moveData.category}</span>
-              </div>
+          <div>
+            <DialogTitle className="text-xl text-foreground mb-2">{moveData.name}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{getCategoryIcon(moveData.category)}</span>
+              <span className="text-sm text-muted-foreground capitalize">{moveData.category}</span>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClose}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            >
-              ×
-            </Button>
           </div>
         </DialogHeader>
 

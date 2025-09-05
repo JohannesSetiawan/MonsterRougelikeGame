@@ -59,10 +59,7 @@ export class GameService {
       playerId,
       currentStage: 1,
       team: [starterMonster],
-      inventory: [
-        { id: 'potion', name: 'Potion', description: 'Restores 50 HP', type: 'healing', effect: 'heal_50', quantity: 3 },
-        { id: 'monster_ball', name: 'Monster Ball', description: 'Used to catch monsters', type: 'capture', effect: 'catch', quantity: 5 }
-      ],
+      inventory: this.getStartingInventory(),
       currency: this.players.get(playerId)?.permanentCurrency || 100,
       isActive: true,
       createdAt: new Date()
@@ -188,6 +185,70 @@ export class GameService {
         }
         break;
       
+      case 'heal_200':
+        if (targetMonster) {
+          const healAmount = Math.min(200, targetMonster.maxHp - targetMonster.currentHp);
+          targetMonster.currentHp += healAmount;
+          success = true;
+          message = `${targetMonster.name} recovered ${healAmount} HP!`;
+        }
+        break;
+      
+      case 'heal_500':
+        if (targetMonster) {
+          const healAmount = Math.min(500, targetMonster.maxHp - targetMonster.currentHp);
+          targetMonster.currentHp += healAmount;
+          success = true;
+          message = `${targetMonster.name} recovered ${healAmount} HP!`;
+        }
+        break;
+      
+      case 'heal_full':
+        if (targetMonster) {
+          const healAmount = targetMonster.maxHp - targetMonster.currentHp;
+          targetMonster.currentHp = targetMonster.maxHp;
+          success = true;
+          message = `${targetMonster.name} fully recovered ${healAmount} HP!`;
+        }
+        break;
+      
+      case 'revive_half':
+        if (targetMonster && targetMonster.currentHp === 0) {
+          targetMonster.currentHp = Math.floor(targetMonster.maxHp / 2);
+          success = true;
+          message = `${targetMonster.name} was revived with half HP!`;
+        } else if (targetMonster && targetMonster.currentHp > 0) {
+          message = `${targetMonster.name} is not fainted!`;
+        }
+        break;
+      
+      case 'revive_full':
+        if (targetMonster && targetMonster.currentHp === 0) {
+          targetMonster.currentHp = targetMonster.maxHp;
+          success = true;
+          message = `${targetMonster.name} was revived with full HP!`;
+        } else if (targetMonster && targetMonster.currentHp > 0) {
+          message = `${targetMonster.name} is not fainted!`;
+        }
+        break;
+      
+      case 'level_up':
+        if (targetMonster) {
+          targetMonster.level += 1;
+          // Recalculate stats based on new level (simplified)
+          const statIncrease = 5;
+          targetMonster.maxHp += statIncrease;
+          targetMonster.currentHp += statIncrease;
+          targetMonster.stats.attack += statIncrease;
+          targetMonster.stats.defense += statIncrease;
+          targetMonster.stats.specialAttack += statIncrease;
+          targetMonster.stats.specialDefense += statIncrease;
+          targetMonster.stats.speed += statIncrease;
+          success = true;
+          message = `${targetMonster.name} leveled up to level ${targetMonster.level}!`;
+        }
+        break;
+      
       default:
         message = 'Unknown item effect';
         break;
@@ -257,12 +318,25 @@ export class GameService {
   }
 
   private generateRandomItem(): Item {
-    const items = [
-      { id: 'potion', name: 'Potion', description: 'Restores 50 HP', type: 'healing', effect: 'heal_50', quantity: 1 },
-      { id: 'monster_ball', name: 'Monster Ball', description: 'Used to catch monsters', type: 'capture', effect: 'catch', quantity: 1 }
-    ];
+    const allItems = this.dataLoaderService.getItems();
+    const commonItems = Object.values(allItems).filter(item => 
+      item.rarity === 'common' || item.rarity === 'uncommon'
+    );
+    
+    if (commonItems.length === 0) {
+      // Fallback if no items are loaded
+      return { 
+        id: 'potion', 
+        name: 'Potion', 
+        description: 'Restores 50 HP', 
+        type: 'healing', 
+        effect: 'heal_50', 
+        quantity: 1 
+      };
+    }
 
-    return items[Math.floor(Math.random() * items.length)] as Item;
+    const selectedItem = commonItems[Math.floor(Math.random() * commonItems.length)];
+    return { ...selectedItem, quantity: 1 };
   }
 
   private generateId(): string {
@@ -323,5 +397,31 @@ export class GameService {
       message: 'Your team has been fully healed and all PP has been restored!',
       team: run.team 
     };
+  }
+
+  private getStartingInventory(): Item[] {
+    const allItems = this.dataLoaderService.getItems();
+    
+    // Get specific starting items from the JSON data
+    const potionItem = allItems['potion'];
+    const monsterBallItem = allItems['monster_ball'];
+    
+    const startingItems: Item[] = [];
+    
+    if (potionItem) {
+      startingItems.push({
+        ...potionItem,
+        quantity: 3
+      });
+    }
+    
+    if (monsterBallItem) {
+      startingItems.push({
+        ...monsterBallItem,
+        quantity: 5
+      });
+    }
+    
+    return startingItems;
   }
 }

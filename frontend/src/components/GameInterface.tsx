@@ -2,6 +2,7 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
 import TeamManagement from './TeamManagement';
+import ItemInfo from './ItemInfo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -13,6 +14,17 @@ const GameInterface: React.FC = () => {
   const [processingItemId, setProcessingItemId] = React.useState<string | null>(null);
   const [isEndingRun, setIsEndingRun] = React.useState(false);
   const [showTeamManagement, setShowTeamManagement] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
+
+  const getRarityColor = (rarity?: string) => {
+    switch (rarity) {
+      case 'common': return 'bg-gray-500/20 text-gray-700 border-gray-500/50';
+      case 'uncommon': return 'bg-green-500/20 text-green-700 border-green-500/50';
+      case 'rare': return 'bg-blue-500/20 text-blue-700 border-blue-500/50';
+      case 'legendary': return 'bg-purple-500/20 text-purple-700 border-purple-500/50';
+      default: return 'bg-gray-500/20 text-gray-700 border-gray-500/50';
+    }
+  };
 
   const handleEndRun = React.useCallback(async (reason: 'victory' | 'defeat') => {
     if (!state.currentRun || isEndingRun) return;
@@ -216,10 +228,27 @@ const GameInterface: React.FC = () => {
                   <Card key={item.id} className="border border-border/50">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex justify-between items-start">
-                        <h4 className="font-semibold">{item.name}</h4>
-                        <Badge variant="outline" className="text-xs">
-                          x{item.quantity}
-                        </Badge>
+                        <div>
+                          <h4 className="font-semibold">{item.name}</h4>
+                          {item.rarity && (
+                            <Badge className={`text-xs mt-1 ${getRarityColor(item.rarity)}`}>
+                              {item.rarity}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            x{item.quantity}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedItem(item.id)}
+                            className="p-1 h-6 w-6"
+                          >
+                            ℹ️
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {item.description}
@@ -356,6 +385,14 @@ const GameInterface: React.FC = () => {
           <TeamManagement
             team={state.currentRun.team}
             onClose={() => setShowTeamManagement(false)}
+          />
+        )}
+
+        {/* Item Info Modal */}
+        {selectedItem && (
+          <ItemInfo 
+            itemId={selectedItem} 
+            onClose={() => setSelectedItem(null)} 
           />
         )}
       </div>

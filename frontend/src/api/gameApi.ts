@@ -102,6 +102,17 @@ export const gameApi = {
     return response.data;
   },
 
+  // Item data endpoints
+  getAllItems: async (): Promise<Record<string, any>> => {
+    const response = await api.get('/game/items');
+    return response.data;
+  },
+
+  getItemData: async (itemId: string): Promise<any> => {
+    const response = await api.get(`/game/item/${itemId}`);
+    return response.data;
+  },
+
   // Battle endpoints
   initializeBattle: async (
     runId: string,

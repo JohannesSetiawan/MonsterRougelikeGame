@@ -70,6 +70,8 @@ export interface Item {
   type: 'healing' | 'capture' | 'battle' | 'misc';
   effect: string;
   quantity: number;
+  rarity?: 'common' | 'uncommon' | 'rare' | 'legendary';
+  value?: number;
 }
 
 export interface GameRun {

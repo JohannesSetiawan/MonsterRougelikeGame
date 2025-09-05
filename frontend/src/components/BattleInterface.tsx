@@ -18,11 +18,21 @@ const BattleInterface: React.FC = () => {
   const [battleEnded, setBattleEnded] = useState(false);
   const [movesData, setMovesData] = useState<Record<string, Move>>({});
   const [showItemBag, setShowItemBag] = useState(false);
-  const [battleInitialized, setBattleInitialized] = useState(false);
   const [showPlayerStats, setShowPlayerStats] = useState(false);
   const [showOpponentStats, setShowOpponentStats] = useState(false);
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
+  
+  // Use ref to track initialization to prevent multiple calls
+  const battleInitializationRef = React.useRef<{
+    isInitialized: boolean;
+    isInitializing: boolean;
+    runId: string | null;
+  }>({
+    isInitialized: false,
+    isInitializing: false,
+    runId: null
+  });
 
   const playerMonster = state.battleState.playerMonster;
   const opponentMonster = state.battleState.opponentMonster;
@@ -30,36 +40,82 @@ const BattleInterface: React.FC = () => {
 
   // Load moves data when component mounts
   React.useEffect(() => {
-    const loadMovesData = async () => {
+    const loadGameData = async () => {
       try {
+        // Load moves data
         const moves = await gameApi.getAllMoves();
         setMovesData(moves);
+        
+        // Note: Items data is now loaded via the useItemsData hook in ItemInfo component
+        // This demonstrates proper separation of concerns for API data loading
       } catch (error) {
         console.error('Failed to load moves data:', error);
         // Fallback to empty object, individual move calls will be made
         setMovesData({});
       }
     };
-    loadMovesData();
+    loadGameData();
   }, []);
+
+  // Reset battle initialization when component unmounts or game resets
+  React.useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      battleInitializationRef.current.isInitialized = false;
+      battleInitializationRef.current.runId = null;
+    };
+  }, []);
+
+  // Reset battle initialization if run changes significantly
+  React.useEffect(() => {
+    if (!currentRun) {
+      battleInitializationRef.current.isInitialized = false;
+      battleInitializationRef.current.runId = null;
+    }
+  }, [currentRun?.id]);
 
   // Initialize battle on first render
   React.useEffect(() => {
-    if (playerMonster && opponentMonster && currentRun && !battleInitialized) {
+    // Check if we need to initialize for a new run
+    const needsInitialization = playerMonster && 
+                               opponentMonster && 
+                               currentRun && 
+                               (!battleInitializationRef.current.isInitialized || 
+                                battleInitializationRef.current.runId !== currentRun.id) &&
+                               !battleInitializationRef.current.isInitializing;
+    
+    if (needsInitialization) {
+      console.log('Initializing battle for run:', currentRun.id);
       initializeBattle();
     }
-  }, [playerMonster, opponentMonster, currentRun, battleInitialized]);
+  }, [playerMonster?.id, opponentMonster?.id, currentRun?.id]); // Removed battleInitialized dependency
 
   const initializeBattle = async () => {
-    if (!playerMonster || !opponentMonster || !currentRun || battleInitialized) return;
+    if (!playerMonster || !opponentMonster || !currentRun) {
+      console.log('Battle initialization skipped: missing requirements');
+      return;
+    }
+
+    if (battleInitializationRef.current.isInitializing || 
+        (battleInitializationRef.current.isInitialized && 
+         battleInitializationRef.current.runId === currentRun.id)) {
+      console.log('Battle initialization skipped: already initialized or in progress');
+      return;
+    }
+    
+    console.log('Starting battle initialization for run:', currentRun.id);
     
     try {
       setIsProcessing(true);
+      battleInitializationRef.current.isInitializing = true;
+      
       const battleInit = await gameApi.initializeBattle(
         currentRun.id,
         playerMonster.id,
         opponentMonster
       );
+
+      console.log('Battle initialization response:', battleInit);
 
       if (battleInit.effects && battleInit.effects.length > 0) {
         setBattleLog(prev => [...prev, ...battleInit.effects]);
@@ -74,12 +130,18 @@ const BattleInterface: React.FC = () => {
         }
       });
 
-      setBattleInitialized(true);
+      // Mark as successfully initialized
+      battleInitializationRef.current.isInitialized = true;
+      battleInitializationRef.current.runId = currentRun.id;
+
     } catch (error) {
       console.error('Failed to initialize battle:', error);
       setBattleLog(prev => [...prev, 'Battle initialization failed!']);
+      // Reset on error so it can be retried
+      battleInitializationRef.current.isInitialized = false;
     } finally {
       setIsProcessing(false);
+      battleInitializationRef.current.isInitializing = false;
     }
   };
 
@@ -124,6 +186,9 @@ const BattleInterface: React.FC = () => {
             try {
               await gameApi.endRun(currentRun.id, 'defeat');
               dispatch({ type: 'RESET_GAME' });
+              // Reset battle initialization
+              battleInitializationRef.current.isInitialized = false;
+              battleInitializationRef.current.runId = null;
               // Reload player data
               if (state.player) {
                 const updatedPlayer = await gameApi.getPlayer(state.player.id);
@@ -132,6 +197,9 @@ const BattleInterface: React.FC = () => {
             } catch (error) {
               // Fallback - just reset the game
               dispatch({ type: 'RESET_GAME' });
+              // Reset battle initialization
+              battleInitializationRef.current.isInitialized = false;
+              battleInitializationRef.current.runId = null;
             }
           }
           setBattleLog([]);
@@ -156,6 +224,9 @@ const BattleInterface: React.FC = () => {
           dispatch({ type: 'END_BATTLE' });
           setBattleLog([]);
           setBattleEnded(false); // Reset for next battle
+          // Reset battle initialization for next battle
+          battleInitializationRef.current.isInitialized = false;
+          battleInitializationRef.current.runId = null;
         }, endDelay);
       }
 
@@ -205,12 +276,6 @@ const BattleInterface: React.FC = () => {
     return (current / max) * 100;
   };
 
-  const getHealthColor = (percentage: number) => {
-    if (percentage > 66) return '#4CAF50';
-    if (percentage > 33) return '#FFA726';
-    return '#F44336';
-  };
-
   const getMoveData = (moveId: string): { name: string; power: number; accuracy: number; pp: number } => {
     // Use loaded moves data from API if available
     if (movesData[moveId]) {
@@ -222,21 +287,12 @@ const BattleInterface: React.FC = () => {
       };
     }
     
-    // Fallback data for basic moves if API data not yet loaded
-    const fallbackMoves: Record<string, { name: string; power: number; accuracy: number; pp: number }> = {
-      'scratch': { name: 'Scratch', power: 40, accuracy: 100, pp: 35 },
-      'ember': { name: 'Ember', power: 40, accuracy: 100, pp: 25 },
-      'flame_burst': { name: 'Flame Burst', power: 70, accuracy: 100, pp: 15 },
-      'water_gun': { name: 'Water Gun', power: 40, accuracy: 100, pp: 25 },
-      'bubble_beam': { name: 'Bubble Beam', power: 65, accuracy: 100, pp: 20 },
-      'hydro_pump': { name: 'Hydro Pump', power: 110, accuracy: 80, pp: 5 },
-    };
-    
-    return fallbackMoves[moveId] || { 
-      name: moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()), 
-      power: 50, 
-      accuracy: 100,
-      pp: 20
+    // Fallback data only for battle interface - shows that data is loading
+    return { 
+      name: moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' (Loading...)', 
+      power: 0, 
+      accuracy: 0,
+      pp: 0
     };
   };
 

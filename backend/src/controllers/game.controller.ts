@@ -176,6 +176,20 @@ export class GameController {
     return monster;
   }
 
+  @Get('items')
+  getAllItems() {
+    return this.dataLoaderService.getItems();
+  }
+
+  @Get('item/:itemId')
+  getItemData(@Param('itemId') itemId: string) {
+    const item = this.dataLoaderService.getItem(itemId);
+    if (!item) {
+      throw new HttpException('Item not found', HttpStatus.NOT_FOUND);
+    }
+    return item;
+  }
+
   @Post('run/:runId/monster/:monsterId/restore-pp')
   restoreMonsterPP(
     @Param('runId') runId: string,

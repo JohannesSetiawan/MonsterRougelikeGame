@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Item } from '../api/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ItemInfo from './ItemInfo';
 
 interface ItemBagProps {
   inventory: Item[];
@@ -13,6 +14,7 @@ interface ItemBagProps {
 }
 
 const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProcessing }) => {
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const getItemIcon = (itemType: string) => {
     switch (itemType) {
       case 'healing': return '💊';
@@ -32,13 +34,17 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
   };
 
   const getItemDescription = (item: Item) => {
-    switch (item.id) {
-      case 'potion':
-        return 'Restores 50 HP to selected monster';
-      case 'monster_ball':
-        return 'Attempts to catch the opponent monster';
-      default:
-        return item.description;
+    // Always use the description from the item object (which comes from backend)
+    return item.description || 'No description available';
+  };
+
+  const getRarityColor = (rarity?: string) => {
+    switch (rarity) {
+      case 'common': return 'bg-gray-500/20 text-gray-700 border-gray-500/50';
+      case 'uncommon': return 'bg-green-500/20 text-green-700 border-green-500/50';
+      case 'rare': return 'bg-blue-500/20 text-blue-700 border-blue-500/50';
+      case 'legendary': return 'bg-purple-500/20 text-purple-700 border-purple-500/50';
+      default: return 'bg-gray-500/20 text-gray-700 border-gray-500/50';
     }
   };
 
@@ -72,9 +78,16 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
                         <div className="text-2xl">{getItemIcon(item.type)}</div>
                         <div>
                           <h4 className="font-semibold text-foreground">{item.name}</h4>
-                          <Badge className={`text-xs ${getItemTypeColor(item.type)}`}>
-                            {item.type}
-                          </Badge>
+                          <div className="flex gap-2">
+                            <Badge className={`text-xs ${getItemTypeColor(item.type)}`}>
+                              {item.type}
+                            </Badge>
+                            {item.rarity && (
+                              <Badge className={`text-xs ${getRarityColor(item.rarity)}`}>
+                                {item.rarity}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Badge variant="secondary" className="font-semibold">
@@ -86,21 +99,31 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
                       {getItemDescription(item)}
                     </p>
                     
-                    <Button
-                      onClick={() => onUseItem(item.id)}
-                      disabled={isProcessing}
-                      className="w-full"
-                      variant={item.type === 'healing' ? 'default' : item.type === 'capture' ? 'destructive' : 'secondary'}
-                    >
-                      {isProcessing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
-                          Using...
-                        </>
-                      ) : (
-                        `Use ${item.name}`
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => onUseItem(item.id)}
+                        disabled={isProcessing}
+                        className="flex-1"
+                        variant={item.type === 'healing' ? 'default' : item.type === 'capture' ? 'destructive' : 'secondary'}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                            Using...
+                          </>
+                        ) : (
+                          `Use ${item.name}`
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedItem(item.id)}
+                        className="p-2"
+                      >
+                        ℹ️
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -114,6 +137,14 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Item Info Modal */}
+      {selectedItem && (
+        <ItemInfo 
+          itemId={selectedItem} 
+          onClose={() => setSelectedItem(null)} 
+        />
+      )}
     </Dialog>
   );
 };

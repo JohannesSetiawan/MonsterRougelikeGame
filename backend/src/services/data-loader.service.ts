@@ -1,13 +1,14 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { Ability, Move, Monster, MonsterType, MoveCategory } from '../types';
+import { Ability, Move, Monster, MonsterType, MoveCategory, Item } from '../types';
 
 @Injectable()
 export class DataLoaderService implements OnModuleInit {
   private abilities: Record<string, Ability> = {};
   private moves: Record<string, Move> = {};
   private monsters: Record<string, Monster> = {};
+  private items: Record<string, Item> = {};
   private starterMonsters: string[] = [];
 
   onModuleInit() {
@@ -70,6 +71,12 @@ export class DataLoaderService implements OnModuleInit {
         return acc;
       }, {});
 
+      // Load items
+      const itemsData = JSON.parse(
+        readFileSync(join(dataPath, 'items.json'), 'utf8')
+      );
+      this.items = itemsData;
+
       // Load config
       const configData = JSON.parse(
         readFileSync(join(dataPath, 'config.json'), 'utf8')
@@ -95,6 +102,10 @@ export class DataLoaderService implements OnModuleInit {
     return this.monsters;
   }
 
+  getItems(): Record<string, Item> {
+    return this.items;
+  }
+
   getStarterMonsters(): string[] {
     return this.starterMonsters;
   }
@@ -109,5 +120,9 @@ export class DataLoaderService implements OnModuleInit {
 
   getMonster(id: string): Monster | undefined {
     return this.monsters[id];
+  }
+
+  getItem(id: string): Item | undefined {
+    return this.items[id];
   }
 }

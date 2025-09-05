@@ -19,11 +19,13 @@ const AbilityInfo: React.FC<AbilityInfoProps> = ({ abilityId, onClose }) => {
     const loadAbilityData = async () => {
       try {
         setLoading(true);
+        setError(null);
         const data = await gameApi.getAbilityData(abilityId);
         setAbilityData(data);
       } catch (err) {
-        setError('Failed to load ability data');
         console.error('Error loading ability data:', err);
+        setError('Failed to load ability data. Please try again.');
+        // Don't use fallback data - let the error be handled by the UI
       } finally {
         setLoading(false);
       }
@@ -104,9 +106,14 @@ const AbilityInfo: React.FC<AbilityInfoProps> = ({ abilityId, onClose }) => {
           <DialogHeader>
             <DialogTitle className="text-destructive">Error</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 space-y-4">
             <p className="text-muted-foreground mb-4">{error || 'Ability not found'}</p>
-            <Button onClick={onClose} className="w-full">Close</Button>
+            <div className="space-x-2">
+              <Button onClick={() => window.location.reload()} variant="outline" className="w-full">
+                Retry
+              </Button>
+              <Button onClick={onClose} className="w-full">Close</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -117,26 +124,16 @@ const AbilityInfo: React.FC<AbilityInfoProps> = ({ abilityId, onClose }) => {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-xl bg-background text-foreground">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">{getAbilityIcon(abilityData.id)}</div>
-                <DialogTitle className="text-xl text-foreground">{abilityData.name}</DialogTitle>
-              </div>
-              {abilityData.trigger && (
-                <Badge className={`text-white font-semibold ${getTriggerColor(abilityData.trigger)}`}>
-                  {abilityData.trigger.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                </Badge>
-              )}
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{getAbilityIcon(abilityData.id)}</div>
+              <DialogTitle className="text-xl text-foreground">{abilityData.name}</DialogTitle>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onClose}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            >
-              ×
-            </Button>
+            {abilityData.trigger && (
+              <Badge className={`text-white font-semibold ${getTriggerColor(abilityData.trigger)}`}>
+                {abilityData.trigger.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+              </Badge>
+            )}
           </div>
         </DialogHeader>
 

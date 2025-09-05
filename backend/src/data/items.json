@@ -1,0 +1,173 @@
+{
+  "potion": {
+    "id": "potion",
+    "name": "Potion",
+    "description": "Restores 50 HP to a monster",
+    "type": "healing",
+    "effect": "heal_50",
+    "rarity": "common",
+    "value": 200
+  },
+  "super_potion": {
+    "id": "super_potion",
+    "name": "Super Potion",
+    "description": "Restores 200 HP to a monster",
+    "type": "healing",
+    "effect": "heal_200",
+    "rarity": "uncommon",
+    "value": 700
+  },
+  "hyper_potion": {
+    "id": "hyper_potion",
+    "name": "Hyper Potion",
+    "description": "Restores 500 HP to a monster",
+    "type": "healing",
+    "effect": "heal_500",
+    "rarity": "rare",
+    "value": 1500
+  },
+  "max_potion": {
+    "id": "max_potion",
+    "name": "Max Potion",
+    "description": "Fully restores a monster's HP",
+    "type": "healing",
+    "effect": "heal_full",
+    "rarity": "rare",
+    "value": 2500
+  },
+  "monster_ball": {
+    "id": "monster_ball",
+    "name": "Monster Ball",
+    "description": "A device for catching wild monsters",
+    "type": "capture",
+    "effect": "catch",
+    "rarity": "common",
+    "value": 300
+  },
+  "great_ball": {
+    "id": "great_ball",
+    "name": "Great Ball",
+    "description": "A good ball with a higher catch rate than a Monster Ball",
+    "type": "capture",
+    "effect": "catch_improved",
+    "rarity": "uncommon",
+    "value": 600
+  },
+  "ultra_ball": {
+    "id": "ultra_ball",
+    "name": "Ultra Ball",
+    "description": "An ultra-high performance ball with excellent catch rate",
+    "type": "capture",
+    "effect": "catch_excellent",
+    "rarity": "rare",
+    "value": 1200
+  },
+  "ether": {
+    "id": "ether",
+    "name": "Ether",
+    "description": "Restores 10 PP to a single move",
+    "type": "battle",
+    "effect": "pp_restore_10",
+    "rarity": "uncommon",
+    "value": 400
+  },
+  "max_ether": {
+    "id": "max_ether",
+    "name": "Max Ether",
+    "description": "Fully restores the PP of a single move",
+    "type": "battle",
+    "effect": "pp_restore_full",
+    "rarity": "rare",
+    "value": 800
+  },
+  "elixir": {
+    "id": "elixir",
+    "name": "Elixir",
+    "description": "Restores 10 PP to all moves",
+    "type": "battle",
+    "effect": "pp_restore_all_10",
+    "rarity": "rare",
+    "value": 1000
+  },
+  "max_elixir": {
+    "id": "max_elixir",
+    "name": "Max Elixir",
+    "description": "Fully restores the PP of all moves",
+    "type": "battle",
+    "effect": "pp_restore_all_full",
+    "rarity": "legendary",
+    "value": 2000
+  },
+  "revive": {
+    "id": "revive",
+    "name": "Revive",
+    "description": "Revives a fainted monster with half HP",
+    "type": "healing",
+    "effect": "revive_half",
+    "rarity": "uncommon",
+    "value": 800
+  },
+  "max_revive": {
+    "id": "max_revive",
+    "name": "Max Revive",
+    "description": "Revives a fainted monster with full HP",
+    "type": "healing",
+    "effect": "revive_full",
+    "rarity": "rare",
+    "value": 1500
+  },
+  "rare_candy": {
+    "id": "rare_candy",
+    "name": "Rare Candy",
+    "description": "Increases a monster's level by 1",
+    "type": "misc",
+    "effect": "level_up",
+    "rarity": "legendary",
+    "value": 5000
+  },
+  "escape_rope": {
+    "id": "escape_rope",
+    "name": "Escape Rope",
+    "description": "Allows instant escape from any battle",
+    "type": "battle",
+    "effect": "guaranteed_flee",
+    "rarity": "common",
+    "value": 150
+  },
+  "x_attack": {
+    "id": "x_attack",
+    "name": "X Attack",
+    "description": "Raises Attack stat for the current battle",
+    "type": "battle",
+    "effect": "boost_attack",
+    "rarity": "uncommon",
+    "value": 500
+  },
+  "x_defense": {
+    "id": "x_defense",
+    "name": "X Defense",
+    "description": "Raises Defense stat for the current battle",
+    "type": "battle",
+    "effect": "boost_defense",
+    "rarity": "uncommon",
+    "value": 500
+  },
+  "x_speed": {
+    "id": "x_speed",
+    "name": "X Speed",
+    "description": "Raises Speed stat for the current battle",
+    "type": "battle",
+    "effect": "boost_speed",
+    "rarity": "uncommon",
+    "value": 500
+  },
+  "luck_charm": {
+    "id": "luck_charm",
+    "name": "Luck Charm",
+    "description": "Increases shiny encounter rate for a short time",
+    "type": "misc",
+    "effect": "boost_shiny_rate",
+    "rarity": "rare",
+    "value": 3000
+  }
+}
