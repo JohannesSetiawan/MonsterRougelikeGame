@@ -6,6 +6,10 @@ import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
 import AbilityInfo from './AbilityInfo';
 import type { BattleAction, Move } from '../api/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 const BattleInterface: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -237,201 +241,266 @@ const BattleInterface: React.FC = () => {
   };
 
   return (
-    <div className="battle-interface">
-      <div className="battle-field">
-        {/* Opponent Monster */}
-        <div className="opponent-section">
-          <div className="monster-info opponent-monster">
-            <div className="monster-header-row">
-              <h3>{opponentMonster.name} (Lv.{opponentMonster.level})</h3>
-              <button 
-                className="stats-button opponent-stats-button"
-                onClick={() => setShowOpponentStats(true)}
-                disabled={isProcessing}
-                title="View opponent stats"
-              >
-                📊
-              </button>
-            </div>
-            <div className="ability-info">
-              Ability: 
-              <button 
-                className="ability-button"
-                onClick={() => setSelectedAbility(opponentMonster.ability)}
-                title="Click to view ability details"
-              >
-                {opponentMonster.ability}
-              </button>
-            </div>
-            <div className="health-bar">
-              <div 
-                className="health-fill" 
-                style={{ 
-                  width: `${getHealthPercentage(opponentMonster.currentHp, opponentMonster.maxHp)}%`,
-                  backgroundColor: getHealthColor(getHealthPercentage(opponentMonster.currentHp, opponentMonster.maxHp))
-                }}
-              />
-              <span className="health-text">
-                {opponentMonster.currentHp}/{opponentMonster.maxHp}
-              </span>
-            </div>
-            {opponentMonster.isShiny && <span className="shiny">✨</span>}
-          </div>
+    <div className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Battle Field */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Opponent Monster */}
+          <Card className="border-2 border-red-500/50 bg-red-950/20">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl text-red-200">
+                    {opponentMonster.name}
+                  </CardTitle>
+                  <p className="text-red-300/70">Level {opponentMonster.level}</p>
+                </div>
+                <div className="flex gap-2">
+                  {opponentMonster.isShiny && (
+                    <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
+                      ✨ Shiny
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOpponentStats(true)}
+                    disabled={isProcessing}
+                    className="border-red-500/50 hover:bg-red-500/20"
+                  >
+                    📊
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-red-300/70">Ability:</span>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedAbility(opponentMonster.ability)}
+                    className="h-auto p-1 text-red-200 hover:text-red-100"
+                  >
+                    {opponentMonster.ability}
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-red-300/70">HP</span>
+                    <span className="text-red-200">
+                      {opponentMonster.currentHp}/{opponentMonster.maxHp}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={getHealthPercentage(opponentMonster.currentHp, opponentMonster.maxHp)} 
+                    className="h-4"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Player Monster */}
+          <Card className="border-2 border-blue-500/50 bg-blue-950/20">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-xl text-blue-200">
+                    {playerMonster.name}
+                  </CardTitle>
+                  <p className="text-blue-300/70">Level {playerMonster.level}</p>
+                </div>
+                <div className="flex gap-2">
+                  {playerMonster.isShiny && (
+                    <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
+                      ✨ Shiny
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPlayerStats(true)}
+                    disabled={isProcessing}
+                    className="border-blue-500/50 hover:bg-blue-500/20"
+                  >
+                    📊
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-300/70">Ability:</span>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedAbility(playerMonster.ability)}
+                    className="h-auto p-1 text-blue-200 hover:text-blue-100"
+                  >
+                    {playerMonster.ability}
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-300/70">HP</span>
+                    <span className="text-blue-200">
+                      {playerMonster.currentHp}/{playerMonster.maxHp}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={getHealthPercentage(playerMonster.currentHp, playerMonster.maxHp)} 
+                    className="h-4"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-300/70">EXP</span>
+                    <span className="text-blue-200">
+                      {playerMonster.experience}/{playerMonster.level * 100}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(playerMonster.experience / (playerMonster.level * 100)) * 100} 
+                    className="h-2"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Player Monster */}
-        <div className="player-section">
-          <div className="monster-info player-monster">
-            <div className="monster-header-row">
-              <h3>{playerMonster.name} (Lv.{playerMonster.level})</h3>
-              <button 
-                className="stats-button player-stats-button"
-                onClick={() => setShowPlayerStats(true)}
-                disabled={isProcessing}
-                title="View your monster's stats"
-              >
-                📊
-              </button>
+        {/* Battle Log */}
+        <Card className="border-2 border-amber-500/50 bg-amber-950/10">
+          <CardHeader>
+            <CardTitle className="text-amber-200">Battle Log</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {battleLog.slice(-6).map((message, index) => (
+                <div key={index} className="text-sm text-amber-100/80 p-2 bg-amber-950/20 rounded">
+                  {message}
+                </div>
+              ))}
+              {isProcessing && (
+                <div className="text-sm text-amber-200 p-2 bg-amber-500/20 rounded flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-300" />
+                  Processing turn...
+                </div>
+              )}
             </div>
-            <div className="ability-info">
-              Ability: 
-              <button 
-                className="ability-button"
-                onClick={() => setSelectedAbility(playerMonster.ability)}
-                title="Click to view ability details"
-              >
-                {playerMonster.ability}
-              </button>
-            </div>
-            <div className="health-bar">
-              <div 
-                className="health-fill" 
-                style={{ 
-                  width: `${getHealthPercentage(playerMonster.currentHp, playerMonster.maxHp)}%`,
-                  backgroundColor: getHealthColor(getHealthPercentage(playerMonster.currentHp, playerMonster.maxHp))
-                }}
-              />
-              <span className="health-text">
-                {playerMonster.currentHp}/{playerMonster.maxHp}
-              </span>
-            </div>
-            <div className="exp-bar">
-              <div 
-                className="exp-fill" 
-                style={{ width: `${(playerMonster.experience / (playerMonster.level * 100)) * 100}%` }}
-              />
-            </div>
-            {playerMonster.isShiny && <span className="shiny">✨</span>}
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
 
-      {/* Battle Log */}
-      <div className="battle-log">
-        {battleLog.slice(-6).map((message, index) => (
-          <div key={index} className="log-message">{message}</div>
-        ))}
-        {isProcessing && (
-          <div className="log-message processing">
-            <span className="processing-indicator">⚡</span> Processing turn...
-          </div>
+        {/* Battle Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Moves Section */}
+          <Card className="lg:col-span-3 border-2 border-primary/50">
+            <CardHeader>
+              <CardTitle>Moves</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {playerMonster.moves.map((moveId) => {
+                  const move = getMoveData(moveId);
+                  const currentPP = (playerMonster.movePP && playerMonster.movePP[moveId]) || 0;
+                  const maxPP = move.pp;
+                  const isOutOfPP = currentPP <= 0;
+                  
+                  return (
+                    <div key={moveId} className="flex gap-2">
+                      <Button
+                        variant={isOutOfPP ? "outline" : "default"}
+                        onClick={() => handleAttack(moveId)}
+                        disabled={isProcessing || battleEnded || isOutOfPP}
+                        className={`flex-1 flex-col h-auto p-4 ${isOutOfPP ? 'opacity-50' : ''}`}
+                      >
+                        <div className="font-semibold">{move.name}</div>
+                        <div className="text-xs mt-1 opacity-80">
+                          PWR: {move.power} | ACC: {move.accuracy}% | PP: {currentPP}/{maxPP}
+                        </div>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedMove(moveId)}
+                        className="p-2"
+                      >
+                        ℹ️
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Other Actions */}
+          <Card className="border-2 border-secondary/50">
+            <CardHeader>
+              <CardTitle>Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button
+                variant="outline"
+                onClick={handleOpenBag}
+                disabled={isProcessing || battleEnded}
+                className="w-full"
+              >
+                🎒 Bag
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleFlee}
+                disabled={isProcessing || battleEnded}
+                className="w-full"
+              >
+                💨 Flee
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Modals */}
+        {showItemBag && (
+          <ItemBag
+            inventory={currentRun.inventory}
+            onUseItem={handleUseItem}
+            onClose={handleCloseBag}
+            isProcessing={isProcessing}
+          />
+        )}
+
+        {showPlayerStats && (
+          <MonsterStatsModal
+            monster={playerMonster}
+            onClose={() => setShowPlayerStats(false)}
+          />
+        )}
+
+        {showOpponentStats && (
+          <MonsterStatsModal
+            monster={opponentMonster}
+            onClose={() => setShowOpponentStats(false)}
+          />
+        )}
+
+        {selectedMove && (
+          <MoveInfo 
+            moveId={selectedMove} 
+            onClose={() => setSelectedMove(null)} 
+          />
+        )}
+
+        {selectedAbility && (
+          <AbilityInfo 
+            abilityId={selectedAbility} 
+            onClose={() => setSelectedAbility(null)} 
+          />
         )}
       </div>
-
-      {/* Battle Actions */}
-      <div className="battle-actions">
-        <div className="moves-section">
-          <h4>Moves</h4>
-          <div className="moves-grid">
-            {playerMonster.moves.map((moveId) => {
-              const move = getMoveData(moveId);
-              const currentPP = (playerMonster.movePP && playerMonster.movePP[moveId]) || 0;
-              const maxPP = move.pp;
-              const isOutOfPP = currentPP <= 0;
-              
-              return (
-                <div key={moveId} className="move-button-container">
-                  <button
-                    className={`move-button ${isOutOfPP ? 'out-of-pp' : ''}`}
-                    onClick={() => handleAttack(moveId)}
-                    disabled={isProcessing || battleEnded || isOutOfPP}
-                  >
-                    <div className="move-name">{move.name}</div>
-                    <div className="move-info">
-                      PWR: {move.power} | ACC: {move.accuracy}% | PP: {currentPP}/{maxPP}
-                    </div>
-                  </button>
-                  <button
-                    className="move-info-button"
-                    onClick={() => setSelectedMove(moveId)}
-                    title="View move details"
-                  >
-                    ℹ️
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="other-actions">
-          <button
-            className="action-button bag-button"
-            onClick={handleOpenBag}
-            disabled={isProcessing || battleEnded}
-          >
-            🎒 Bag
-          </button>
-          <button
-            className="action-button flee-button"
-            onClick={handleFlee}
-            disabled={isProcessing || battleEnded}
-          >
-            Flee
-          </button>
-        </div>
-      </div>
-
-      {/* Item Bag Modal */}
-      {showItemBag && (
-        <ItemBag
-          inventory={currentRun.inventory}
-          onUseItem={handleUseItem}
-          onClose={handleCloseBag}
-          isProcessing={isProcessing}
-        />
-      )}
-
-      {/* Monster Stats Modals */}
-      {showPlayerStats && (
-        <MonsterStatsModal
-          monster={playerMonster}
-          onClose={() => setShowPlayerStats(false)}
-        />
-      )}
-
-      {showOpponentStats && (
-        <MonsterStatsModal
-          monster={opponentMonster}
-          onClose={() => setShowOpponentStats(false)}
-        />
-      )}
-
-      {/* Move Info Modal */}
-      {selectedMove && (
-        <MoveInfo 
-          moveId={selectedMove} 
-          onClose={() => setSelectedMove(null)} 
-        />
-      )}
-
-      {/* Ability Info Modal */}
-      {selectedAbility && (
-        <AbilityInfo 
-          abilityId={selectedAbility} 
-          onClose={() => setSelectedAbility(null)} 
-        />
-      )}
     </div>
   );
 };

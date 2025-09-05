@@ -6,7 +6,6 @@ import StarterSelection from './components/StarterSelection';
 import GameInterface from './components/GameInterface';
 import BattleInterface from './components/BattleInterface';
 import OrientationHint from './components/OrientationHint';
-import './App.css';
 
 const GameContent: React.FC = () => {
   const { state } = useGame();
@@ -14,10 +13,17 @@ const GameContent: React.FC = () => {
   // Show error if any
   if (state.error) {
     return (
-      <div className="error-container">
-        <h2>Error</h2>
-        <p>{state.error}</p>
-        <button onClick={() => window.location.reload()}>Refresh</button>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-destructive/10 border border-destructive text-destructive-foreground rounded-lg p-8 text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-4">Error</h2>
+          <p className="mb-6">{state.error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2 rounded-md transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
     );
   }
@@ -44,17 +50,20 @@ const GameContent: React.FC = () => {
 function App() {
   const screenInfo = useResponsive();
 
-  const appClasses = [
-    'App',
-    screenInfo.isLandscape ? 'landscape' : 'portrait',
-    screenInfo.isMobile ? 'mobile' : '',
-    screenInfo.isTablet ? 'tablet' : '',
-    screenInfo.isDesktop ? 'desktop' : '',
-  ].filter(Boolean).join(' ');
-
   return (
     <GameProvider>
-      <div className={appClasses}>
+      <div className={`min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-foreground relative overflow-hidden ${
+        screenInfo.isLandscape ? 'landscape' : 'portrait'
+      } ${
+        screenInfo.isMobile ? 'mobile' : ''
+      } ${
+        screenInfo.isTablet ? 'tablet' : ''
+      } ${
+        screenInfo.isDesktop ? 'desktop' : ''
+      }`}>
+        {/* Background pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.1)_0%,transparent_50%)] pointer-events-none" />
+        
         <OrientationHint />
         <GameContent />
       </div>

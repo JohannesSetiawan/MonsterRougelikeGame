@@ -1,501 +1,246 @@
-import React, { useState, useEffect } from 'react';
-import type { MonsterInstance } from '../api/types';
-import { gameApi } from '../api/gameApi';
-import MoveInfo from './MoveInfo';
-import AbilityInfo from './AbilityInfo';
+import React from 'react';
+import type { MonsterInstance, Move, Ability } from '../api/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+
+interface ExtendedMove extends Move {
+  currentPp?: number;
+  maxPp?: number;
+}
+
+interface ExtendedMonsterInstance extends Omit<MonsterInstance, 'moves'> {
+  types?: string[];
+  sprite?: string;
+  abilities?: Ability[];
+  moves?: ExtendedMove[];
+  experienceToNext?: number;
+}
 
 interface MonsterStatsProps {
-  monster: MonsterInstance;
-  showDetailed?: boolean;
-  className?: string;
+  monster: ExtendedMonsterInstance;
+  onAbilityClick?: (abilityId: string) => void;
+  onMoveClick?: (moveId: string) => void;
 }
 
 const MonsterStats: React.FC<MonsterStatsProps> = ({ 
   monster, 
-  showDetailed = false, 
-  className = '' 
+  onAbilityClick, 
+  onMoveClick 
 }) => {
-  const [selectedMove, setSelectedMove] = useState<string | null>(null);
-  const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
-  const [movesData, setMovesData] = useState<Record<string, any>>({});
-
-  // Load moves data when component mounts
-  useEffect(() => {
-    const loadMovesData = async () => {
-      try {
-        const allMoves = await gameApi.getAllMoves();
-        const movesMap: Record<string, any> = {};
-        allMoves.forEach((move: any) => {
-          movesMap[move.id] = move;
-        });
-        setMovesData(movesMap);
-      } catch (error) {
-        console.error('Failed to load moves data:', error);
-      }
-    };
+  const getTypeColor = (type: string | undefined) => {
+    if (!type) return 'bg-gray-400 hover:bg-gray-500';
     
-    loadMovesData();
-  }, []);
-  const getStatBarWidth = (stat: number, maxStat: number = 200) => {
-    return Math.min((stat / maxStat) * 100, 100);
+    const colors: Record<string, string> = {
+      normal: 'bg-gray-400 hover:bg-gray-500',
+      fire: 'bg-red-500 hover:bg-red-600',
+      water: 'bg-blue-500 hover:bg-blue-600',
+      electric: 'bg-yellow-400 hover:bg-yellow-500',
+      grass: 'bg-green-500 hover:bg-green-600',
+      ice: 'bg-cyan-400 hover:bg-cyan-500',
+      fighting: 'bg-red-700 hover:bg-red-800',
+      poison: 'bg-purple-500 hover:bg-purple-600',
+      ground: 'bg-yellow-600 hover:bg-yellow-700',
+      flying: 'bg-indigo-400 hover:bg-indigo-500',
+      psychic: 'bg-pink-500 hover:bg-pink-600',
+      bug: 'bg-green-400 hover:bg-green-500',
+      rock: 'bg-yellow-800 hover:bg-yellow-900',
+      ghost: 'bg-purple-700 hover:bg-purple-800',
+      dragon: 'bg-indigo-700 hover:bg-indigo-800',
+      dark: 'bg-gray-800 hover:bg-gray-900',
+      steel: 'bg-gray-500 hover:bg-gray-600',
+      fairy: 'bg-pink-300 hover:bg-pink-400'
+    };
+    return colors[type.toLowerCase()] || 'bg-gray-400 hover:bg-gray-500';
+  };
+
+  const getMoveTypeColor = (type: string | undefined) => {
+    return getTypeColor(type);
+  };
+
+  const getCategoryColor = (category: string | undefined) => {
+    if (!category) return 'bg-gray-600 hover:bg-gray-700';
+    
+    const colors: Record<string, string> = {
+      physical: 'bg-red-600 hover:bg-red-700',
+      special: 'bg-blue-600 hover:bg-blue-700',
+      status: 'bg-gray-600 hover:bg-gray-700'
+    };
+    return colors[category.toLowerCase()] || 'bg-gray-600 hover:bg-gray-700';
+  };
+
+  const calculateStatPercentage = (stat: number) => {
+    // Normalize stats to 0-100 range for progress bar
+    return Math.min((stat / 255) * 100, 100);
   };
 
   const getStatColor = (stat: number) => {
-    if (stat >= 120) return '#10b981'; // High stat - green
-    if (stat >= 80) return '#3b82f6';  // Good stat - blue
-    if (stat >= 50) return '#f59e0b';  // Average stat - yellow
-    return '#ef4444'; // Low stat - red
-  };
-
-  const getHealthPercentage = () => {
-    return (monster.currentHp / monster.maxHp) * 100;
-  };
-
-  const getExperiencePercentage = () => {
-    const expRequired = monster.level * 100;
-    return (monster.experience / expRequired) * 100;
-  };
-
-  const getHealthColor = (percentage: number) => {
-    if (percentage > 70) return '#10b981';
-    if (percentage > 30) return '#f59e0b';
-    return '#ef4444';
+    if (stat >= 130) return 'text-purple-400';
+    if (stat >= 100) return 'text-blue-400';
+    if (stat >= 80) return 'text-green-400';
+    if (stat >= 60) return 'text-yellow-400';
+    if (stat >= 40) return 'text-orange-400';
+    return 'text-red-400';
   };
 
   return (
-    <div className={`monster-stats ${className}`}>
-      {/* Basic Info */}
-      <div className="monster-header">
-        <div className="monster-name-level">
-          <h3>{monster.name} {monster.isShiny && '✨'}</h3>
-          <span className="level">Lv.{monster.level}</span>
-        </div>
-        <div className="monster-ability">
-          <span className="ability-label">Ability:</span>
-          <button 
-            className="ability-name clickable-ability" 
-            onClick={() => setSelectedAbility(monster.ability)}
-            title="Click to view ability details"
-          >
-            {monster.ability}
-          </button>
-        </div>
-      </div>
-
-      {/* Health Bar */}
-      <div className="stat-section">
-        <div className="stat-label-row">
-          <span className="stat-label">HP</span>
-          <span className="stat-value">{monster.currentHp}/{monster.maxHp}</span>
-        </div>
-        <div className="stat-bar health-bar">
-          <div 
-            className="stat-fill health-fill"
-            style={{ 
-              width: `${getHealthPercentage()}%`,
-              backgroundColor: getHealthColor(getHealthPercentage())
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Experience Bar */}
-      <div className="stat-section">
-        <div className="stat-label-row">
-          <span className="stat-label">EXP</span>
-          <span className="stat-value">{monster.experience}/{monster.level * 100}</span>
-        </div>
-        <div className="stat-bar exp-bar">
-          <div 
-            className="stat-fill exp-fill"
-            style={{ width: `${getExperiencePercentage()}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Detailed Stats */}
-      {showDetailed && (
-        <div className="detailed-stats">
-          <h4>Base Stats</h4>
-          <div className="stats-grid">
-            <div className="stat-row">
-              <span className="stat-name">Attack</span>
-              <span className="stat-number">{monster.stats.attack}</span>
-              <div className="stat-bar">
-                <div 
-                  className="stat-fill"
-                  style={{ 
-                    width: `${getStatBarWidth(monster.stats.attack)}%`,
-                    backgroundColor: getStatColor(monster.stats.attack)
-                  }}
-                />
-              </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl text-foreground">{monster.name}</CardTitle>
+              <p className="text-muted-foreground">Level {monster.level}</p>
             </div>
-
-            <div className="stat-row">
-              <span className="stat-name">Defense</span>
-              <span className="stat-number">{monster.stats.defense}</span>
-              <div className="stat-bar">
-                <div 
-                  className="stat-fill"
-                  style={{ 
-                    width: `${getStatBarWidth(monster.stats.defense)}%`,
-                    backgroundColor: getStatColor(monster.stats.defense)
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="stat-row">
-              <span className="stat-name">Sp. Attack</span>
-              <span className="stat-number">{monster.stats.specialAttack}</span>
-              <div className="stat-bar">
-                <div 
-                  className="stat-fill"
-                  style={{ 
-                    width: `${getStatBarWidth(monster.stats.specialAttack)}%`,
-                    backgroundColor: getStatColor(monster.stats.specialAttack)
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="stat-row">
-              <span className="stat-name">Sp. Defense</span>
-              <span className="stat-number">{monster.stats.specialDefense}</span>
-              <div className="stat-bar">
-                <div 
-                  className="stat-fill"
-                  style={{ 
-                    width: `${getStatBarWidth(monster.stats.specialDefense)}%`,
-                    backgroundColor: getStatColor(monster.stats.specialDefense)
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="stat-row">
-              <span className="stat-name">Speed</span>
-              <span className="stat-number">{monster.stats.speed}</span>
-              <div className="stat-bar">
-                <div 
-                  className="stat-fill"
-                  style={{ 
-                    width: `${getStatBarWidth(monster.stats.speed)}%`,
-                    backgroundColor: getStatColor(monster.stats.speed)
-                  }}
-                />
-              </div>
-            </div>
+            <div className="text-4xl">{monster.sprite || '👾'}</div>
           </div>
-
-          {/* Moves */}
-          <div className="moves-section">
-            <h4>Moves</h4>
-            <div className="moves-list">
-              {monster.moves.map((moveId, index) => {
-                const currentPP = (monster.movePP && monster.movePP[moveId]) || 0;
-                const moveData = movesData[moveId];
-                const maxPP = moveData ? moveData.pp : 20;
-                const isOutOfPP = currentPP <= 0;
-                
-                return (
-                  <button 
-                    key={index} 
-                    className={`move-item clickable-move ${isOutOfPP ? 'out-of-pp' : ''}`}
-                    onClick={() => setSelectedMove(moveId)}
-                    title="Click to view move details"
-                  >
-                    <div className="move-name">
-                      {moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </div>
-                    <div className="move-pp">
-                      PP: {currentPP}/{maxPP}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+          
+          {/* Types */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {monster.types?.filter(Boolean).map((type: string) => (
+              <Badge key={type} className={`text-white ${getTypeColor(type)}`}>
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Badge>
+            ))}
           </div>
-        </div>
-      )}
+        </CardHeader>
+      </Card>
 
-      <style>{`
-        .monster-stats {
-          background: var(--card-bg);
-          border: 2px solid var(--border);
-          border-radius: var(--radius-lg);
-          padding: var(--spacing-lg);
-          box-shadow: var(--shadow-md);
-          backdrop-filter: blur(4px);
-        }
+      {/* HP Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground font-medium">HP</span>
+              <span className="text-muted-foreground">{monster.currentHp} / {monster.maxHp}</span>
+            </div>
+            <Progress 
+              value={(monster.currentHp / monster.maxHp) * 100}
+              className="h-3"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
-        .monster-header {
-          margin-bottom: var(--spacing-lg);
-        }
+      {/* Base Stats */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Base Stats</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {Object.entries(monster.stats).map(([statName, statValue]) => (
+            <div key={statName} className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-foreground font-medium capitalize">
+                  {statName.replace(/([A-Z])/g, ' $1').trim()}
+                </span>
+                <span className={`font-bold ${getStatColor(statValue)}`}>
+                  {statValue}
+                </span>
+              </div>
+              <Progress 
+                value={calculateStatPercentage(statValue)}
+                className="h-2"
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
-        .monster-name-level {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: var(--spacing-sm);
-        }
+      {/* Abilities */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Abilities</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {monster.abilities?.map((ability) => (
+            <Button
+              key={ability.id}
+              variant="outline"
+              className="w-full justify-start text-left h-auto p-3"
+              onClick={() => onAbilityClick?.(ability.id)}
+            >
+              <div className="space-y-1">
+                <div className="font-medium text-foreground">{ability.name}</div>
+                {ability.description && (
+                  <div className="text-sm text-muted-foreground">
+                    {ability.description}
+                  </div>
+                )}
+              </div>
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
 
-        .monster-name-level h3 {
-          margin: 0;
-          color: var(--text-primary);
-          font-size: 1.25rem;
-          font-weight: 600;
-        }
+      {/* Moves */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Moves</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {monster.moves?.map((move) => (
+            <Button
+              key={move.id}
+              variant="outline"
+              className="w-full p-4 h-auto"
+              onClick={() => onMoveClick?.(move.id)}
+            >
+              <div className="w-full space-y-2">
+                {/* Move Header */}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground">{move.name}</span>
+                  <div className="flex gap-2">
+                    <Badge className={`text-white text-xs ${getMoveTypeColor(move.type)}`}>
+                      {move.type}
+                    </Badge>
+                    <Badge className={`text-white text-xs ${getCategoryColor(move.category)}`}>
+                      {move.category}
+                    </Badge>
+                  </div>
+                </div>
 
-        .level {
-          background: var(--primary);
-          color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: var(--radius);
-          font-size: 0.875rem;
-          font-weight: 600;
-        }
+                {/* Move Stats */}
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Power: {move.power || '—'}</span>
+                  <span>Accuracy: {move.accuracy || '—'}%</span>
+                  <span>PP: {move.currentPp}/{move.maxPp}</span>
+                </div>
 
-        .monster-ability {
-          display: flex;
-          gap: var(--spacing-sm);
-          align-items: center;
-          font-size: 0.875rem;
-        }
+                {/* PP Bar */}
+                {move.maxPp && move.currentPp !== undefined && (
+                  <Progress 
+                    value={(move.currentPp / move.maxPp) * 100}
+                    className="h-1"
+                  />
+                )}
+              </div>
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
 
-        .ability-label {
-          color: var(--text-secondary);
-          font-weight: 500;
-        }
-
-        .ability-name {
-          color: var(--accent);
-          font-weight: 600;
-          text-transform: capitalize;
-          padding: 0.25rem 0.5rem;
-          background: var(--accent-bg);
-          border-radius: var(--radius-sm);
-        }
-
-        .clickable-ability {
-          border: none;
-          color: var(--primary);
-          font-weight: 600;
-          cursor: pointer;
-          padding: 0.25rem 0.5rem;
-          background: var(--primary-bg);
-          border-radius: var(--radius-sm);
-          transition: all 0.2s ease;
-          text-transform: capitalize;
-          text-decoration: underline;
-          text-decoration-color: transparent;
-        }
-
-        .clickable-ability:hover {
-          background: var(--primary);
-          color: white;
-          text-decoration-color: currentColor;
-          transform: translateY(-1px);
-          box-shadow: var(--shadow-sm);
-        }
-
-        .stat-section {
-          margin-bottom: var(--spacing-md);
-        }
-
-        .stat-label-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        .stat-value {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-        }
-
-        .stat-bar {
-          height: 8px;
-          background: var(--surface);
-          border-radius: var(--radius-sm);
-          overflow: hidden;
-          position: relative;
-        }
-
-        .stat-fill {
-          height: 100%;
-          transition: width 0.3s ease, background-color 0.2s ease;
-          border-radius: var(--radius-sm);
-        }
-
-        .health-fill {
-          background: #10b981;
-        }
-
-        .exp-fill {
-          background: var(--primary);
-        }
-
-        .detailed-stats {
-          margin-top: var(--spacing-lg);
-          padding-top: var(--spacing-lg);
-          border-top: 1px solid var(--border);
-        }
-
-        .detailed-stats h4 {
-          margin: 0 0 var(--spacing-md) 0;
-          color: var(--text-primary);
-          font-size: 1rem;
-          font-weight: 600;
-        }
-
-        .stats-grid {
-          display: flex;
-          flex-direction: column;
-          gap: var(--spacing-sm);
-        }
-
-        .stat-row {
-          display: grid;
-          grid-template-columns: 1fr auto 2fr;
-          gap: var(--spacing-md);
-          align-items: center;
-        }
-
-        .stat-name {
-          font-size: 0.875rem;
-          color: var(--text-primary);
-          font-weight: 500;
-        }
-
-        .stat-number {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          font-weight: 600;
-          min-width: 3rem;
-          text-align: right;
-        }
-
-        .moves-section {
-          margin-top: var(--spacing-lg);
-        }
-
-        .moves-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: var(--spacing-sm);
-        }
-
-        .move-item {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          padding: var(--spacing-sm);
-          text-align: center;
-        }
-
-        .clickable-move {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          padding: var(--spacing-sm);
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          width: 100%;
-        }
-
-        .clickable-move:hover {
-          background: var(--primary-bg);
-          border-color: var(--primary);
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-md);
-        }
-
-        .clickable-move:active {
-          transform: translateY(0);
-        }
-
-        .move-name {
-          font-size: 0.875rem;
-          color: var(--text-primary);
-          font-weight: 500;
-          margin-bottom: 0.25rem;
-        }
-
-        .move-pp {
-          font-size: 0.75rem;
-          color: var(--text-secondary);
-          font-weight: 600;
-        }
-
-        .clickable-move.out-of-pp {
-          background: var(--surface);
-          border-color: var(--error);
-          opacity: 0.6;
-          cursor: not-allowed;
-          pointer-events: none;
-        }
-
-        .clickable-move.out-of-pp .move-name {
-          color: var(--text-muted);
-        }
-
-        .clickable-move.out-of-pp .move-pp {
-          color: var(--error);
-        }
-
-        /* Compact version for battle */
-        .monster-stats.compact {
-          padding: var(--spacing-md);
-        }
-
-        .monster-stats.compact .monster-header {
-          margin-bottom: var(--spacing-md);
-        }
-
-        .monster-stats.compact .stat-section {
-          margin-bottom: var(--spacing-sm);
-        }
-
-        @media (max-width: 768px) {
-          .stat-row {
-            grid-template-columns: 1fr auto;
-            gap: var(--spacing-sm);
-          }
-
-          .stat-row .stat-bar {
-            grid-column: 1 / -1;
-            margin-top: 0.25rem;
-          }
-
-          .moves-list {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-      `}</style>
-
-      {/* Move Info Modal */}
-      {selectedMove && (
-        <MoveInfo 
-          moveId={selectedMove} 
-          onClose={() => setSelectedMove(null)} 
-        />
-      )}
-
-      {/* Ability Info Modal */}
-      {selectedAbility && (
-        <AbilityInfo 
-          abilityId={selectedAbility} 
-          onClose={() => setSelectedAbility(null)} 
-        />
+      {/* Experience */}
+      {monster.experience !== undefined && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Experience</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground">Level {monster.level}</span>
+              <span className="text-muted-foreground">
+                {monster.experience} / {monster.experienceToNext || 1000} XP
+              </span>
+            </div>
+            <Progress 
+              value={((monster.experience || 0) / (monster.experienceToNext || 1000)) * 100}
+              className="h-2"
+            />
+          </CardContent>
+        </Card>
       )}
     </div>
   );

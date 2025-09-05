@@ -2,6 +2,10 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
 import TeamManagement from './TeamManagement';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 const GameInterface: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -98,163 +102,263 @@ const GameInterface: React.FC = () => {
   if (!state.currentRun) return null;
 
   return (
-    <div className="game-interface">
-      <div className="game-header">
-        <h2>Stage {state.currentRun.currentStage}</h2>
-        <div className="currency">Coins: {state.currentRun.currency}</div>
-        <div className="header-buttons">
-          <button 
-            className="team-button"
-            onClick={() => setShowTeamManagement(true)}
-            disabled={state.isLoading}
-            title="View team details"
-          >
-            👥 Team
-          </button>
-          <button 
-            onClick={() => handleEndRun('defeat')}
-            disabled={isEndingRun || state.isLoading}
-          >
-            {isEndingRun ? 'Ending...' : 'End Run'}
-          </button>
-        </div>
-      </div>
-
-      <div className="team-section">
-        <h3>Your Team</h3>
-        <div className="team-grid">
-          {state.currentRun.team.map((monster) => {
-            const healthPercentage = getHealthPercentage(monster.currentHp, monster.maxHp);
-            return (
-              <div key={monster.id} className="team-monster">
-                <h4>{monster.name} (Lv.{monster.level})</h4>
-                <div className="health-bar">
-                  <div 
-                    className="health-fill" 
-                    style={{ 
-                      width: `${healthPercentage}%`,
-                      backgroundColor: getHealthColor(healthPercentage)
-                    }}
-                  />
-                  <span className="health-text">
-                    {monster.currentHp}/{monster.maxHp}
-                  </span>
+    <div className="min-h-screen p-4 md:p-6 space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Game Header */}
+        <Card className="border-2">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+              <div>
+                <CardTitle className="text-2xl md:text-3xl">
+                  Stage {state.currentRun.currentStage}
+                </CardTitle>
+                <div className="flex items-center gap-4 mt-2">
+                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                    💰 {state.currentRun.currency} Coins
+                  </Badge>
                 </div>
-                <div className="exp-bar">
-                  <div 
-                    className="exp-fill" 
-                    style={{ width: `${(monster.experience / (monster.level * 100)) * 100}%` }}
-                  />
-                </div>
-                {monster.isShiny && <span className="shiny">✨</span>}
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="inventory-section">
-        <h3>Inventory</h3>
-        <div className="inventory-grid">
-          {state.currentRun.inventory.map((item) => (
-            <div key={item.id} className="inventory-item">
-              <div>{item.name} x{item.quantity}</div>
-              <div className="item-description">{item.description}</div>
-              {item.type === 'healing' && (
-                <button 
-                  onClick={() => handleUseItem(item.id)}
-                  disabled={processingItemId === item.id || state.isLoading}
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowTeamManagement(true)}
+                  disabled={state.isLoading}
+                  className="flex items-center gap-2"
                 >
-                  {processingItemId === item.id ? 'Using...' : 'Use'}
-                </button>
+                  👥 Team Details
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => handleEndRun('defeat')}
+                  disabled={isEndingRun || state.isLoading}
+                >
+                  {isEndingRun ? 'Ending...' : 'End Run'}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Team Section */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="text-xl">Your Team</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {state.currentRun.team.map((monster) => {
+                const healthPercentage = getHealthPercentage(monster.currentHp, monster.maxHp);
+                const expPercentage = (monster.experience / (monster.level * 100)) * 100;
+                return (
+                  <Card key={monster.id} className="border border-border/50">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-lg">{monster.name}</h4>
+                          <p className="text-sm text-muted-foreground">Level {monster.level}</p>
+                        </div>
+                        {monster.isShiny && (
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            ✨ Shiny
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {/* Health Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">HP</span>
+                          <span className="font-medium">
+                            {monster.currentHp}/{monster.maxHp}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={healthPercentage} 
+                          className="h-3"
+                          style={{
+                            '--progress-background': getHealthColor(healthPercentage)
+                          } as React.CSSProperties}
+                        />
+                      </div>
+
+                      {/* Experience Bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">EXP</span>
+                          <span className="font-medium">
+                            {monster.experience}/{monster.level * 100}
+                          </span>
+                        </div>
+                        <Progress 
+                          value={expPercentage} 
+                          className="h-2"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Section */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="text-xl">Inventory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {state.currentRun.inventory.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No items in inventory</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {state.currentRun.inventory.map((item) => (
+                  <Card key={item.id} className="border border-border/50">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-semibold">{item.name}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          x{item.quantity}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {item.description}
+                      </p>
+                      {item.type === 'healing' && (
+                        <Button 
+                          size="sm"
+                          onClick={() => handleUseItem(item.id)}
+                          disabled={processingItemId === item.id || state.isLoading}
+                          className="w-full"
+                        >
+                          {processingItemId === item.id ? 'Using...' : 'Use Item'}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Progress Section */}
+        {!state.currentEncounter && !state.battleState.inBattle && (
+          <Card className="border-2 border-primary/50">
+            <CardContent className="p-6 text-center">
+              <Button 
+                size="lg"
+                onClick={handleProgressStage}
+                disabled={state.isLoading}
+                className="px-8 py-4 text-lg"
+              >
+                {state.isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2" />
+                    Exploring...
+                  </>
+                ) : (
+                  'Continue Adventure'
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Encounter Section */}
+        {state.currentEncounter && state.currentEncounter.type !== 'wild_monster' && (
+          <Card className="border-2 border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardHeader>
+              <CardTitle className="text-xl capitalize flex items-center gap-2">
+                ⚡ {state.currentEncounter.type.replace('_', ' ')} Encounter
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {state.currentEncounter.type === 'item' && (
+                <>
+                  <div className="space-y-2">
+                    <p className="text-lg">
+                      🎁 You found: <span className="font-semibold">{state.currentEncounter.data?.name || 'Unknown Item'}</span>
+                    </p>
+                    <p className="text-muted-foreground">
+                      {state.currentEncounter.data?.description || 'A mysterious item'}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      if (state.currentRun && state.currentEncounter?.data && !isProcessingEncounter) {
+                        setIsProcessingEncounter(true);
+                        try {
+                          const updatedRun = await gameApi.addItemToInventory(state.currentRun.id, state.currentEncounter.data);
+                          dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
+                          dispatch({ type: 'SET_ENCOUNTER', payload: null });
+                        } catch (error) {
+                          dispatch({ type: 'SET_ENCOUNTER', payload: null });
+                        } finally {
+                          setIsProcessingEncounter(false);
+                        }
+                      } else {
+                        dispatch({ type: 'SET_ENCOUNTER', payload: null });
+                      }
+                    }}
+                    disabled={isProcessingEncounter || state.isLoading}
+                    className="w-full"
+                  >
+                    {isProcessingEncounter ? 'Taking...' : 'Take Item'}
+                  </Button>
+                </>
               )}
-            </div>
-          ))}
-        </div>
+              
+              {state.currentEncounter.type === 'rest_site' && (
+                <>
+                  <div className="space-y-2">
+                    <p className="text-lg">
+                      🏕️ You found a rest site!
+                    </p>
+                    <p className="text-muted-foreground">
+                      Your team will be fully healed and all PP restored.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      if (isProcessingEncounter) return;
+                      setIsProcessingEncounter(true);
+                      
+                      try {
+                        if (state.currentRun) {
+                          const result = await gameApi.useRestSite(state.currentRun.id);
+                          
+                          if (result.success) {
+                            const updatedRun = { ...state.currentRun, team: result.team };
+                            dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
+                          }
+                        }
+                      } catch (error) {
+                        console.error('Error using rest site:', error);
+                      } finally {
+                        dispatch({ type: 'SET_ENCOUNTER', payload: null });
+                        setIsProcessingEncounter(false);
+                      }
+                    }}
+                    disabled={isProcessingEncounter || state.isLoading}
+                    className="w-full"
+                  >
+                    {isProcessingEncounter ? 'Resting...' : 'Rest and Continue'}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Team Management Modal */}
+        {showTeamManagement && (
+          <TeamManagement
+            team={state.currentRun.team}
+            onClose={() => setShowTeamManagement(false)}
+          />
+        )}
       </div>
-
-      {!state.currentEncounter && !state.battleState.inBattle && (
-        <div className="progress-section">
-          <button 
-            className="progress-button"
-            onClick={handleProgressStage}
-            disabled={state.isLoading}
-          >
-            {state.isLoading ? 'Exploring...' : 'Continue Adventure'}
-          </button>
-        </div>
-      )}
-
-      {state.currentEncounter && state.currentEncounter.type !== 'wild_monster' && (
-        <div className="encounter-section">
-          <h3>Encounter: {state.currentEncounter.type}</h3>
-          {state.currentEncounter.type === 'item' && (
-            <div>
-              <p>You found an item: {state.currentEncounter.data?.name || 'Unknown Item'}!</p>
-              <p>{state.currentEncounter.data?.description || 'A mysterious item'}</p>
-              <button 
-                disabled={isProcessingEncounter || state.isLoading}
-                onClick={async () => {
-                if (state.currentRun && state.currentEncounter?.data && !isProcessingEncounter) {
-                  setIsProcessingEncounter(true);
-                  try {
-                    const updatedRun = await gameApi.addItemToInventory(state.currentRun.id, state.currentEncounter.data);
-                    dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
-                    dispatch({ type: 'SET_ENCOUNTER', payload: null });
-                  } catch (error) {
-                    // Fallback - just continue without adding item
-                    dispatch({ type: 'SET_ENCOUNTER', payload: null });
-                  } finally {
-                    setIsProcessingEncounter(false);
-                  }
-                } else {
-                  dispatch({ type: 'SET_ENCOUNTER', payload: null });
-                }
-              }}>
-                {isProcessingEncounter ? 'Taking...' : 'Take Item'}
-              </button>
-            </div>
-          )}
-          {state.currentEncounter.type === 'rest_site' && (
-            <div>
-              <p>You found a rest site. Your team will be fully healed and all PP restored!</p>
-              <button 
-                disabled={isProcessingEncounter || state.isLoading}
-                onClick={async () => {
-                if (isProcessingEncounter) return;
-                setIsProcessingEncounter(true);
-                
-                try {
-                  if (state.currentRun) {
-                    const result = await gameApi.useRestSite(state.currentRun.id);
-                    
-                    if (result.success) {
-                      // Update the run with the healed team
-                      const updatedRun = { ...state.currentRun, team: result.team };
-                      dispatch({ type: 'SET_CURRENT_RUN', payload: updatedRun });
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error using rest site:', error);
-                } finally {
-                  dispatch({ type: 'SET_ENCOUNTER', payload: null });
-                  setIsProcessingEncounter(false);
-                }
-              }}>
-                {isProcessingEncounter ? 'Resting...' : 'Rest and Continue'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Team Management Modal */}
-      {showTeamManagement && (
-        <TeamManagement
-          team={state.currentRun.team}
-          onClose={() => setShowTeamManagement(false)}
-        />
-      )}
     </div>
   );
 };
