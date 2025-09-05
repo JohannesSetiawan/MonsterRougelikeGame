@@ -264,9 +264,17 @@ export class BattleService {
   }
 
   generateExperience(defeatedMonster: MonsterInstance): number {
-    const baseExp = defeatedMonster.level * 10;
+    const baseExp = defeatedMonster.level * 100;
     const rarityMultiplier = this.getRarityMultiplier(defeatedMonster.monsterId);
     return Math.floor(baseExp * rarityMultiplier);
+  }
+
+  calculateExperienceForNextLevel(monster: MonsterInstance): number {
+    return this.monsterService.calculateExperienceForNextLevel(monster);
+  }
+
+  addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
+    return this.monsterService.addExperience(monster, expGain);
   }
 
   private getRarityMultiplier(monsterId: string): number {

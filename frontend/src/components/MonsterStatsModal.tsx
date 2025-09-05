@@ -50,6 +50,15 @@ const MonsterStatsModal: React.FC<MonsterStatsModalProps> = ({ monster, onClose 
         
         const movesData = await Promise.all(movePromises);
         
+        // Fetch experience needed for next level
+        let experienceToNext = 1000; // fallback value
+        try {
+          const expResult = await gameApi.getExperienceForLevel(monster.monsterId, monster.level);
+          experienceToNext = expResult.experienceForNextLevel;
+        } catch (err) {
+          console.warn('Could not fetch experience requirement:', err);
+        }
+        
         // Construct enriched monster data
         const enriched = {
           ...monster,
@@ -57,7 +66,7 @@ const MonsterStatsModal: React.FC<MonsterStatsModalProps> = ({ monster, onClose 
           sprite: monsterData?.sprite || '👾',
           abilities: abilityData ? [abilityData] : [],
           moves: movesData,
-          experienceToNext: 1000 // Calculate based on level if needed
+          experienceToNext
         };
         
         setEnrichedMonster(enriched);

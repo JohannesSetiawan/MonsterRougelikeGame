@@ -218,15 +218,18 @@ export class BattleController {
       // Award experience and currency if player won
       if (battleEnded && winner === 'player' && !playerResult.monsterCaught) {
         const expGained = this.battleService.generateExperience(body.opponentMonster);
-        playerMonster.experience += expGained;
+        
+        // Use the new experience system that handles level ups properly
+        const expResult = this.battleService.addExperienceToMonster(playerMonster, expGained);
+        Object.assign(playerMonster, expResult.monster);
+        
         allEffects.push(`${playerMonster.name} gained ${expGained} experience!`);
         
-        // Check for level up
-        const expRequired = playerMonster.level * 100; // Simple exp requirement
-        if (playerMonster.experience >= expRequired) {
-          const leveledUp = this.monsterService.levelUpMonster(playerMonster);
-          Object.assign(playerMonster, leveledUp);
+        if (expResult.leveledUp) {
           allEffects.push(`${playerMonster.name} leveled up to ${playerMonster.level}!`);
+          if (expResult.levelsGained > 1) {
+            allEffects.push(`Gained ${expResult.levelsGained} levels!`);
+          }
         }
 
         // Award currency

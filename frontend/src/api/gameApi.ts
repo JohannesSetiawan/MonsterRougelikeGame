@@ -102,6 +102,11 @@ export const gameApi = {
     return response.data;
   },
 
+  getExperienceForLevel: async (monsterId: string, level: number): Promise<{ experienceForNextLevel: number }> => {
+    const response = await api.get(`/game/monster/${monsterId}/exp-for-level/${level}`);
+    return response.data;
+  },
+
   // Item data endpoints
   getAllItems: async (): Promise<Record<string, any>> => {
     const response = await api.get('/game/items');

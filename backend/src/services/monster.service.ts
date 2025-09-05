@@ -76,6 +76,46 @@ export class MonsterService {
     };
   }
 
+  calculateExperienceForNextLevel(monster: MonsterInstance): number {
+    const monsterData = this.dataLoaderService.getMonster(monster.monsterId);
+    if (!monsterData) {
+      throw new Error(`Monster data not found for ${monster.monsterId}`);
+    }
+    
+    const nextLevel = monster.level + 1;
+    // Formula: 100 + nextLevel * growth_index * 50
+    return 100 + nextLevel * monsterData.growth_index * 50;
+  }
+
+  addExperience(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
+    const monsterData = this.dataLoaderService.getMonster(monster.monsterId);
+    if (!monsterData) {
+      throw new Error(`Monster data not found for ${monster.monsterId}`);
+    }
+
+    let updatedMonster = { ...monster };
+    updatedMonster.experience += expGain;
+    
+    let leveledUp = false;
+    let levelsGained = 0;
+    
+    // Check for level ups (can gain multiple levels at once)
+    while (true) {
+      const expNeeded = this.calculateExperienceForNextLevel(updatedMonster);
+      
+      if (updatedMonster.experience >= expNeeded) {
+        updatedMonster.experience -= expNeeded;
+        updatedMonster = this.levelUpMonster(updatedMonster);
+        leveledUp = true;
+        levelsGained++;
+      } else {
+        break;
+      }
+    }
+    
+    return { monster: updatedMonster, leveledUp, levelsGained };
+  }
+
   getRandomWildMonster(stageLevel: number): MonsterInstance {
     const monsters = this.dataLoaderService.getMonsters();
     const monsterIds = Object.keys(monsters);

@@ -46,6 +46,7 @@ export interface Monster {
   learnableMoves: string[]; // move ids
   description: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  growth_index: number;
 }
 
 export interface MonsterInstance {

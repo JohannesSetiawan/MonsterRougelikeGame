@@ -5,6 +5,7 @@ import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
 import AbilityInfo from './AbilityInfo';
+import ExperienceBar from './ExperienceBar';
 import type { BattleAction, Move } from '../api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -411,18 +412,10 @@ const BattleInterface: React.FC = () => {
                     className="h-4"
                   />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-blue-300/70">EXP</span>
-                    <span className="text-blue-200">
-                      {playerMonster.experience}/{playerMonster.level * 100}
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(playerMonster.experience / (playerMonster.level * 100)) * 100} 
-                    className="h-2"
-                  />
-                </div>
+                <ExperienceBar 
+                  monster={playerMonster} 
+                  textColor="text-blue-300/70" 
+                />
               </div>
             </CardContent>
           </Card>

@@ -220,4 +220,24 @@ export class GameController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Get('monster/:monsterId/exp-for-level/:level')
+  getExperienceForLevel(
+    @Param('monsterId') monsterId: string,
+    @Param('level') level: string
+  ) {
+    const levelNum = parseInt(level);
+    if (isNaN(levelNum) || levelNum < 1) {
+      throw new HttpException('Invalid level', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      // Create a temporary monster instance to calculate experience
+      const tempMonster = this.monsterService.createMonsterInstance(monsterId, levelNum);
+      const expForNextLevel = this.monsterService.calculateExperienceForNextLevel(tempMonster);
+      return { experienceForNextLevel: expForNextLevel };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

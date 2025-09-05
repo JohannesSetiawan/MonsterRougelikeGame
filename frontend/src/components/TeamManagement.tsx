@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { MonsterInstance } from '../api/types';
 import MonsterStatsModal from './MonsterStatsModal';
+import ExperienceBar from './ExperienceBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -68,18 +69,7 @@ const TeamManagement: React.FC<TeamManagementProps> = ({ team, onClose }) => {
                 </div>
 
                 {/* Experience Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">EXP</span>
-                    <span className="font-medium">
-                      {monster.experience}/{monster.level * 100}
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(monster.experience / (monster.level * 100)) * 100} 
-                    className="h-2"
-                  />
-                </div>
+                <ExperienceBar monster={monster} />
 
                 {/* Ability */}
                 <div className="space-y-1">

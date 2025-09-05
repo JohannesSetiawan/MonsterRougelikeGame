@@ -14,7 +14,8 @@
     "abilities": ["intimidate"],
     "learnableMoves": ["scratch", "ember", "flame_burst"],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "growth_index": 1
   },
   "aquafin": {
     "id": "aquafin",
@@ -31,7 +32,8 @@
     "abilities": ["torrent", "swift_swim"],
     "learnableMoves": ["scratch", "water_gun", "bubble_beam"],
     "description": "A fish-like creature that can manipulate water currents. Very adaptable to aquatic environments.",
-    "rarity": "uncommon"
+    "rarity": "uncommon",
+    "growth_index": 1
   },
   "pyroblast": {
     "id": "pyroblast",
@@ -48,7 +50,8 @@
     "abilities": ["blaze"],
     "learnableMoves": ["ember", "flame_burst", "scratch"],
     "description": "The evolved form of Flamewyrm. Its flames burn so hot they can melt steel.",
-    "rarity": "rare"
+    "rarity": "rare",
+    "growth_index": 1
   },
   "hydroking": {
     "id": "hydroking",
@@ -65,6 +68,7 @@
     "abilities": ["torrent"],
     "learnableMoves": ["water_gun", "bubble_beam", "hydro_pump"],
     "description": "The evolved form of Aquafin. Said to command the seas and control massive tidal waves.",
-    "rarity": "rare"
+    "rarity": "rare",
+    "growth_index": 1
   }
 }
