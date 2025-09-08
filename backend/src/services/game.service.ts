@@ -345,7 +345,7 @@ export class GameService {
         break;
 
       case 'boost_shiny_rate':
-        // Add temporary effect to increase shiny encounter rate
+        // Legacy temporary effect (keeping for backward compatibility)
         if (!run.temporaryEffects) run.temporaryEffects = {};
         run.temporaryEffects.shinyBoost = {
           active: true,
@@ -354,6 +354,14 @@ export class GameService {
         };
         success = true;
         message = 'Shiny encounter rate increased for the next 10 encounters!';
+        break;
+
+      case 'permanent_shiny_boost':
+        // Add permanent luck charm effect
+        if (!run.permanentItems) run.permanentItems = [];
+        run.permanentItems.push('luck_charm');
+        success = true;
+        message = 'Luck Charm activated! Shiny encounter rate permanently increased by 2x!';
         break;
       
       default:
@@ -401,8 +409,16 @@ export class GameService {
     let shinyBoost = 1;
     if (runId) {
       const run = this.gameRuns.get(runId);
+      
+      // Check for permanent luck charms
+      if (run?.permanentItems) {
+        const luckCharmCount = run.permanentItems.filter(item => item === 'luck_charm').length;
+        shinyBoost *= Math.pow(2, luckCharmCount); // 2x multiplier per luck charm, stacks
+      }
+      
+      // Check for temporary shiny boost (legacy)
       if (run?.temporaryEffects?.shinyBoost?.active) {
-        shinyBoost = run.temporaryEffects.shinyBoost.multiplier;
+        shinyBoost *= run.temporaryEffects.shinyBoost.multiplier;
         
         // Decrease duration and deactivate if expired
         run.temporaryEffects.shinyBoost.duration--;

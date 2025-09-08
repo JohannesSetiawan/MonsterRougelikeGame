@@ -172,10 +172,11 @@
   "luck_charm": {
     "id": "luck_charm",
     "name": "Luck Charm",
-    "description": "Increases shiny encounter rate for a short time",
-    "type": "misc",
-    "effect": "boost_shiny_rate",
+    "description": "Permanently increases shiny encounter rate by 2x. Effect stacks with multiple charms.",
+    "type": "permanent",
+    "effect": "permanent_shiny_boost",
     "rarity": "rare",
-    "value": 3000
+    "value": 3000,
+    "battleUsable": false
   }
 }

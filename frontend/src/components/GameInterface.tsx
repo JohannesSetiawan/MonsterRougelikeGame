@@ -196,6 +196,40 @@ const GameInterface: React.FC = () => {
           </CardHeader>
         </Card>
 
+        {/* Permanent Items Section */}
+        {state.currentRun.permanentItems && state.currentRun.permanentItems.length > 0 && (
+          <Card className="border-2 border-purple-500/50 bg-purple-950/20">
+            <CardHeader>
+              <CardTitle className="text-xl text-purple-200 flex items-center gap-2">
+                ✨ Active Permanent Effects
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(
+                  state.currentRun.permanentItems.reduce((acc, itemId) => {
+                    acc[itemId] = (acc[itemId] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>)
+                ).map(([itemId, count]) => {
+                  if (itemId === 'luck_charm') {
+                    return (
+                      <Badge key={itemId} className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
+                        🍀 Luck Charm x{count} (Shiny Rate: {Math.pow(2, count)}x)
+                      </Badge>
+                    );
+                  }
+                  return (
+                    <Badge key={itemId} className="bg-purple-500/20 text-purple-300 border-purple-500/50">
+                      {itemId} x{count}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Team Section */}
         <Card className="border-2">
           <CardHeader>
@@ -252,7 +286,8 @@ const GameInterface: React.FC = () => {
                       {(item.type === 'healing' || 
                         item.id === 'rare_candy' || 
                         item.id === 'elixir' || 
-                        item.id === 'max_elixir') && (
+                        item.id === 'max_elixir' ||
+                        item.type === 'permanent') && (
                         <Button 
                           size="sm"
                           onClick={() => handleItemClick(item)}

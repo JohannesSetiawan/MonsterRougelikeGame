@@ -69,7 +69,7 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  type: 'healing' | 'capture' | 'battle' | 'misc';
+  type: 'healing' | 'capture' | 'battle' | 'misc' | 'permanent';
   effect: string;
   quantity: number;
   rarity?: 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -86,6 +86,7 @@ export interface GameRun {
   isActive: boolean;
   createdAt: string;
   endedAt?: string;
+  permanentItems?: string[]; // Array of permanent item IDs
   temporaryEffects?: {
     shinyBoost?: {
       active: boolean;

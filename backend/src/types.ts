@@ -74,6 +74,7 @@ export interface GameRun {
   isActive: boolean;
   createdAt: Date;
   endedAt?: Date;
+  permanentItems?: string[]; // Array of permanent item IDs
   temporaryEffects?: {
     shinyBoost?: {
       active: boolean;
