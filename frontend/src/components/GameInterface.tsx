@@ -5,6 +5,7 @@ import { ErrorHandler } from '../utils/errorHandler';
 import TeamManagement from './TeamManagement';
 import ItemInfo from './ItemInfo';
 import MonsterCard from './MonsterCard';
+import DebugPage from './DebugPage';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ const GameInterface: React.FC = () => {
   const [isEndingRun, setIsEndingRun] = React.useState(false);
   const [showTeamManagement, setShowTeamManagement] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
+  const [showDebugPage, setShowDebugPage] = React.useState(false);
 
   const getRarityColor = (rarity?: string) => {
     switch (rarity) {
@@ -26,6 +28,19 @@ const GameInterface: React.FC = () => {
       default: return 'bg-gray-500/20 text-gray-700 border-gray-500/50';
     }
   };
+
+  // Debug mode keyboard shortcut (Ctrl+Shift+D)
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        setShowDebugPage(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleEndRun = React.useCallback(async (reason: 'victory' | 'defeat') => {
     if (!state.currentRun || isEndingRun) return;
@@ -130,6 +145,19 @@ const GameInterface: React.FC = () => {
                 >
                   👥 Team Details
                 </Button>
+                {/* Debug mode button - only visible in development */}
+                {process.env.NODE_ENV === 'development' && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowDebugPage(true)}
+                    disabled={state.isLoading}
+                    className="flex items-center gap-2 text-xs"
+                    size="sm"
+                    title="Debug Mode (Ctrl+Shift+D)"
+                  >
+                    🔧 Debug
+                  </Button>
+                )}
                 <Button 
                   variant="destructive"
                   onClick={() => handleEndRun('defeat')}
@@ -335,6 +363,13 @@ const GameInterface: React.FC = () => {
           <ItemInfo 
             itemId={selectedItem} 
             onClose={() => setSelectedItem(null)} 
+          />
+        )}
+
+        {/* Debug Page Modal */}
+        {showDebugPage && (
+          <DebugPage 
+            onClose={() => setShowDebugPage(false)} 
           />
         )}
       </div>
