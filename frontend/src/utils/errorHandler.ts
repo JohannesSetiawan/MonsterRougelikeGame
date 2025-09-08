@@ -33,7 +33,18 @@ export class ErrorHandler {
       return error;
     }
 
-    if (error instanceof Error) {
+    // Handle axios/HTTP errors - extract message from response data
+    if (error?.response?.data?.message) {
+      errorDetails.message = error.response.data.message;
+      errorDetails.code = error.response?.status?.toString();
+    } else if (error?.response?.data?.error) {
+      errorDetails.message = error.response.data.error;
+      errorDetails.code = error.response?.status?.toString();
+    } else if (error?.response?.status) {
+      const statusText = error?.response?.statusText || 'Request failed';
+      errorDetails.message = `${statusText} (${error.response.status})`;
+      errorDetails.code = error.response.status.toString();
+    } else if (error instanceof Error) {
       errorDetails.message = error.message;
     } else if (typeof error === 'string') {
       errorDetails.message = error;
@@ -52,6 +63,22 @@ export class ErrorHandler {
       return error.message;
     }
     
+    // Handle axios/HTTP errors - extract message from response data
+    if (error?.response?.data?.message) {
+      return error.response.data.message;
+    }
+    
+    // Handle axios/HTTP errors - extract error from response data
+    if (error?.response?.data?.error) {
+      return error.response.data.error;
+    }
+    
+    // Handle axios/HTTP errors - use status text with code
+    if (error?.response?.status) {
+      const statusText = error?.response?.statusText || 'Request failed';
+      return `${statusText} (${error.response.status})`;
+    }
+    
     if (error instanceof Error) {
       return error.message;
     }
@@ -67,6 +94,9 @@ export class ErrorHandler {
     return error?.code === 'NETWORK_ERROR' || 
            error?.message?.includes('fetch') ||
            error?.message?.includes('network') ||
+           error?.code === 'ECONNREFUSED' ||
+           error?.code === 'ENOTFOUND' ||
+           error?.response === undefined ||
            !navigator.onLine;
   }
 

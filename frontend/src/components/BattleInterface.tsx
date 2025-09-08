@@ -247,9 +247,17 @@ const BattleInterface: React.FC = () => {
       }
 
     } catch (error) {
-      const displayMessage = ErrorHandler.getDisplayMessage(error, 'Battle action failed');
-      dispatch({ type: 'SET_ERROR', payload: displayMessage });
+      // Handle battle action errors gracefully - don't navigate away from battle
+      const errorMessage = ErrorHandler.getDisplayMessage(error, 'Action failed');
+      
+      // Add error message to battle log as a warning
+      setBattleLog(prev => [...prev, `⚠️ ${errorMessage}`]);
+      
+      // Log the error for debugging but don't set global error state
       ErrorHandler.handle(error, 'BattleInterface.handleBattleAction');
+      
+      // Don't update any game state - keep everything as it was
+      // Player can retry the action or choose a different action
     } finally {
       setIsProcessing(false);
     }
@@ -265,17 +273,24 @@ const BattleInterface: React.FC = () => {
     setShowItemBag(true);
   };
 
-  const handleUseItem = (itemId: string) => {
+  const handleUseItem = (itemId: string, targetMoveId?: string) => {
     if (isProcessing || battleEnded) return;
     
     setShowItemBag(false);
     
+    // Create battle action with optional target move
+    const action: BattleAction = { 
+      type: 'item', 
+      itemId,
+      ...(targetMoveId && { targetMoveId })
+    };
+    
     // Handle monster ball usage
-    if (itemId === 'monster_ball') {
-      handleBattleAction({ type: 'item', itemId: 'monster_ball' });
-    } else {
-      // Handle other items (like potions)
+    if (itemId === 'monster_ball' || itemId === 'great_ball' || itemId === 'ultra_ball') {
       handleBattleAction({ type: 'item', itemId });
+    } else {
+      // Handle other items (like potions, ethers, etc.)
+      handleBattleAction(action);
     }
   };
 
@@ -536,6 +551,9 @@ const BattleInterface: React.FC = () => {
             onUseItem={handleUseItem}
             onClose={handleCloseBag}
             isProcessing={isProcessing}
+            inBattle={true}
+            activeMonster={playerMonster}
+            movesData={movesData}
           />
         )}
 

@@ -521,6 +521,11 @@ export class GameService {
     };
   }
 
+  getItemData(itemId: string) {
+    const allItems = this.dataLoaderService.getItems();
+    return allItems[itemId];
+  }
+
   private getStartingInventory(): Item[] {
     const allItems = this.dataLoaderService.getItems();
     

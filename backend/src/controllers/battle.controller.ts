@@ -34,6 +34,11 @@ export class BattleController {
       // Initialize battle context with ability effects like Intimidate
       const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster);
       
+      // Reset stat boost usage for new battle
+      if (run?.temporaryEffects?.usedStatBoosts) {
+        run.temporaryEffects.usedStatBoosts = {};
+      }
+      
       // Determine turn order with speed abilities applied
       const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
       const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
@@ -55,7 +60,7 @@ export class BattleController {
   }
 
   @Post(':runId/action')
-  performBattleAction(
+  async performBattleAction(
     @Param('runId') runId: string,
     @Body() body: {
       action: BattleAction;
@@ -89,18 +94,25 @@ export class BattleController {
       }
     }
 
-    // Check if trying to use an item but item not available
-    if (body.action.type === 'item') {
-      if (!body.action.itemId) {
-        throw new HttpException('Item ID is required for item action', HttpStatus.BAD_REQUEST);
-      }
-      const item = run.inventory.find(item => item.id === body.action.itemId && item.quantity > 0);
-      if (!item) {
-        throw new HttpException(`Item ${body.action.itemId} not available`, HttpStatus.BAD_REQUEST);
-      }
-    }
+      // Check if trying to use an item but item not available
+      if (body.action.type === 'item') {
+        if (!body.action.itemId) {
+          throw new HttpException('Item ID is required for item action', HttpStatus.BAD_REQUEST);
+        }
+        const item = run.inventory.find(item => item.id === body.action.itemId && item.quantity > 0);
+        if (!item) {
+          throw new HttpException(`Item ${body.action.itemId} not available`, HttpStatus.BAD_REQUEST);
+        }
 
-    try {
+        // Check for stat boost restrictions (can't use multiple times)
+        const statBoostItems = ['x_attack', 'x_defense', 'x_speed'];
+        if (statBoostItems.includes(body.action.itemId)) {
+          const boostType = body.action.itemId.replace('x_', '');
+          if (run.temporaryEffects?.usedStatBoosts?.[boostType]) {
+            throw new HttpException(`X ${boostType.charAt(0).toUpperCase() + boostType.slice(1)} has already been used in this battle`, HttpStatus.BAD_REQUEST);
+          }
+        }
+      }    try {
       // Reconstruct battle context from frontend data
       let battleContext = null;
       if (body.battleContext) {
@@ -268,9 +280,11 @@ export class BattleController {
               // Apply temporary stat boost for the current battle
               if (!run.temporaryEffects) run.temporaryEffects = {};
               if (!run.temporaryEffects.statBoosts) run.temporaryEffects.statBoosts = {};
+              if (!run.temporaryEffects.usedStatBoosts) run.temporaryEffects.usedStatBoosts = {};
 
               const statType = body.action.itemId.replace('x_', '');
               run.temporaryEffects.statBoosts[statType] = 1.5; // 50% boost
+              run.temporaryEffects.usedStatBoosts[statType] = true; // Mark as used
 
               // Update battle context with the new modifiers
               if (battleContext) {
@@ -283,12 +297,37 @@ export class BattleController {
 
             case 'ether':
             case 'max_ether':
+              // For ether items, we need move selection - use game service
+              if (body.action.targetMoveId) {
+                const itemResult = await this.gameService.useItem(
+                  runId, 
+                  body.action.itemId, 
+                  body.playerMonsterId,
+                  body.action.targetMoveId
+                );
+                if (itemResult.success) {
+                  allEffects.push(itemResult.message);
+                } else {
+                  throw new HttpException(itemResult.message, HttpStatus.BAD_REQUEST);
+                }
+              } else {
+                throw new HttpException('Please select a move to restore PP!', HttpStatus.BAD_REQUEST);
+              }
+              break;
+
             case 'elixir':
             case 'max_elixir':
-              // Use the game service's useItem method for PP restoration
-              // These require move selection, so we'll return a message for now
-              allEffects.push(`${item.name} is ready to use! Please select a move to restore PP.`);
-              // Note: Full PP restoration logic would need move selection in the frontend
+              // For elixir items, restore all moves - use game service
+              const itemResult = await this.gameService.useItem(
+                runId, 
+                body.action.itemId, 
+                body.playerMonsterId
+              );
+              if (itemResult.success) {
+                allEffects.push(itemResult.message);
+              } else {
+                throw new HttpException(itemResult.message, HttpStatus.BAD_REQUEST);
+              }
               break;
             
             default:

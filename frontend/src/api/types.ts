@@ -86,6 +86,23 @@ export interface GameRun {
   isActive: boolean;
   createdAt: string;
   endedAt?: string;
+  temporaryEffects?: {
+    shinyBoost?: {
+      active: boolean;
+      duration: number;
+      multiplier: number;
+    };
+    statBoosts?: {
+      attack?: number;
+      defense?: number;
+      speed?: number;
+    };
+    usedStatBoosts?: {
+      attack?: boolean;
+      defense?: boolean;
+      speed?: boolean;
+    };
+  };
 }
 
 export interface Player {
@@ -105,6 +122,7 @@ export interface BattleAction {
   targetId?: string;
   itemId?: string;
   newMonsterId?: string;
+  targetMoveId?: string; // For items that target specific moves (like Ether)
 }
 
 export interface BattleResult {

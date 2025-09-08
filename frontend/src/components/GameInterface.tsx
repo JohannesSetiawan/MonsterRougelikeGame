@@ -6,6 +6,7 @@ import TeamManagement from './TeamManagement';
 import ItemInfo from './ItemInfo';
 import MonsterCard from './MonsterCard';
 import DebugPage from './DebugPage';
+import MonsterSelectionModal from './MonsterSelectionModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ const GameInterface: React.FC = () => {
   const [showTeamManagement, setShowTeamManagement] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [showDebugPage, setShowDebugPage] = React.useState(false);
+  const [showMonsterSelection, setShowMonsterSelection] = React.useState<string | null>(null);
 
   const getRarityColor = (rarity?: string) => {
     switch (rarity) {
@@ -101,12 +103,20 @@ const GameInterface: React.FC = () => {
     }
   };
 
-  const handleUseItem = async (itemId: string) => {
+  const handleUseItem = async (itemId: string, targetMonsterId?: string) => {
     if (!state.currentRun || processingItemId === itemId) return;
 
     setProcessingItemId(itemId);
     try {
-      const result = await gameApi.useItem(state.currentRun.id, itemId);
+      let result;
+      
+      // Handle rare candy with monster selection
+      if (itemId === 'rare_candy' && targetMonsterId) {
+        result = await gameApi.useItem(state.currentRun.id, itemId, targetMonsterId);
+      } else {
+        result = await gameApi.useItem(state.currentRun.id, itemId);
+      }
+      
       dispatch({ type: 'SET_CURRENT_RUN', payload: result.run });
       // Show message to user
       alert(result.message);
@@ -115,6 +125,22 @@ const GameInterface: React.FC = () => {
     } finally {
       setProcessingItemId(null);
     }
+  };
+
+  const handleItemClick = (item: { id: string }) => {
+    // Items that require monster selection
+    if (item.id === 'rare_candy' || 
+        item.id === 'elixir' || 
+        item.id === 'max_elixir') {
+      setShowMonsterSelection(item.id);
+    } else {
+      handleUseItem(item.id);
+    }
+  };
+
+  const handleMonsterSelection = (itemId: string, monsterId: string) => {
+    setShowMonsterSelection(null);
+    handleUseItem(itemId, monsterId);
   };
 
   if (!state.currentRun) return null;
@@ -223,10 +249,13 @@ const GameInterface: React.FC = () => {
                       <p className="text-sm text-muted-foreground">
                         {item.description}
                       </p>
-                      {item.type === 'healing' && (
+                      {(item.type === 'healing' || 
+                        item.id === 'rare_candy' || 
+                        item.id === 'elixir' || 
+                        item.id === 'max_elixir') && (
                         <Button 
                           size="sm"
-                          onClick={() => handleUseItem(item.id)}
+                          onClick={() => handleItemClick(item)}
                           disabled={processingItemId === item.id || state.isLoading}
                           className="w-full"
                         >
@@ -370,6 +399,17 @@ const GameInterface: React.FC = () => {
         {showDebugPage && (
           <DebugPage 
             onClose={() => setShowDebugPage(false)} 
+          />
+        )}
+
+        {/* Monster Selection Modal for items like rare candy */}
+        {showMonsterSelection && state.currentRun && (
+          <MonsterSelectionModal
+            monsters={state.currentRun.team}
+            itemName={state.currentRun.inventory.find(item => item.id === showMonsterSelection)?.name || showMonsterSelection}
+            onSelectMonster={(monsterId) => handleMonsterSelection(showMonsterSelection, monsterId)}
+            onClose={() => setShowMonsterSelection(null)}
+            isProcessing={processingItemId === showMonsterSelection}
           />
         )}
       </div>

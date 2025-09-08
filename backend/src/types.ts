@@ -85,6 +85,11 @@ export interface GameRun {
       defense?: number;
       speed?: number;
     };
+    usedStatBoosts?: {
+      attack?: boolean;
+      defense?: boolean;
+      speed?: boolean;
+    };
   };
 }
 
@@ -116,6 +121,7 @@ export interface BattleAction {
   targetId?: string;
   itemId?: string;
   newMonsterId?: string;
+  targetMoveId?: string; // For items that target specific moves (like Ether)
 }
 
 export interface BattleResult {

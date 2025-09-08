@@ -5,16 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ItemInfo from './ItemInfo';
+import MoveSelectionModal from './MoveSelectionModal';
 
 interface ItemBagProps {
   inventory: Item[];
-  onUseItem: (itemId: string) => void;
+  onUseItem: (itemId: string, targetMoveId?: string) => void;
   onClose: () => void;
   isProcessing: boolean;
+  inBattle?: boolean;
+  activeMonster?: any; // For move selection in battle
+  movesData?: Record<string, any>; // For move selection
 }
 
-const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProcessing }) => {
+const ItemBag: React.FC<ItemBagProps> = ({ 
+  inventory, 
+  onUseItem, 
+  onClose, 
+  isProcessing, 
+  inBattle = false, 
+  activeMonster, 
+  movesData = {} 
+}) => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [showMoveSelection, setShowMoveSelection] = useState<string | null>(null);
+  
   const getItemIcon = (itemType: string) => {
     switch (itemType) {
       case 'healing': return '💊';
@@ -48,7 +62,42 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
     }
   };
 
-  const usableItems = inventory.filter(item => item.quantity > 0);
+  // Filter items based on battle context
+  const getUsableItems = () => {
+    let filteredItems = inventory.filter(item => item.quantity > 0);
+    
+    if (inBattle) {
+      // In battle: exclude non-battle items like rare candy
+      filteredItems = filteredItems.filter(item => {
+        // Allow healing items, capture items, and battle items
+        if (item.type === 'healing' || item.type === 'capture' || item.type === 'battle') {
+          // But exclude rare candy specifically
+          return item.id !== 'rare_candy';
+        }
+        return false;
+      });
+    }
+    
+    return filteredItems;
+  };
+
+  const handleItemUse = (item: Item) => {
+    // Items that require move selection (only ether items, not elixir items)
+    const moveSelectionItems = ['ether', 'max_ether'];
+    
+    if (moveSelectionItems.includes(item.id)) {
+      setShowMoveSelection(item.id);
+    } else {
+      onUseItem(item.id);
+    }
+  };
+
+  const handleMoveSelection = (itemId: string, moveId: string) => {
+    setShowMoveSelection(null);
+    onUseItem(itemId, moveId);
+  };
+
+  const usableItems = getUsableItems();
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -101,7 +150,7 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
                     
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => onUseItem(item.id)}
+                        onClick={() => handleItemUse(item)}
                         disabled={isProcessing}
                         className="flex-1"
                         variant={item.type === 'healing' ? 'default' : item.type === 'capture' ? 'destructive' : 'secondary'}
@@ -143,6 +192,18 @@ const ItemBag: React.FC<ItemBagProps> = ({ inventory, onUseItem, onClose, isProc
         <ItemInfo 
           itemId={selectedItem} 
           onClose={() => setSelectedItem(null)} 
+        />
+      )}
+
+      {/* Move Selection Modal for items that target moves */}
+      {showMoveSelection && activeMonster && (
+        <MoveSelectionModal
+          monster={activeMonster}
+          movesData={movesData}
+          itemName={usableItems.find(item => item.id === showMoveSelection)?.name || showMoveSelection}
+          onSelectMove={(moveId) => handleMoveSelection(showMoveSelection, moveId)}
+          onClose={() => setShowMoveSelection(null)}
+          isProcessing={isProcessing}
         />
       )}
     </Dialog>

@@ -69,7 +69,8 @@
     "type": "battle",
     "effect": "pp_restore_10",
     "rarity": "uncommon",
-    "value": 400
+    "value": 400,
+    "battleUsable": true
   },
   "max_ether": {
     "id": "max_ether",
@@ -78,7 +79,8 @@
     "type": "battle",
     "effect": "pp_restore_full",
     "rarity": "rare",
-    "value": 800
+    "value": 800,
+    "battleUsable": true
   },
   "elixir": {
     "id": "elixir",
@@ -87,7 +89,8 @@
     "type": "battle",
     "effect": "pp_restore_all_10",
     "rarity": "rare",
-    "value": 1000
+    "value": 1000,
+    "battleUsable": true
   },
   "max_elixir": {
     "id": "max_elixir",
@@ -96,7 +99,8 @@
     "type": "battle",
     "effect": "pp_restore_all_full",
     "rarity": "legendary",
-    "value": 2000
+    "value": 2000,
+    "battleUsable": true
   },
   "revive": {
     "id": "revive",
@@ -119,11 +123,12 @@
   "rare_candy": {
     "id": "rare_candy",
     "name": "Rare Candy",
-    "description": "Increases a monster's level by 1",
+    "description": "Increases a monster's level by 1. Cannot be used in battle.",
     "type": "misc",
     "effect": "level_up",
     "rarity": "legendary",
-    "value": 5000
+    "value": 5000,
+    "battleUsable": false
   },
   "escape_rope": {
     "id": "escape_rope",
@@ -137,29 +142,32 @@
   "x_attack": {
     "id": "x_attack",
     "name": "X Attack",
-    "description": "Raises Attack stat for the current battle",
+    "description": "Raises Attack stat for the current battle. Cannot use multiple times.",
     "type": "battle",
     "effect": "boost_attack",
     "rarity": "uncommon",
-    "value": 500
+    "value": 500,
+    "battleUsable": true
   },
   "x_defense": {
     "id": "x_defense",
     "name": "X Defense",
-    "description": "Raises Defense stat for the current battle",
+    "description": "Raises Defense stat for the current battle. Cannot use multiple times.",
     "type": "battle",
     "effect": "boost_defense",
     "rarity": "uncommon",
-    "value": 500
+    "value": 500,
+    "battleUsable": true
   },
   "x_speed": {
     "id": "x_speed",
     "name": "X Speed",
-    "description": "Raises Speed stat for the current battle",
+    "description": "Raises Speed stat for the current battle. Cannot use multiple times.",
     "type": "battle",
     "effect": "boost_speed",
     "rarity": "uncommon",
-    "value": 500
+    "value": 500,
+    "battleUsable": true
   },
   "luck_charm": {
     "id": "luck_charm",
