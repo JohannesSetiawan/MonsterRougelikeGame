@@ -81,7 +81,7 @@ export class GameController {
         };
       }
       
-      const encounter = this.gameService.generateRandomEncounter(run.currentStage);
+      const encounter = this.gameService.generateRandomEncounter(run.currentStage, runId);
       return { run, encounter, gameEnded: false };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
@@ -89,9 +89,9 @@ export class GameController {
   }
 
   @Post('run/:runId/item/use')
-  useItem(@Param('runId') runId: string, @Body() body: { itemId: string; targetMonsterId?: string }) {
+  useItem(@Param('runId') runId: string, @Body() body: { itemId: string; targetMonsterId?: string; moveId?: string }) {
     try {
-      return this.gameService.useItem(runId, body.itemId, body.targetMonsterId);
+      return this.gameService.useItem(runId, body.itemId, body.targetMonsterId, body.moveId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

@@ -11,7 +11,7 @@
       "specialDefense": 60,
       "speed": 75
     },
-    "abilities": ["intimidate"],
+    "abilities": ["blaze"],
     "learnableMoves": ["scratch", "ember", "flame_burst"],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
     "rarity": "uncommon",

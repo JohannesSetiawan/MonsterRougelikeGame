@@ -74,6 +74,18 @@ export interface GameRun {
   isActive: boolean;
   createdAt: Date;
   endedAt?: Date;
+  temporaryEffects?: {
+    shinyBoost?: {
+      active: boolean;
+      duration: number;
+      multiplier: number;
+    };
+    statBoosts?: {
+      attack?: number;
+      defense?: number;
+      speed?: number;
+    };
+  };
 }
 
 export interface Item {

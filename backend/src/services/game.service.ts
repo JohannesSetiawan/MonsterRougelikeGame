@@ -98,11 +98,6 @@ export class GameService {
       player.bestStage = run.currentStage;
     }
 
-    // Restore PP for all team monsters when progressing to next stage
-    run.team.forEach(monster => {
-      this.monsterService.restoreAllPP(monster);
-    });
-
     // Check for victory condition (reaching stage 20)
     if (run.currentStage > 200000) {
       this.endRun(runId, 'victory');
@@ -153,7 +148,7 @@ export class GameService {
     return run;
   }
 
-  useItem(runId: string, itemId: string, targetMonsterId?: string): { success: boolean; message: string; run: GameRun } {
+  useItem(runId: string, itemId: string, targetMonsterId?: string, moveId?: string): { success: boolean; message: string; run: GameRun } {
     const run = this.gameRuns.get(runId);
     if (!run || !run.isActive) {
       throw new Error('Game run not found or not active');
@@ -168,7 +163,7 @@ export class GameService {
       ? run.team.find(m => m.id === targetMonsterId)
       : run.team.find(m => m.currentHp < m.maxHp); // Auto-target injured monster
 
-    if (!targetMonster && item.type === 'healing') {
+    if (!targetMonster && (item.type === 'healing' || item.effect.startsWith('pp_restore') || item.effect.startsWith('boost_'))) {
       return { success: false, message: 'No valid target for this item', run };
     }
 
@@ -241,6 +236,125 @@ export class GameService {
           message = `${targetMonster.name} leveled up to level ${targetMonster.level}!`;
         }
         break;
+
+      case 'catch_improved':
+        // This will be handled in battle context, just mark as successful for inventory management
+        success = true;
+        message = 'Great Ball is ready to use!';
+        break;
+
+      case 'catch_excellent':
+        // This will be handled in battle context, just mark as successful for inventory management
+        success = true;
+        message = 'Ultra Ball is ready to use!';
+        break;
+
+      case 'pp_restore_10':
+        if (targetMonster && moveId) {
+          const moveData = this.monsterService.getMoveData(moveId);
+          if (moveData && targetMonster.moves.includes(moveId)) {
+            if (!targetMonster.movePP) targetMonster.movePP = {};
+            const currentPP = targetMonster.movePP[moveId] || 0;
+            const maxPP = moveData.pp;
+            const restoreAmount = Math.min(10, maxPP - currentPP);
+            targetMonster.movePP[moveId] = currentPP + restoreAmount;
+            success = true;
+            message = `${moveData.name} recovered ${restoreAmount} PP!`;
+          } else {
+            message = 'Invalid move selected!';
+          }
+        } else {
+          message = 'Please select a move to restore PP!';
+        }
+        break;
+
+      case 'pp_restore_full':
+        if (targetMonster && moveId) {
+          const moveData = this.monsterService.getMoveData(moveId);
+          if (moveData && targetMonster.moves.includes(moveId)) {
+            if (!targetMonster.movePP) targetMonster.movePP = {};
+            const currentPP = targetMonster.movePP[moveId] || 0;
+            const maxPP = moveData.pp;
+            const restoreAmount = maxPP - currentPP;
+            targetMonster.movePP[moveId] = maxPP;
+            success = true;
+            message = `${moveData.name} fully recovered ${restoreAmount} PP!`;
+          } else {
+            message = 'Invalid move selected!';
+          }
+        } else {
+          message = 'Please select a move to restore PP!';
+        }
+        break;
+
+      case 'pp_restore_all_10':
+        if (targetMonster) {
+          if (!targetMonster.movePP) targetMonster.movePP = {};
+          let totalRestored = 0;
+          targetMonster.moves.forEach(moveId => {
+            const moveData = this.monsterService.getMoveData(moveId);
+            if (moveData) {
+              const currentPP = targetMonster.movePP[moveId] || 0;
+              const maxPP = moveData.pp;
+              const restoreAmount = Math.min(10, maxPP - currentPP);
+              targetMonster.movePP[moveId] = currentPP + restoreAmount;
+              totalRestored += restoreAmount;
+            }
+          });
+          success = true;
+          message = `All moves recovered ${totalRestored} total PP!`;
+        }
+        break;
+
+      case 'pp_restore_all_full':
+        if (targetMonster) {
+          this.monsterService.restoreAllPP(targetMonster);
+          success = true;
+          message = `${targetMonster.name}'s PP was fully restored for all moves!`;
+        }
+        break;
+
+      case 'guaranteed_flee':
+        // This will be handled in battle context, just mark as successful for inventory management
+        success = true;
+        message = 'Escape Rope is ready to use!';
+        break;
+
+      case 'boost_attack':
+        if (targetMonster) {
+          // Add temporary battle boost - this will be handled in battle context
+          success = true;
+          message = `${targetMonster.name}'s Attack was boosted!`;
+        }
+        break;
+
+      case 'boost_defense':
+        if (targetMonster) {
+          // Add temporary battle boost - this will be handled in battle context
+          success = true;
+          message = `${targetMonster.name}'s Defense was boosted!`;
+        }
+        break;
+
+      case 'boost_speed':
+        if (targetMonster) {
+          // Add temporary battle boost - this will be handled in battle context
+          success = true;
+          message = `${targetMonster.name}'s Speed was boosted!`;
+        }
+        break;
+
+      case 'boost_shiny_rate':
+        // Add temporary effect to increase shiny encounter rate
+        if (!run.temporaryEffects) run.temporaryEffects = {};
+        run.temporaryEffects.shinyBoost = {
+          active: true,
+          duration: 10, // 10 encounters
+          multiplier: 5 // 5x shiny rate
+        };
+        success = true;
+        message = 'Shiny encounter rate increased for the next 10 encounters!';
+        break;
       
       default:
         message = 'Unknown item effect';
@@ -276,18 +390,33 @@ export class GameService {
     return run;
   }
 
-  generateRandomEncounter(stageLevel: number): {
+  generateRandomEncounter(stageLevel: number, runId?: string): {
     type: 'wild_monster' | 'trainer' | 'item' | 'rest_site';
     data?: any;
   } {
     const encounterTypes = ['wild_monster', 'wild_monster','wild_monster', 'wild_monster','wild_monster', 'wild_monster', 'item', 'rest_site']; // Higher chance for monsters
     const randomType = encounterTypes[Math.floor(Math.random() * encounterTypes.length)] as any;
 
+    // Check for shiny boost if runId is provided
+    let shinyBoost = 1;
+    if (runId) {
+      const run = this.gameRuns.get(runId);
+      if (run?.temporaryEffects?.shinyBoost?.active) {
+        shinyBoost = run.temporaryEffects.shinyBoost.multiplier;
+        
+        // Decrease duration and deactivate if expired
+        run.temporaryEffects.shinyBoost.duration--;
+        if (run.temporaryEffects.shinyBoost.duration <= 0) {
+          run.temporaryEffects.shinyBoost.active = false;
+        }
+      }
+    }
+
     switch (randomType) {
       case 'wild_monster':
         return {
           type: 'wild_monster',
-          data: this.monsterService.getRandomWildMonster(stageLevel)
+          data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
         };
       
       case 'item':
@@ -305,7 +434,7 @@ export class GameService {
       default:
         return {
           type: 'wild_monster',
-          data: this.monsterService.getRandomWildMonster(stageLevel)
+          data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
         };
     }
   }

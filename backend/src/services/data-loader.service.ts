@@ -1,10 +1,11 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { Ability, Move, Monster, MonsterType, MoveCategory, Item } from '../types';
 
 @Injectable()
 export class DataLoaderService implements OnModuleInit {
+  private readonly logger = new Logger(DataLoaderService.name);
   private abilities: Record<string, Ability> = {};
   private moves: Record<string, Move> = {};
   private monsters: Record<string, Monster> = {};
@@ -33,10 +34,12 @@ export class DataLoaderService implements OnModuleInit {
       }
       
       if (!dataPath) {
-        throw new Error('Could not find data directory. Checked paths: ' + possiblePaths.join(', '));
+        const errorMessage = 'Could not find data directory. Checked paths: ' + possiblePaths.join(', ');
+        this.logger.error(errorMessage);
+        throw new Error(errorMessage);
       }
       
-      console.log('Loading data from:', dataPath);
+      this.logger.log(`Loading data from: ${dataPath}`);
       
       // Load abilities
       const abilitiesData = JSON.parse(
@@ -83,9 +86,9 @@ export class DataLoaderService implements OnModuleInit {
       );
       this.starterMonsters = configData.starterMonsters;
 
-      console.log('Game data loaded successfully from JSON files');
+      this.logger.log('Game data loaded successfully from JSON files');
     } catch (error) {
-      console.error('Failed to load game data:', error);
+      this.logger.error('Failed to load game data', error);
       throw new Error('Failed to load game data');
     }
   }

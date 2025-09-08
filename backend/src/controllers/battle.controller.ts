@@ -151,9 +151,12 @@ export class BattleController {
           // Apply item effect
           switch (body.action.itemId) {
             case 'potion':
-              const healAmount = Math.min(50, playerMonster.maxHp - playerMonster.currentHp);
-              playerMonster.currentHp += healAmount;
-              allEffects.push(`${playerMonster.name} recovered ${healAmount} HP!`);
+            case 'super_potion':
+            case 'hyper_potion':
+            case 'max_potion':
+              // Use the game service's useItem method for healing items
+              const healResult = this.gameService.useItem(runId, body.action.itemId, body.playerMonsterId);
+              allEffects.push(healResult.message);
               break;
             
             case 'monster_ball':
@@ -172,6 +175,81 @@ export class BattleController {
                 battleEnded = true;
                 winner = 'player';
               }
+              break;
+
+            case 'great_ball':
+              // Handle great ball as improved catch action
+              const greatBallResult = this.battleService.processBattleAction(
+                playerMonster,
+                body.opponentMonster,
+                { type: 'catch' },
+                { catchRate: 'improved' }
+              );
+              
+              allEffects.push(...(greatBallResult.effects || []));
+              
+              if (greatBallResult.success && greatBallResult.monsterCaught) {
+                this.gameService.addMonsterToTeam(runId, body.opponentMonster);
+                battleEnded = true;
+                winner = 'player';
+              }
+              break;
+
+            case 'ultra_ball':
+              // Handle ultra ball as excellent catch action
+              const ultraBallResult = this.battleService.processBattleAction(
+                playerMonster,
+                body.opponentMonster,
+                { type: 'catch' },
+                { catchRate: 'excellent' }
+              );
+              
+              allEffects.push(...(ultraBallResult.effects || []));
+              
+              if (ultraBallResult.success && ultraBallResult.monsterCaught) {
+                this.gameService.addMonsterToTeam(runId, body.opponentMonster);
+                battleEnded = true;
+                winner = 'player';
+              }
+              break;
+
+            case 'escape_rope':
+              // Handle escape rope as guaranteed flee
+              const fleeResult = this.battleService.processBattleAction(
+                playerMonster,
+                body.opponentMonster,
+                { type: 'flee' },
+                { guaranteedFlee: true }
+              );
+              
+              allEffects.push(...(fleeResult.effects || []));
+              
+              if (fleeResult.success) {
+                battleEnded = true;
+              }
+              break;
+
+            case 'x_attack':
+            case 'x_defense':
+            case 'x_speed':
+              // Apply temporary stat boost for the current battle
+              if (!run.temporaryEffects) run.temporaryEffects = {};
+              if (!run.temporaryEffects.statBoosts) run.temporaryEffects.statBoosts = {};
+
+              const statType = body.action.itemId.replace('x_', '');
+              run.temporaryEffects.statBoosts[statType] = 1.5; // 50% boost
+
+              allEffects.push(`${playerMonster.name}'s ${statType} was boosted!`);
+              break;
+
+            case 'ether':
+            case 'max_ether':
+            case 'elixir':
+            case 'max_elixir':
+              // Use the game service's useItem method for PP restoration
+              // These require move selection, so we'll return a message for now
+              allEffects.push(`${item.name} is ready to use! Please select a move to restore PP.`);
+              // Note: Full PP restoration logic would need move selection in the frontend
               break;
             
             default:

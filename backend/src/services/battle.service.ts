@@ -10,7 +10,12 @@ export class BattleService {
     attacker: MonsterInstance, 
     defender: MonsterInstance, 
     moveId: string,
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    temporaryBoosts?: {
+      attack?: number;
+      defense?: number;
+      speed?: number;
+    }
   ): number {
     const move = this.monsterService.getMoveData(moveId);
     const attackerData = this.monsterService.getMonsterData(attacker.monsterId);
@@ -26,6 +31,19 @@ export class BattleService {
     let defense = move.category === MoveCategory.PHYSICAL 
       ? defender.stats.defense 
       : defender.stats.specialDefense;
+
+    // Apply temporary stat boosts from items (X Attack, X Defense, etc.)
+    if (temporaryBoosts) {
+      const isPlayerAttacker = true; // Assuming player is always the attacker for item boosts
+      
+      if (isPlayerAttacker && temporaryBoosts.attack && move.category === MoveCategory.PHYSICAL) {
+        attack = Math.floor(attack * temporaryBoosts.attack);
+      }
+      
+      if (!isPlayerAttacker && temporaryBoosts.defense && move.category === MoveCategory.PHYSICAL) {
+        defense = Math.floor(defense * temporaryBoosts.defense);
+      }
+    }
 
     // Apply battle context stat modifiers if available
     if (battleContext) {
@@ -85,17 +103,26 @@ export class BattleService {
   processBattleAction(
     playerMonster: MonsterInstance,
     opponentMonster: MonsterInstance,
-    action: BattleAction
+    action: BattleAction,
+    battleModifiers?: {
+      catchRate?: 'improved' | 'excellent';
+      guaranteedFlee?: boolean;
+      statBoosts?: {
+        attack?: number;
+        defense?: number;
+        speed?: number;
+      };
+    }
   ): BattleResult {
     switch (action.type) {
       case 'attack':
         return this.processAttack(playerMonster, opponentMonster, action.moveId);
       
       case 'catch':
-        return this.processCatch(opponentMonster);
+        return this.processCatch(opponentMonster, battleModifiers?.catchRate);
       
       case 'flee':
-        return this.processFlee(playerMonster, opponentMonster);
+        return this.processFlee(playerMonster, opponentMonster, battleModifiers?.guaranteedFlee);
       
       case 'item':
         return this.processItem(action.itemId);
@@ -183,10 +210,21 @@ export class BattleService {
     };
   }
 
-  private processCatch(target: MonsterInstance): BattleResult {
-    // Simple catch rate calculation
-    const catchRate = this.calculateCatchRate(target);
-    const success = Math.random() * 100 < catchRate;
+  private processCatch(target: MonsterInstance, catchRate?: 'improved' | 'excellent'): BattleResult {
+    // Calculate catch rate with potential modifiers
+    let finalCatchRate = this.calculateCatchRate(target);
+    
+    // Apply ball type modifiers
+    if (catchRate === 'improved') {
+      finalCatchRate *= 1.5; // Great Ball: 50% better catch rate
+    } else if (catchRate === 'excellent') {
+      finalCatchRate *= 2.5; // Ultra Ball: 150% better catch rate
+    }
+    
+    // Cap the catch rate at 95%
+    finalCatchRate = Math.min(95, finalCatchRate);
+    
+    const success = Math.random() * 100 < finalCatchRate;
 
     if (success) {
       return {
@@ -203,7 +241,16 @@ export class BattleService {
     }
   }
 
-  private processFlee(playerMonster: MonsterInstance, opponentMonster: MonsterInstance): BattleResult {
+  private processFlee(playerMonster: MonsterInstance, opponentMonster: MonsterInstance, guaranteed?: boolean): BattleResult {
+    // If guaranteed flee (from Escape Rope), always succeed
+    if (guaranteed) {
+      return {
+        success: true,
+        effects: ['Used Escape Rope! Got away safely!'],
+        battleEnded: true
+      };
+    }
+
     const levelDiff = opponentMonster.level - playerMonster.level;
 
     // If player monster level is same or higher, guaranteed flee

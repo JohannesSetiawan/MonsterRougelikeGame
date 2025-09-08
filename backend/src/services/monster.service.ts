@@ -7,7 +7,7 @@ export class MonsterService {
   
   constructor(private dataLoaderService: DataLoaderService) {}
   
-  createMonsterInstance(monsterId: string, level: number = 1): MonsterInstance {
+  createMonsterInstance(monsterId: string, level: number = 1, shinyBoost: number = 1): MonsterInstance {
     const monster = this.dataLoaderService.getMonster(monsterId);
     if (!monster) {
       throw new Error(`Monster with id ${monsterId} not found`);
@@ -29,6 +29,10 @@ export class MonsterService {
       movePP[moveId] = moveData ? moveData.pp : 20; // default to 20 if move not found
     });
 
+    // Calculate shiny chance with boost
+    const baseShinyRate = 0.001; // 0.1% base rate
+    const enhancedShinyRate = Math.min(0.5, baseShinyRate * shinyBoost); // Cap at 50%
+
     return {
       id: this.generateId(),
       monsterId,
@@ -41,7 +45,7 @@ export class MonsterService {
       movePP,
       ability,
       experience: 0,
-      isShiny: Math.random() < 0.001 // 0.1% chance for shiny
+      isShiny: Math.random() < enhancedShinyRate
     };
   }
 
@@ -116,7 +120,7 @@ export class MonsterService {
     return { monster: updatedMonster, leveledUp, levelsGained };
   }
 
-  getRandomWildMonster(stageLevel: number): MonsterInstance {
+  getRandomWildMonster(stageLevel: number, shinyBoost: number = 1): MonsterInstance {
     const monsters = this.dataLoaderService.getMonsters();
     const monsterIds = Object.keys(monsters);
     const availableMonsters = monsterIds.filter(id => {
@@ -130,7 +134,7 @@ export class MonsterService {
     const randomId = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
     const level = Math.max(1, Math.ceil(stageLevel / 10) + Math.floor(Math.random() * 3) - 1); // ±1 level variance
     
-    return this.createMonsterInstance(randomId, level);
+    return this.createMonsterInstance(randomId, level, shinyBoost);
   }
 
   healMonster(monster: MonsterInstance, amount: number): MonsterInstance {
