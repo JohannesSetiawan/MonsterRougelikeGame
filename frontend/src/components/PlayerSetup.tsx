@@ -31,8 +31,17 @@ const PlayerSetup: React.FC = () => {
     
     setIsLoading(true);
     try {
-      const player = await gameApi.getPlayer(playerId.trim());
+      const player = await gameApi.loadPlayer(playerId.trim());
       dispatch({ type: 'SET_PLAYER', payload: player });
+      
+      // Try to load active game run
+      try {
+        const activeRun = await gameApi.getActiveRun(player.id);
+        dispatch({ type: 'SET_CURRENT_RUN', payload: activeRun });
+      } catch (runError) {
+        // No active run found, that's okay
+        console.log('No active run found for player');
+      }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Player not found' });
     } finally {

@@ -22,6 +22,16 @@ export const gameApi = {
     return response.data;
   },
 
+  loadPlayer: async (playerId: string): Promise<Player> => {
+    const response = await api.post(`/game/player/${playerId}/load`);
+    return response.data;
+  },
+
+  savePlayerProgress: async (playerId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post(`/game/player/${playerId}/save`);
+    return response.data;
+  },
+
   // Game run endpoints
   startRun: async (playerId: string, starterId: string): Promise<GameRun> => {
     const response = await api.post('/game/run/start', { playerId, starterId });

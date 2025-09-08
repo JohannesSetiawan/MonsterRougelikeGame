@@ -13,11 +13,11 @@ export class GameController {
   ) {}
 
   @Post('player')
-  createPlayer(@Body() body: { username: string }) {
+  async createPlayer(@Body() body: { username: string }) {
     if (!body.username) {
       throw new HttpException('Username is required', HttpStatus.BAD_REQUEST);
     }
-    return this.gameService.createPlayer(body.username);
+    return await this.gameService.createPlayer(body.username);
   }
 
   @Get('player/:playerId')
@@ -29,8 +29,26 @@ export class GameController {
     return player;
   }
 
+  @Post('player/:playerId/load')
+  async loadPlayer(@Param('playerId') playerId: string) {
+    const player = await this.gameService.loadPlayer(playerId);
+    if (!player) {
+      throw new HttpException('Player not found', HttpStatus.NOT_FOUND);
+    }
+    return player;
+  }
+
+  @Post('player/:playerId/save')
+  async savePlayerProgress(@Param('playerId') playerId: string) {
+    const result = await this.gameService.savePlayerProgress(playerId);
+    if (!result.success) {
+      throw new HttpException(result.message, HttpStatus.BAD_REQUEST);
+    }
+    return result;
+  }
+
   @Post('run/start')
-  startRun(@Body() body: { playerId: string; starterId: string }) {
+  async startRun(@Body() body: { playerId: string; starterId: string }) {
     if (!body.playerId || !body.starterId) {
       throw new HttpException('playerId and starterId are required', HttpStatus.BAD_REQUEST);
     }
@@ -41,15 +59,15 @@ export class GameController {
     }
 
     try {
-      return this.gameService.startNewRun(body.playerId, body.starterId);
+      return await this.gameService.startNewRun(body.playerId, body.starterId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 
   @Get('run/:runId')
-  getGameRun(@Param('runId') runId: string) {
-    const run = this.gameService.getGameRun(runId);
+  async getGameRun(@Param('runId') runId: string) {
+    const run = await this.gameService.getGameRun(runId);
     if (!run) {
       throw new HttpException('Game run not found', HttpStatus.NOT_FOUND);
     }
@@ -57,8 +75,8 @@ export class GameController {
   }
 
   @Get('run/active/:playerId')
-  getActiveRun(@Param('playerId') playerId: string) {
-    const run = this.gameService.getActiveRun(playerId);
+  async getActiveRun(@Param('playerId') playerId: string) {
+    const run = await this.gameService.getActiveRun(playerId);
     if (!run) {
       throw new HttpException('No active run found', HttpStatus.NOT_FOUND);
     }

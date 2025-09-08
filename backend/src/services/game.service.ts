@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { GameRun, Player, MonsterInstance, Item } from '../types';
 import { MonsterService } from './monster.service';
 import { DataLoaderService } from './data-loader.service';
+import { DatabaseService } from './database.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GameService {
@@ -10,30 +12,71 @@ export class GameService {
 
   constructor(
     private monsterService: MonsterService,
-    private dataLoaderService: DataLoaderService
+    private dataLoaderService: DataLoaderService,
+    private databaseService: DatabaseService
   ) {}
 
-  createPlayer(username: string): Player {
-    const player: Player = {
-      id: this.generateId(),
+  async createPlayer(username: string): Promise<Player> {
+    const playerData: Omit<Player, 'id' | 'createdAt'> = {
       username,
       permanentCurrency: 100, // Starting currency
       unlockedStarters: [...this.dataLoaderService.getStarterMonsters()],
       unlockedAbilities: [],
       totalRuns: 0,
       bestStage: 0,
-      createdAt: new Date()
     };
 
-    this.players.set(player.id, player);
+    // Save to database
+    const savedPlayer = await this.databaseService.createPlayer(playerData);
+    
+    // Also keep in memory for current session
+    this.players.set(savedPlayer.id, savedPlayer);
+    
+    return savedPlayer;
+  }
+
+  async loadPlayer(playerId: string): Promise<Player | null> {
+    // Load player from database and populate memory
+    const player = await this.databaseService.getPlayerById(playerId);
+    if (player) {
+      this.players.set(player.id, player);
+      
+      // Also load the latest game run if exists
+      const latestGameRun = await this.databaseService.getLatestGameRunForPlayer(playerId);
+      if (latestGameRun) {
+        this.gameRuns.set(latestGameRun.id, latestGameRun);
+      }
+    }
     return player;
+  }
+
+  async savePlayerProgress(playerId: string): Promise<{ success: boolean; message: string }> {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return { success: false, message: 'Player not found in memory' };
+    }
+
+    try {
+      // Save player data
+      await this.databaseService.savePlayerState(player);
+
+      // Save active game run if exists
+      const activeRun = this.getActiveRun(playerId);
+      if (activeRun) {
+        await this.databaseService.saveGameRunState(activeRun);
+      }
+
+      return { success: true, message: 'Progress saved successfully!' };
+    } catch (error) {
+      return { success: false, message: 'Failed to save progress: ' + error.message };
+    }
   }
 
   getPlayer(playerId: string): Player | undefined {
     return this.players.get(playerId);
   }
 
-  startNewRun(playerId: string, starterId: string): GameRun {
+  async startNewRun(playerId: string, starterId: string): Promise<GameRun> {
     const player = this.players.get(playerId);
     if (!player) {
       throw new Error('Player not found');
@@ -44,7 +87,7 @@ export class GameService {
     }
 
     // End any active runs
-    const activeRun = this.getActiveRun(playerId);
+    const activeRun = await this.getActiveRun(playerId);
     if (activeRun) {
       activeRun.isActive = false;
       activeRun.endedAt = new Date();
@@ -60,7 +103,7 @@ export class GameService {
       currentStage: 1,
       team: [starterMonster],
       inventory: this.getStartingInventory(),
-      currency: this.players.get(playerId)?.permanentCurrency || 100,
+      currency: player.permanentCurrency,
       isActive: true,
       createdAt: new Date()
     };
@@ -478,7 +521,7 @@ export class GameService {
   }
 
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+    return uuidv4();
   }
 
   restoreMonsterPP(

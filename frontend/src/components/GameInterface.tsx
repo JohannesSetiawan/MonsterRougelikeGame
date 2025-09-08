@@ -16,6 +16,7 @@ const GameInterface: React.FC = () => {
   const [isProcessingEncounter, setIsProcessingEncounter] = React.useState(false);
   const [processingItemId, setProcessingItemId] = React.useState<string | null>(null);
   const [isEndingRun, setIsEndingRun] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [showTeamManagement, setShowTeamManagement] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [showDebugPage, setShowDebugPage] = React.useState(false);
@@ -62,6 +63,24 @@ const GameInterface: React.FC = () => {
       setIsEndingRun(false);
     }
   }, [state.currentRun, state.player, dispatch, isEndingRun]);
+
+  const handleSaveProgress = React.useCallback(async () => {
+    if (!state.player || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      const result = await gameApi.savePlayerProgress(state.player.id);
+      if (result.success) {
+        alert('Progress saved successfully!');
+      } else {
+        alert('Failed to save progress: ' + result.message);
+      }
+    } catch (error) {
+      alert('Failed to save progress. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [state.player, isSaving]);
 
   const handleProgressStage = async () => {
     if (!state.currentRun) return;
@@ -184,6 +203,14 @@ const GameInterface: React.FC = () => {
                     🔧 Debug
                   </Button>
                 )}
+                <Button 
+                  variant="secondary"
+                  onClick={handleSaveProgress}
+                  disabled={isSaving || state.isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isSaving ? '💾 Saving...' : '💾 Save Progress'}
+                </Button>
                 <Button 
                   variant="destructive"
                   onClick={() => handleEndRun('defeat')}

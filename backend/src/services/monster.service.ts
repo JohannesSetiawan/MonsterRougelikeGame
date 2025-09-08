@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MonsterInstance, Monster, MonsterStats } from '../types';
 import { DataLoaderService } from './data-loader.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MonsterService {
@@ -145,7 +146,7 @@ export class MonsterService {
   }
 
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+    return uuidv4();
   }
 
   getMonsterData(monsterId: string): Monster {
