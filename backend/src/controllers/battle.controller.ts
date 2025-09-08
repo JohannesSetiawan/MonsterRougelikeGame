@@ -31,8 +31,8 @@ export class BattleController {
         throw new HttpException('Player monster not found', HttpStatus.BAD_REQUEST);
       }
 
-      // Apply battle start effects (like Intimidate)
-      const battleStartEffects = this.battleService.applyBattleStartEffects(playerMonster, body.opponentMonster);
+      // Initialize battle context with ability effects like Intimidate
+      const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster);
       
       // Determine turn order with speed abilities applied
       const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
@@ -43,7 +43,11 @@ export class BattleController {
         effects: battleStartEffects,
         playerGoesFirst,
         updatedPlayerMonster: playerMonster,
-        updatedOpponentMonster: body.opponentMonster
+        updatedOpponentMonster: body.opponentMonster,
+        battleContext: {
+          playerStatModifiers: battleContext.playerStatModifiers,
+          opponentStatModifiers: battleContext.opponentStatModifiers
+        }
       };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
@@ -57,6 +61,10 @@ export class BattleController {
       action: BattleAction;
       playerMonsterId: string;
       opponentMonster: MonsterInstance;
+      battleContext?: {
+        playerStatModifiers?: any;
+        opponentStatModifiers?: any;
+      };
     }
   ) {
     const run = this.gameService.getGameRun(runId);
@@ -93,6 +101,31 @@ export class BattleController {
     }
 
     try {
+      // Reconstruct battle context from frontend data
+      let battleContext = null;
+      if (body.battleContext) {
+        battleContext = {
+          playerMonster,
+          opponentMonster: body.opponentMonster,
+          playerStatModifiers: body.battleContext.playerStatModifiers || {},
+          opponentStatModifiers: body.battleContext.opponentStatModifiers || {}
+        };
+        
+        // Apply temporary stat boosts from items if they exist in the run
+        if (run.temporaryEffects?.statBoosts) {
+          const statBoosts = run.temporaryEffects.statBoosts;
+          if (statBoosts.attack) {
+            battleContext.playerStatModifiers.attack = (battleContext.playerStatModifiers.attack || 1) * statBoosts.attack;
+          }
+          if (statBoosts.defense) {
+            battleContext.playerStatModifiers.defense = (battleContext.playerStatModifiers.defense || 1) * statBoosts.defense;
+          }
+          if (statBoosts.speed) {
+            battleContext.playerStatModifiers.speed = (battleContext.playerStatModifiers.speed || 1) * statBoosts.speed;
+          }
+        }
+      }
+
       // Process player's action
       const playerResult = this.battleService.processBattleAction(
         playerMonster,
@@ -239,6 +272,12 @@ export class BattleController {
               const statType = body.action.itemId.replace('x_', '');
               run.temporaryEffects.statBoosts[statType] = 1.5; // 50% boost
 
+              // Update battle context with the new modifiers
+              if (battleContext) {
+                const currentModifier = battleContext.playerStatModifiers[statType] || 1;
+                battleContext.playerStatModifiers[statType] = currentModifier * 1.5;
+              }
+
               allEffects.push(`${playerMonster.name}'s ${statType} was boosted!`);
               break;
 
@@ -328,7 +367,11 @@ export class BattleController {
         updatedPlayerMonster: playerMonster,
         updatedOpponentMonster: body.opponentMonster,
         updatedRun: run,
-        teamWipe: this.checkForTeamWipe(run)
+        teamWipe: this.checkForTeamWipe(run),
+        battleContext: battleContext ? {
+          playerStatModifiers: battleContext.playerStatModifiers,
+          opponentStatModifiers: battleContext.opponentStatModifiers
+        } : undefined
       };
 
     } catch (error) {

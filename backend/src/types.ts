@@ -128,23 +128,19 @@ export interface BattleResult {
   winner?: 'player' | 'opponent' | 'draw';
 }
 
+export interface StatModifiers {
+  attack?: number;
+  defense?: number;
+  specialAttack?: number;
+  specialDefense?: number;
+  speed?: number;
+}
+
 export interface BattleContext {
   playerMonster: MonsterInstance;
   opponentMonster: MonsterInstance;
-  playerStatModifiers: {
-    attack?: number;
-    defense?: number;
-    specialAttack?: number;
-    specialDefense?: number;
-    speed?: number;
-  };
-  opponentStatModifiers: {
-    attack?: number;
-    defense?: number;
-    specialAttack?: number;
-    specialDefense?: number;
-    speed?: number;
-  };
+  playerStatModifiers: StatModifiers;
+  opponentStatModifiers: StatModifiers;
 }
 
 // Type effectiveness chart

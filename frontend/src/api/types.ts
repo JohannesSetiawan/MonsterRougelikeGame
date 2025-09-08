@@ -61,6 +61,8 @@ export interface MonsterInstance {
   ability: string;
   experience: number;
   isShiny?: boolean;
+  // Client-side only properties for display
+  statModifiers?: StatModifiers;
 }
 
 export interface Item {
@@ -115,6 +117,14 @@ export interface BattleResult {
   winner?: 'player' | 'opponent' | 'draw';
 }
 
+export interface StatModifiers {
+  attack?: number;
+  defense?: number;
+  specialAttack?: number;
+  specialDefense?: number;
+  speed?: number;
+}
+
 export interface Encounter {
   type: 'wild_monster' | 'trainer' | 'item' | 'rest_site';
   data?: any;
@@ -134,4 +144,19 @@ export interface BattleActionResponse {
   updatedOpponentMonster: MonsterInstance;
   updatedRun: GameRun;
   teamWipe?: boolean;
+  battleContext?: {
+    playerStatModifiers: StatModifiers;
+    opponentStatModifiers: StatModifiers;
+  };
+}
+
+export interface BattleInitResponse {
+  effects: string[];
+  playerGoesFirst: boolean;
+  updatedPlayerMonster: MonsterInstance;
+  updatedOpponentMonster: MonsterInstance;
+  battleContext: {
+    playerStatModifiers: StatModifiers;
+    opponentStatModifiers: StatModifiers;
+  };
 }

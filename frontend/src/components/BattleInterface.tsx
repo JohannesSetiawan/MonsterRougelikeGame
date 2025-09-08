@@ -8,7 +8,7 @@ import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
 import AbilityInfo from './AbilityInfo';
 import ExperienceBar from './ExperienceBar';
-import type { BattleAction, Move } from '../api/types';
+import type { BattleAction, Move, StatModifiers } from '../api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +25,10 @@ const BattleInterface: React.FC = () => {
   const [showOpponentStats, setShowOpponentStats] = useState(false);
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
+  const [battleContext, setBattleContext] = useState<{
+    playerStatModifiers: StatModifiers;
+    opponentStatModifiers: StatModifiers;
+  } | null>(null);
   
   // Use ref to track initialization to prevent multiple calls
   const battleInitializationRef = React.useRef<{
@@ -124,6 +128,9 @@ const BattleInterface: React.FC = () => {
         setBattleLog(prev => [...prev, ...battleInit.effects]);
       }
 
+      // Store battle context with stat modifiers
+      setBattleContext(battleInit.battleContext);
+
       // Update monsters with battle start effects
       dispatch({
         type: 'UPDATE_BATTLE_MONSTERS',
@@ -160,12 +167,18 @@ const BattleInterface: React.FC = () => {
         currentRun.id,
         action,
         playerMonster.id,
-        opponentMonster
+        opponentMonster,
+        battleContext || undefined
       );
 
       // Update battle log
       if (result.result.effects) {
         setBattleLog(prev => [...prev, ...result.result.effects!]);
+      }
+
+      // Update battle context if returned
+      if (result.battleContext) {
+        setBattleContext(result.battleContext);
       }
 
       // Update monsters
@@ -528,14 +541,20 @@ const BattleInterface: React.FC = () => {
 
         {showPlayerStats && (
           <MonsterStatsModal
-            monster={playerMonster}
+            monster={{
+              ...playerMonster,
+              statModifiers: battleContext?.playerStatModifiers
+            }}
             onClose={() => setShowPlayerStats(false)}
           />
         )}
 
         {showOpponentStats && (
           <MonsterStatsModal
-            monster={opponentMonster}
+            monster={{
+              ...opponentMonster,
+              statModifiers: battleContext?.opponentStatModifiers
+            }}
             onClose={() => setShowOpponentStats(false)}
           />
         )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { MonsterInstance, Move, Ability } from '../api/types';
+import type { MonsterInstance, Move, Ability, StatModifiers } from '../api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -84,6 +84,52 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
     return 'text-red-400';
   };
 
+  const getModifiedStatValue = (baseStat: number, statName: string): number => {
+    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    if (modifier && modifier !== 1) {
+      return Math.floor(baseStat * modifier);
+    }
+    return baseStat;
+  };
+
+  const getStatModifierColor = (baseStat: number, statName: string): string => {
+    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    if (!modifier || modifier === 1) {
+      return getStatColor(baseStat);
+    }
+    
+    if (modifier > 1) {
+      return 'text-green-500'; // Stat is boosted
+    } else {
+      return 'text-blue-500'; // Stat is reduced
+    }
+  };
+
+  const renderStatValue = (baseStat: number, statName: string) => {
+    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    const modifiedValue = getModifiedStatValue(baseStat, statName);
+    const hasModifier = modifier && modifier !== 1;
+    
+    if (hasModifier) {
+      return (
+        <div className="flex flex-col items-end">
+          <span className={`font-bold ${getStatModifierColor(baseStat, statName)}`}>
+            {modifiedValue}
+          </span>
+          <span className="text-xs text-muted-foreground line-through">
+            {baseStat}
+          </span>
+        </div>
+      );
+    }
+    
+    return (
+      <span className={`font-bold ${getStatColor(baseStat)}`}>
+        {baseStat}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -136,12 +182,10 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
                 <span className="text-foreground font-medium capitalize">
                   {statName.replace(/([A-Z])/g, ' $1').trim()}
                 </span>
-                <span className={`font-bold ${getStatColor(statValue)}`}>
-                  {statValue}
-                </span>
+                {renderStatValue(statValue, statName)}
               </div>
               <Progress 
-                value={calculateStatPercentage(statValue)}
+                value={calculateStatPercentage(getModifiedStatValue(statValue, statName))}
                 className="h-2"
               />
             </div>

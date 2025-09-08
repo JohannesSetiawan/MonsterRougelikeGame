@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Player, GameRun, Monster, BattleAction, MonsterInstance, BattleResult, Encounter, ProgressStageResponse, BattleActionResponse } from './types';
+import type { Player, GameRun, Monster, BattleAction, MonsterInstance, BattleResult, Encounter, ProgressStageResponse, BattleActionResponse, BattleInitResponse } from './types';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -123,12 +123,7 @@ export const gameApi = {
     runId: string,
     playerMonsterId: string,
     opponentMonster: MonsterInstance
-  ): Promise<{
-    effects: string[];
-    playerGoesFirst: boolean;
-    updatedPlayerMonster: MonsterInstance;
-    updatedOpponentMonster: MonsterInstance;
-  }> => {
+  ): Promise<BattleInitResponse> => {
     const response = await api.post(`/battle/${runId}/initialize`, {
       playerMonsterId,
       opponentMonster,
@@ -140,12 +135,17 @@ export const gameApi = {
     runId: string,
     action: BattleAction,
     playerMonsterId: string,
-    opponentMonster: MonsterInstance
+    opponentMonster: MonsterInstance,
+    battleContext?: {
+      playerStatModifiers?: any;
+      opponentStatModifiers?: any;
+    }
   ): Promise<BattleActionResponse> => {
     const response = await api.post(`/battle/${runId}/action`, {
       action,
       playerMonsterId,
       opponentMonster,
+      battleContext,
     });
     return response.data;
   },
