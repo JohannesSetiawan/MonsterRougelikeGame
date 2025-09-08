@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 import type { MonsterInstance } from '../api/types';
 
 interface ExperienceData {
@@ -36,8 +37,6 @@ export const useExperienceData = (monster: MonsterInstance): ExperienceData => {
           error: null
         });
       } catch (error) {
-        console.warn('Failed to fetch experience data:', error);
-        // Use fallback calculation
         const fallbackRequired = monster.level * 100;
         const percentage = (monster.experience / fallbackRequired) * 100;
         
@@ -46,8 +45,10 @@ export const useExperienceData = (monster: MonsterInstance): ExperienceData => {
           required: fallbackRequired,
           percentage,
           loading: false,
-          error: 'Using fallback calculation'
+          error: ErrorHandler.getDisplayMessage(error, 'Using fallback calculation')
         });
+        
+        ErrorHandler.handle(error, 'useExperienceData.fetchExperienceData');
       }
     };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 
 interface UseItemsDataReturn {
   itemsData: Record<string, any>;
@@ -23,9 +24,10 @@ export const useItemsData = (): UseItemsDataReturn => {
       const items = await gameApi.getAllItems();
       setItemsData(items);
     } catch (err) {
-      console.error('Failed to load items data:', err);
-      setError('Failed to load items data');
+      const errorMessage = ErrorHandler.getDisplayMessage(err, 'Failed to load items data');
+      setError(errorMessage);
       setItemsData({});
+      ErrorHandler.handle(err, 'useItemsData.loadItemsData');
     } finally {
       setLoading(false);
     }

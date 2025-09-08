@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +24,9 @@ const MoveInfo: React.FC<MoveInfoProps> = ({ moveId, onClose }) => {
         const data = await gameApi.getMoveData(moveId);
         setMoveData(data);
       } catch (err) {
-        console.error('Error loading move data:', err);
-        setError('Failed to load move data. Please try again.');
+        const errorMessage = ErrorHandler.getDisplayMessage(err, 'Failed to load move data. Please try again.');
+        setError(errorMessage);
+        ErrorHandler.handle(err, 'MoveInfo.loadMoveData');
         // Don't use fallback data - let the error be handled by the UI
       } finally {
         setLoading(false);

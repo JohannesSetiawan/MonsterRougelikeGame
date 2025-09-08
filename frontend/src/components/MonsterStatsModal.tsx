@@ -4,6 +4,7 @@ import MonsterStats from './MonsterStats';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 import AbilityInfo from './AbilityInfo';
 import MoveInfo from './MoveInfo';
 
@@ -34,7 +35,7 @@ const MonsterStatsModal: React.FC<MonsterStatsModalProps> = ({ monster, onClose 
           try {
             abilityData = await gameApi.getAbilityData(monster.ability);
           } catch (err) {
-            console.warn('Could not fetch ability data:', err);
+            ErrorHandler.handle(err, 'MonsterStatsModal.fetchAbilityData');
           }
         }
         
@@ -56,7 +57,7 @@ const MonsterStatsModal: React.FC<MonsterStatsModalProps> = ({ monster, onClose 
           const expResult = await gameApi.getExperienceForLevel(monster.monsterId, monster.level);
           experienceToNext = expResult.experienceForNextLevel;
         } catch (err) {
-          console.warn('Could not fetch experience requirement:', err);
+          ErrorHandler.handle(err, 'MonsterStatsModal.fetchExperienceData');
         }
         
         // Construct enriched monster data
@@ -71,8 +72,9 @@ const MonsterStatsModal: React.FC<MonsterStatsModalProps> = ({ monster, onClose 
         
         setEnrichedMonster(enriched);
       } catch (err) {
-        console.error('Error enriching monster data:', err);
-        setError('Failed to load monster details. Please try again.');
+        const errorMessage = ErrorHandler.getDisplayMessage(err, 'Failed to load monster details. Please try again.');
+        setError(errorMessage);
+        ErrorHandler.handle(err, 'MonsterStatsModal.enrichMonsterData');
         // Don't set fallback data - let the error state handle it
       } finally {
         setLoading(false);

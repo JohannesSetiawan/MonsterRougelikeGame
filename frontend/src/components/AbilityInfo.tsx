@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +24,9 @@ const AbilityInfo: React.FC<AbilityInfoProps> = ({ abilityId, onClose }) => {
         const data = await gameApi.getAbilityData(abilityId);
         setAbilityData(data);
       } catch (err) {
-        console.error('Error loading ability data:', err);
-        setError('Failed to load ability data. Please try again.');
+        const errorMessage = ErrorHandler.getDisplayMessage(err, 'Failed to load ability data. Please try again.');
+        setError(errorMessage);
+        ErrorHandler.handle(err, 'AbilityInfo.loadAbilityData');
         // Don't use fallback data - let the error be handled by the UI
       } finally {
         setLoading(false);

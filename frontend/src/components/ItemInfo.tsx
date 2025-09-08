@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { gameApi } from '../api/gameApi';
 import { useItemsData } from '../hooks/useItemsData';
+import { ErrorHandler } from '../utils/errorHandler';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,14 +28,14 @@ const ItemInfo: React.FC<ItemInfoProps> = ({ itemId, onClose }) => {
         const data = await gameApi.getItemData(itemId);
         setItemData(data);
       } catch (err) {
-        console.error('Error loading item data:', err);
+        ErrorHandler.handle(err, 'ItemInfo.loadItemData');
         
         // Fallback to using the items data from the hook (getAllItems)
         const fallbackData = getItemById(itemId);
         if (fallbackData) {
           setItemData(fallbackData);
         } else {
-          setError('Failed to load item data. Please try again.');
+          setError(ErrorHandler.getDisplayMessage(err, 'Failed to load item data. Please try again.'));
         }
       } finally {
         setLoading(false);

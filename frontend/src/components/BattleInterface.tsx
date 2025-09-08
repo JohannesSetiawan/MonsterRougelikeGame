@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
+import { logger } from '../utils/logger';
+import { ErrorHandler } from '../utils/errorHandler';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
@@ -50,7 +52,7 @@ const BattleInterface: React.FC = () => {
         // Note: Items data is now loaded via the useItemsData hook in ItemInfo component
         // This demonstrates proper separation of concerns for API data loading
       } catch (error) {
-        console.error('Failed to load moves data:', error);
+        ErrorHandler.handle(error, 'BattleInterface.loadGameData');
         // Fallback to empty object, individual move calls will be made
         setMovesData({});
       }
@@ -86,25 +88,25 @@ const BattleInterface: React.FC = () => {
                                !battleInitializationRef.current.isInitializing;
     
     if (needsInitialization) {
-      console.log('Initializing battle for run:', currentRun.id);
+      logger.debug('Initializing battle for run: ' + currentRun.id, 'BattleInterface');
       initializeBattle();
     }
   }, [playerMonster?.id, opponentMonster?.id, currentRun?.id]); // Removed battleInitialized dependency
 
   const initializeBattle = async () => {
     if (!playerMonster || !opponentMonster || !currentRun) {
-      console.log('Battle initialization skipped: missing requirements');
+      logger.debug('Battle initialization skipped: missing requirements', 'BattleInterface');
       return;
     }
 
     if (battleInitializationRef.current.isInitializing || 
         (battleInitializationRef.current.isInitialized && 
          battleInitializationRef.current.runId === currentRun.id)) {
-      console.log('Battle initialization skipped: already initialized or in progress');
+      logger.debug('Battle initialization skipped: already initialized or in progress', 'BattleInterface');
       return;
     }
     
-    console.log('Starting battle initialization for run:', currentRun.id);
+    logger.debug('Starting battle initialization for run: ' + currentRun.id, 'BattleInterface');
     
     try {
       setIsProcessing(true);
@@ -116,7 +118,7 @@ const BattleInterface: React.FC = () => {
         opponentMonster
       );
 
-      console.log('Battle initialization response:', battleInit);
+      logger.debug('Battle initialization response received', 'BattleInterface');
 
       if (battleInit.effects && battleInit.effects.length > 0) {
         setBattleLog(prev => [...prev, ...battleInit.effects]);
@@ -136,7 +138,7 @@ const BattleInterface: React.FC = () => {
       battleInitializationRef.current.runId = currentRun.id;
 
     } catch (error) {
-      console.error('Failed to initialize battle:', error);
+      ErrorHandler.handle(error, 'BattleInterface.initializeBattle');
       setBattleLog(prev => [...prev, 'Battle initialization failed!']);
       // Reset on error so it can be retried
       battleInitializationRef.current.isInitialized = false;
@@ -232,7 +234,9 @@ const BattleInterface: React.FC = () => {
       }
 
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Battle action failed' });
+      const displayMessage = ErrorHandler.getDisplayMessage(error, 'Battle action failed');
+      dispatch({ type: 'SET_ERROR', payload: displayMessage });
+      ErrorHandler.handle(error, 'BattleInterface.handleBattleAction');
     } finally {
       setIsProcessing(false);
     }

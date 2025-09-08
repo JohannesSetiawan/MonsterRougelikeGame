@@ -1,6 +1,7 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
+import { ErrorHandler } from '../utils/errorHandler';
 import TeamManagement from './TeamManagement';
 import ItemInfo from './ItemInfo';
 import MonsterCard from './MonsterCard';
@@ -304,7 +305,7 @@ const GameInterface: React.FC = () => {
                           }
                         }
                       } catch (error) {
-                        console.error('Error using rest site:', error);
+                        ErrorHandler.handle(error, 'GameInterface.useRestSite');
                       } finally {
                         dispatch({ type: 'SET_ENCOUNTER', payload: null });
                         setIsProcessingEncounter(false);
