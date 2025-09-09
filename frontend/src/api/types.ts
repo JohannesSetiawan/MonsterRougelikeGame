@@ -35,6 +35,24 @@ export interface Move {
   pp: number;
   description: string;
   effect?: string;
+  effect_chance?: number;
+}
+
+export enum StatusEffect {
+  POISON = 'poison',
+  BURN = 'burn',
+  PARALYZE = 'paralyze',
+  FROSTBITE = 'frostbite',
+  SLEEP = 'sleep',
+  BADLY_POISONED = 'badly_poisoned',
+  BADLY_BURN = 'badly_burn',
+  CONFUSION = 'confusion'
+}
+
+export interface StatusCondition {
+  effect: StatusEffect;
+  duration?: number;
+  turnsActive?: number;
 }
 
 export interface Monster {
@@ -61,6 +79,7 @@ export interface MonsterInstance {
   ability: string;
   experience: number;
   isShiny?: boolean;
+  statusConditions?: StatusCondition[];
   // Client-side only properties for display
   statModifiers?: StatModifiers;
 }

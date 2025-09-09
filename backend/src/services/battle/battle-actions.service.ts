@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS } from '../../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
@@ -165,6 +165,14 @@ export class BattleActionsService {
       effects.push(`${defender.name} fainted!`);
     }
 
+    // Process move effects (like status conditions) - only if target didn't faint
+    if (move.effect && move.effect_chance && !battleEnded) {
+      const effectResult = this.processMoveEffect(move, defender);
+      if (effectResult.applied) {
+        effects.push(effectResult.message);
+      }
+    }
+
     return {
       success: true,
       damage,
@@ -273,5 +281,53 @@ export class BattleActionsService {
     const finalRate = baseCatchRate + (hpFactor * 30);
 
     return Math.min(95, finalRate);
+  }
+
+  private processMoveEffect(move: any, target: MonsterInstance): { applied: boolean; message: string } {
+    if (!move.effect || !move.effect_chance) {
+      return { applied: false, message: '' };
+    }
+
+    // Roll for effect chance
+    const roll = Math.random() * 100;
+    if (roll > move.effect_chance) {
+      return { applied: false, message: '' };
+    }
+
+    // Apply the effect based on type
+    switch (move.effect) {
+      case 'burn_chance':
+        const burnResult = this.statusEffectService.addStatusEffect(target, StatusEffect.BURN);
+        return { applied: burnResult.success, message: burnResult.message };
+      
+      case 'poison_chance':
+        const poisonResult = this.statusEffectService.addStatusEffect(target, StatusEffect.POISON);
+        return { applied: poisonResult.success, message: poisonResult.message };
+      
+      case 'paralyze_chance':
+        const paralyzeResult = this.statusEffectService.addStatusEffect(target, StatusEffect.PARALYZE);
+        return { applied: paralyzeResult.success, message: paralyzeResult.message };
+      
+      case 'sleep_chance':
+        const sleepResult = this.statusEffectService.addStatusEffect(target, StatusEffect.SLEEP);
+        return { applied: sleepResult.success, message: sleepResult.message };
+      
+      case 'confusion_chance':
+        const confusionResult = this.statusEffectService.addStatusEffect(target, StatusEffect.CONFUSION);
+        return { applied: confusionResult.success, message: confusionResult.message };
+      
+      case 'frostbite_chance':
+        const frostbiteResult = this.statusEffectService.addStatusEffect(target, StatusEffect.FROSTBITE);
+        return { applied: frostbiteResult.success, message: frostbiteResult.message };
+      
+      // Add more status effects as needed
+      case 'speed_lower_chance':
+        // This would need a different implementation for stat debuffs
+        // For now, just return a placeholder
+        return { applied: true, message: `${target.name}'s speed was lowered!` };
+      
+      default:
+        return { applied: false, message: '' };
+    }
   }
 }

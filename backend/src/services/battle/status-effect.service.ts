@@ -20,7 +20,7 @@ export class StatusEffectService {
       const config = STATUS_EFFECT_CONFIGS[condition.effect];
       
       if (config.damagePercentage) {
-        const damage = Math.floor(monster.maxHp * config.damagePercentage);
+        const damage = Math.max(1, Math.floor(monster.maxHp * config.damagePercentage));
         totalDamage += damage;
         
         switch (condition.effect) {

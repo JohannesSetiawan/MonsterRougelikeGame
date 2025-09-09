@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import ExperienceBar from './ExperienceBar';
+import StatusEffectsDisplay from './StatusEffectsDisplay';
 import type { MonsterInstance } from '../api/types';
 
 interface MonsterCardProps {
@@ -110,6 +111,14 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
               monster={monster} 
               textColor={textColorSecondary}
             />
+          )}
+          
+          {/* Status Effects Display */}
+          {monster.statusConditions && monster.statusConditions.length > 0 && (
+            <div className="space-y-1">
+              <span className={`${textColorSecondary} text-sm`}>Status:</span>
+              <StatusEffectsDisplay statusConditions={monster.statusConditions} />
+            </div>
           )}
         </div>
       </CardContent>

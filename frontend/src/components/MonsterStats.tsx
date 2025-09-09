@@ -1,9 +1,10 @@
 import React from 'react';
-import type { MonsterInstance, Move, Ability, StatModifiers } from '../api/types';
+import type { MonsterInstance, Move, Ability } from '../api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import StatusEffectsDisplay from './StatusEffectsDisplay';
 
 interface ExtendedMove extends Move {
   currentPp?: number;
@@ -151,6 +152,14 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
               </Badge>
             ))}
           </div>
+          
+          {/* Status Effects */}
+          {monster.statusConditions && monster.statusConditions.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm text-muted-foreground mb-2">Status Effects:</p>
+              <StatusEffectsDisplay statusConditions={monster.statusConditions} />
+            </div>
+          )}
         </CardHeader>
       </Card>
 

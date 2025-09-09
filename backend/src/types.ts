@@ -35,6 +35,7 @@ export interface Move {
   pp: number;
   description: string;
   effect?: string;
+  effect_chance?: number;
 }
 
 export interface Monster {

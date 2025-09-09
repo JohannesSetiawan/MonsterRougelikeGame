@@ -459,6 +459,30 @@ export class BattleController {
         }
       }
 
+      // Process end-of-turn status effects if battle is still ongoing
+      if (!battleEnded && playerMonster.currentHp > 0 && body.opponentMonster.currentHp > 0) {
+        const endOfTurnResult = this.battleService.processEndOfTurn(playerMonster, body.opponentMonster);
+        
+        // Add status effect messages to battle log
+        if (endOfTurnResult.playerEffects.length > 0) {
+          allEffects.push(...endOfTurnResult.playerEffects);
+        }
+        if (endOfTurnResult.opponentEffects.length > 0) {
+          allEffects.push(...endOfTurnResult.opponentEffects);
+        }
+        
+        // Check if either monster fainted due to status effects
+        if (playerMonster.currentHp <= 0) {
+          battleEnded = true;
+          winner = 'opponent';
+          allEffects.push(`${playerMonster.name} fainted from status effects!`);
+        } else if (body.opponentMonster.currentHp <= 0) {
+          battleEnded = true;
+          winner = 'player';
+          allEffects.push(`Wild ${body.opponentMonster.name} fainted from status effects!`);
+        }
+      }
+
       // Award experience and currency if player won
       if (battleEnded && winner === 'player' && !playerResult.monsterCaught) {
         const expGained = this.battleService.generateExperience(body.opponentMonster);

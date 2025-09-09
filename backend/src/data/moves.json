@@ -18,7 +18,8 @@
     "accuracy": 100,
     "pp": 25,
     "description": "The target is attacked with small flames that may also leave the target with a burn.",
-    "effect": "burn_chance_10"
+    "effect": "burn_chance",
+    "effect_chance": 10
   },
   "flame_burst": {
     "id": "flame_burst",
@@ -49,7 +50,8 @@
     "accuracy": 100,
     "pp": 20,
     "description": "A spray of bubbles is forcefully ejected at the target.",
-    "effect": "speed_lower_chance_10"
+    "effect": "speed_lower_chance",
+    "effect_chance": 10
   },
   "hydro_pump": {
     "id": "hydro_pump",
@@ -60,5 +62,65 @@
     "accuracy": 80,
     "pp": 5,
     "description": "The target is blasted by a huge volume of water launched under great pressure."
+  },
+  "blast_burns": {
+    "id": "blast_burns",
+    "name": "Blast Burns",
+    "type": "fire",
+    "category": "special",
+    "power": 50,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "The user unleashes a powerful blast of scorching flames that has a chance to burn the target.",
+    "effect": "burn_chance",
+    "effect_chance": 15
+  },
+  "poison_sting": {
+    "id": "poison_sting",
+    "name": "Poison Sting",
+    "type": "fire",
+    "category": "physical",
+    "power": 35,
+    "accuracy": 100,
+    "pp": 20,
+    "description": "The user stabs the target with a poisonous stinger that may poison the target.",
+    "effect": "poison_chance",
+    "effect_chance": 20
+  },
+  "thunder_wave": {
+    "id": "thunder_wave",
+    "name": "Thunder Wave",
+    "type": "fire",
+    "category": "status",
+    "power": 0,
+    "accuracy": 90,
+    "pp": 20,
+    "description": "A weak electric charge that paralyzes the target.",
+    "effect": "paralyze_chance",
+    "effect_chance": 100
+  },
+  "sleep_powder": {
+    "id": "sleep_powder",
+    "name": "Sleep Powder",
+    "type": "fire",
+    "category": "status",
+    "power": 0,
+    "accuracy": 75,
+    "pp": 15,
+    "description": "A cloud of sleep-inducing powder that may put the target to sleep.",
+    "effect": "sleep_chance",
+    "effect_chance": 100
+  },
+  "confuse_ray": {
+    "id": "confuse_ray",
+    "name": "Confuse Ray",
+    "type": "fire",
+    "category": "status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "A sinister ray that confuses the target.",
+    "effect": "confusion_chance",
+    "effect_chance": 100
   }
 }
