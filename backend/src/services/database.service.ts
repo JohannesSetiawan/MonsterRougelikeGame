@@ -33,6 +33,14 @@ export class DatabaseService {
     return playerEntity ? this.mapPlayerEntityToPlayer(playerEntity) : null;
   }
 
+  async getPlayerByUsername(username: string): Promise<Player | null> {
+    const playerEntity = await this.playerRepository.findOne({
+      where: { username: username },
+    });
+
+    return playerEntity ? this.mapPlayerEntityToPlayer(playerEntity) : null;
+  }
+
   async savePlayerState(player: Player): Promise<Player> {
     await this.playerRepository.update(player.id, {
       username: player.username,

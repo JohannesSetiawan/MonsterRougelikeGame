@@ -17,6 +17,12 @@ export class GameService {
   ) {}
 
   async createPlayer(username: string): Promise<Player> {
+    // Check if username already exists
+    const existingPlayer = await this.databaseService.getPlayerByUsername(username);
+    if (existingPlayer) {
+      throw new Error('Username already exists. Please choose a different username.');
+    }
+
     const playerData: Omit<Player, 'id' | 'createdAt'> = {
       username,
       permanentCurrency: 100, // Starting currency
@@ -43,6 +49,21 @@ export class GameService {
       
       // Also load the latest game run if exists
       const latestGameRun = await this.databaseService.getLatestGameRunForPlayer(playerId);
+      if (latestGameRun) {
+        this.gameRuns.set(latestGameRun.id, latestGameRun);
+      }
+    }
+    return player;
+  }
+
+  async loadPlayerByUsername(username: string): Promise<Player | null> {
+    // Load player from database by username and populate memory
+    const player = await this.databaseService.getPlayerByUsername(username);
+    if (player) {
+      this.players.set(player.id, player);
+      
+      // Also load the latest game run if exists
+      const latestGameRun = await this.databaseService.getLatestGameRunForPlayer(player.id);
       if (latestGameRun) {
         this.gameRuns.set(latestGameRun.id, latestGameRun);
       }

@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 const PlayerSetup: React.FC = () => {
   const [username, setUsername] = useState('');
   const [playerId, setPlayerId] = useState('');
+  const [loadUsername, setLoadUsername] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingByUsername, setIsLoadingByUsername] = useState(false);
   const { dispatch } = useGame();
 
   const handleCreatePlayer = async () => {
@@ -49,6 +51,29 @@ const PlayerSetup: React.FC = () => {
     }
   };
 
+  const handleLoadPlayerByUsername = async () => {
+    if (!loadUsername.trim()) return;
+    
+    setIsLoadingByUsername(true);
+    try {
+      const player = await gameApi.loadPlayerByUsername(loadUsername.trim());
+      dispatch({ type: 'SET_PLAYER', payload: player });
+      
+      // Try to load active game run
+      try {
+        const activeRun = await gameApi.getActiveRun(player.id);
+        dispatch({ type: 'SET_CURRENT_RUN', payload: activeRun });
+      } catch (runError) {
+        // No active run found, that's okay
+        console.log('No active run found for player');
+      }
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Player with that username not found' });
+    } finally {
+      setIsLoadingByUsername(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
       <div className="text-center mb-12">
@@ -60,10 +85,10 @@ const PlayerSetup: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-6xl">
         <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create New Player</CardTitle>
+            <CardTitle className="text-xl">Create New Player</CardTitle>
             <CardDescription>
               Start your adventure with a new trainer profile
             </CardDescription>
@@ -100,9 +125,47 @@ const PlayerSetup: React.FC = () => {
 
         <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Load Existing Player</CardTitle>
+            <CardTitle className="text-xl">Load by Username</CardTitle>
             <CardDescription>
-              Continue your journey with an existing trainer
+              Continue your journey using your username
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <input
+                type="text"
+                placeholder="Enter username"
+                value={loadUsername}
+                onChange={(e) => setLoadUsername(e.target.value)}
+                disabled={isLoadingByUsername}
+                className="w-full px-4 py-3 bg-background border-2 border-border rounded-lg focus:border-primary focus:outline-none transition-colors text-foreground placeholder:text-muted-foreground"
+                onKeyPress={(e) => e.key === 'Enter' && handleLoadPlayerByUsername()}
+              />
+            </div>
+            <Button 
+              onClick={handleLoadPlayerByUsername}
+              disabled={isLoadingByUsername || !loadUsername.trim()}
+              variant="outline"
+              className="w-full py-3 text-lg"
+              size="lg"
+            >
+              {isLoadingByUsername ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  Loading...
+                </>
+              ) : (
+                'Load Player'
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">Load by Player ID</CardTitle>
+            <CardDescription>
+              Continue using your unique Player ID
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -113,7 +176,7 @@ const PlayerSetup: React.FC = () => {
                 value={playerId}
                 onChange={(e) => setPlayerId(e.target.value)}
                 disabled={isLoading}
-                className="w-full px-4 py-3 bg-background border-2 border-border rounded-lg focus:border-primary focus:outline-none transition-colors text-foreground placeholder:text-muted-foreground font-mono"
+                className="w-full px-4 py-3 bg-background border-2 border-border rounded-lg focus:border-primary focus:outline-none transition-colors text-foreground placeholder:text-muted-foreground font-mono text-sm"
                 onKeyPress={(e) => e.key === 'Enter' && handleLoadPlayer()}
               />
             </div>
@@ -139,7 +202,7 @@ const PlayerSetup: React.FC = () => {
 
       <div className="mt-12 text-center">
         <p className="text-sm text-muted-foreground">
-          Your progress is automatically saved. Keep your Player ID to continue later!
+          Your progress is automatically saved. You can continue your journey using either your username or Player ID!
         </p>
       </div>
     </div>

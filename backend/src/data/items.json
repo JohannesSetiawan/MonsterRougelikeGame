@@ -6,7 +6,9 @@
     "type": "healing",
     "effect": "heal_50",
     "rarity": "common",
-    "value": 200
+    "value": 200,
+    "price": 50,
+    "isBuyable": true
   },
   "super_potion": {
     "id": "super_potion",
@@ -15,7 +17,9 @@
     "type": "healing",
     "effect": "heal_200",
     "rarity": "uncommon",
-    "value": 700
+    "value": 700,
+    "price": 120,
+    "isBuyable": true
   },
   "hyper_potion": {
     "id": "hyper_potion",
@@ -24,7 +28,9 @@
     "type": "healing",
     "effect": "heal_500",
     "rarity": "rare",
-    "value": 1500
+    "value": 1500,
+    "price": 300,
+    "isBuyable": true
   },
   "max_potion": {
     "id": "max_potion",
@@ -70,7 +76,9 @@
     "effect": "pp_restore_10",
     "rarity": "uncommon",
     "value": 400,
-    "battleUsable": true
+    "battleUsable": true,
+    "price": 80,
+    "isBuyable": true
   },
   "max_ether": {
     "id": "max_ether",
@@ -80,7 +88,9 @@
     "effect": "pp_restore_full",
     "rarity": "rare",
     "value": 800,
-    "battleUsable": true
+    "battleUsable": true,
+    "price": 200,
+    "isBuyable": true
   },
   "elixir": {
     "id": "elixir",

@@ -27,6 +27,11 @@ export const gameApi = {
     return response.data;
   },
 
+  loadPlayerByUsername: async (username: string): Promise<Player> => {
+    const response = await api.post('/game/player/load-by-username', { username });
+    return response.data;
+  },
+
   savePlayerProgress: async (playerId: string): Promise<{ success: boolean; message: string }> => {
     const response = await api.post(`/game/player/${playerId}/save`);
     return response.data;
@@ -180,6 +185,28 @@ export const gameApi = {
 
   useRestSite: async (runId: string): Promise<{ success: boolean; message: string; team: MonsterInstance[] }> => {
     const response = await api.post(`/game/run/${runId}/rest-site`);
+    return response.data;
+  },
+
+  // Shop endpoints
+  getShopItems: async (): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    type: string;
+  }>> => {
+    const response = await api.get('/shop/items');
+    return response.data;
+  },
+
+  buyItem: async (runId: string, itemId: string, quantity?: number): Promise<{
+    success: boolean;
+    message: string;
+    run: GameRun;
+    remainingCurrency: number;
+  }> => {
+    const response = await api.post(`/shop/${runId}/buy`, { itemId, quantity });
     return response.data;
   },
 };

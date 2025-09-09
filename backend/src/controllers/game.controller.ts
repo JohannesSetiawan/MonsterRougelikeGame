@@ -38,6 +38,19 @@ export class GameController {
     return player;
   }
 
+  @Post('player/load-by-username')
+  async loadPlayerByUsername(@Body() body: { username: string }) {
+    if (!body.username) {
+      throw new HttpException('Username is required', HttpStatus.BAD_REQUEST);
+    }
+    
+    const player = await this.gameService.loadPlayerByUsername(body.username);
+    if (!player) {
+      throw new HttpException('Player not found', HttpStatus.NOT_FOUND);
+    }
+    return player;
+  }
+
   @Post('player/:playerId/save')
   async savePlayerProgress(@Param('playerId') playerId: string) {
     const result = await this.gameService.savePlayerProgress(playerId);

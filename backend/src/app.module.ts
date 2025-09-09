@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GameController } from './controllers/game.controller';
 import { BattleController } from './controllers/battle.controller';
 import { DebugController } from './controllers/debug.controller';
+import { ShopController } from './controllers/shop.controller';
 import { GameService } from './services/game.service';
 import { BattleService } from './services/battle.service';
 import { MonsterService } from './services/monster.service';
@@ -35,7 +36,7 @@ import { GameRunEntity } from './entities/game-run.entity';
     }),
     TypeOrmModule.forFeature([PlayerEntity, GameRunEntity]),
   ],
-  controllers: [GameController, BattleController, DebugController],
+  controllers: [GameController, BattleController, DebugController, ShopController],
   providers: [GameService, BattleService, MonsterService, DataLoaderService, DatabaseService],
 })
 export class AppModule {}

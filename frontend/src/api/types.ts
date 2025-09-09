@@ -74,6 +74,9 @@ export interface Item {
   quantity: number;
   rarity?: 'common' | 'uncommon' | 'rare' | 'legendary';
   value?: number;
+  price?: number;
+  isBuyable?: boolean;
+  battleUsable?: boolean;
 }
 
 export interface GameRun {

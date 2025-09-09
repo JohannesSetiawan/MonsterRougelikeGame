@@ -98,11 +98,14 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  type: 'healing' | 'capture' | 'battle' | 'misc';
+  type: 'healing' | 'capture' | 'battle' | 'misc' | 'permanent';
   effect: string;
   quantity: number;
   rarity?: 'common' | 'uncommon' | 'rare' | 'legendary';
   value?: number;
+  price?: number;
+  isBuyable?: boolean;
+  battleUsable?: boolean;
 }
 
 export interface Player {

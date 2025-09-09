@@ -7,9 +7,11 @@ import ItemInfo from './ItemInfo';
 import MonsterCard from './MonsterCard';
 import DebugPage from './DebugPage';
 import MonsterSelectionModal from './MonsterSelectionModal';
+import Shop from './Shop';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+
 
 const GameInterface: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -21,6 +23,7 @@ const GameInterface: React.FC = () => {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [showDebugPage, setShowDebugPage] = React.useState(false);
   const [showMonsterSelection, setShowMonsterSelection] = React.useState<string | null>(null);
+  const [showShop, setShowShop] = React.useState(false);
 
   const getRarityColor = (rarity?: string) => {
     switch (rarity) {
@@ -161,6 +164,19 @@ const GameInterface: React.FC = () => {
     setShowMonsterSelection(null);
     handleUseItem(itemId, monsterId);
   };
+
+  const handleShopPurchase = React.useCallback(async (itemId: string, quantity: number, totalCost: number) => {
+    if (!state.currentRun) return;
+
+    try {
+      const result = await gameApi.buyItem(state.currentRun.id, itemId, quantity);
+      if (result.success) {
+        dispatch({ type: 'SET_CURRENT_RUN', payload: result.run });
+      }
+    } catch (error) {
+      ErrorHandler.handle(error, 'GameInterface.handleShopPurchase');
+    }
+  }, [state.currentRun, dispatch]);
 
   if (!state.currentRun) return null;
 
@@ -335,12 +351,12 @@ const GameInterface: React.FC = () => {
         {/* Progress Section */}
         {!state.currentEncounter && !state.battleState.inBattle && (
           <Card className="border-2 border-primary/50">
-            <CardContent className="p-6 text-center">
+            <CardContent className="p-6 text-center space-y-4">
               <Button 
                 size="lg"
                 onClick={handleProgressStage}
                 disabled={state.isLoading}
-                className="px-8 py-4 text-lg"
+                className="px-8 py-4 text-lg w-full"
               >
                 {state.isLoading ? (
                   <>
@@ -350,6 +366,15 @@ const GameInterface: React.FC = () => {
                 ) : (
                   'Continue Adventure'
                 )}
+              </Button>
+              <Button 
+                variant="outline"
+                size="lg"
+                onClick={() => setShowShop(true)}
+                disabled={state.isLoading}
+                className="px-8 py-4 text-lg w-full"
+              >
+                🛒 Visit Shop
               </Button>
             </CardContent>
           </Card>
@@ -472,6 +497,16 @@ const GameInterface: React.FC = () => {
             onSelectMonster={(monsterId) => handleMonsterSelection(showMonsterSelection, monsterId)}
             onClose={() => setShowMonsterSelection(null)}
             isProcessing={processingItemId === showMonsterSelection}
+          />
+        )}
+
+        {/* Shop Modal */}
+        {showShop && state.currentRun && (
+          <Shop
+            isOpen={showShop}
+            onClose={() => setShowShop(false)}
+            currentCurrency={state.currentRun.currency}
+            onPurchase={handleShopPurchase}
           />
         )}
       </div>
