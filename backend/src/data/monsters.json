@@ -51,7 +51,7 @@
     "learnableMoves": ["ember", "flame_burst", "scratch"],
     "description": "The evolved form of Flamewyrm. Its flames burn so hot they can melt steel.",
     "rarity": "rare",
-    "growth_index": 1
+    "growth_index": 2
   },
   "hydroking": {
     "id": "hydroking",
@@ -69,6 +69,6 @@
     "learnableMoves": ["water_gun", "bubble_beam", "hydro_pump"],
     "description": "The evolved form of Aquafin. Said to command the seas and control massive tidal waves.",
     "rarity": "rare",
-    "growth_index": 1
+    "growth_index": 2
   }
 }
