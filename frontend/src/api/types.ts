@@ -164,6 +164,7 @@ export interface BattleActionResponse {
   updatedOpponentMonster: MonsterInstance;
   updatedRun: GameRun;
   teamWipe?: boolean;
+  playerGoesFirst?: boolean;
   battleContext?: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;

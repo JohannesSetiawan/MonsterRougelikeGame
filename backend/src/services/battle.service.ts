@@ -142,6 +142,14 @@ export class BattleService {
     moveId: string,
     battleContext?: BattleContext
   ): BattleResult {
+    // Safety check: dead monsters can't attack
+    if (attacker.currentHp <= 0) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} is unable to attack! (Fainted)`] 
+      };
+    }
+    
     const move = this.monsterService.getMoveData(moveId);
     
     if (!move) {
@@ -346,6 +354,11 @@ export class BattleService {
   }
 
   generateEnemyAction(enemy: MonsterInstance): BattleAction {
+    // Safety check: dead monsters can't take actions
+    if (enemy.currentHp <= 0) {
+      throw new Error('Dead monster cannot take actions');
+    }
+    
     // Simple AI: randomly choose from available moves
     if (enemy.moves.length === 0) {
       // Fallback if no moves available

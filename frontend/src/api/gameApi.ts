@@ -149,13 +149,15 @@ export const gameApi = {
     battleContext?: {
       playerStatModifiers?: any;
       opponentStatModifiers?: any;
-    }
+    },
+    playerGoesFirst?: boolean
   ): Promise<BattleActionResponse> => {
     const response = await api.post(`/battle/${runId}/action`, {
       action,
       playerMonsterId,
       opponentMonster,
       battleContext,
+      playerGoesFirst,
     });
     return response.data;
   },

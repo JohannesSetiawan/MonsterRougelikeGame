@@ -30,6 +30,8 @@ const BattleInterface: React.FC = () => {
     opponentStatModifiers: StatModifiers;
   } | null>(null);
   const [criticalHitEffect, setCriticalHitEffect] = useState<'player' | 'opponent' | null>(null);
+  const [playerGoesFirst, setPlayerGoesFirst] = useState<boolean>(true);
+  const [showTurnOrder, setShowTurnOrder] = useState<boolean>(false);
   
   // Use ref to track initialization to prevent multiple calls
   const battleInitializationRef = React.useRef<{
@@ -132,6 +134,13 @@ const BattleInterface: React.FC = () => {
       // Store battle context with stat modifiers
       setBattleContext(battleInit.battleContext);
 
+      // Set turn order and show turn order display
+      setPlayerGoesFirst(battleInit.playerGoesFirst);
+      setShowTurnOrder(true);
+      
+      // Hide turn order display after 3 seconds
+      setTimeout(() => setShowTurnOrder(false), 3000);
+
       // Update monsters with battle start effects
       dispatch({
         type: 'UPDATE_BATTLE_MONSTERS',
@@ -169,7 +178,8 @@ const BattleInterface: React.FC = () => {
         action,
         playerMonster.id,
         opponentMonster,
-        battleContext || undefined
+        battleContext || undefined,
+        playerGoesFirst
       );
 
       // Update battle log and check for critical hits
@@ -179,6 +189,18 @@ const BattleInterface: React.FC = () => {
           text, 
           isCritical: text.includes('Critical hit!') 
         }))]);
+        
+        // Add speed advantage message if battle ended due to speed (but not for items or catching)
+        if (result.result.battleEnded && 
+            result.result.winner === 'player' && 
+            result.result.effects!.some(effect => effect.includes('fainted')) &&
+            !result.result.effects!.some(effect => effect.includes('Items are used with priority')) &&
+            !result.result.effects!.some(effect => effect.includes('Catching attempts are made with priority'))) {
+          const speedAdvantageMsg = playerGoesFirst ? 
+            `⚡ ${playerMonster.name}'s superior speed prevented retaliation!` :
+            `⚡ ${playerMonster.name} struck back with lightning speed!`;
+          setBattleLog(prev => [...prev, { text: speedAdvantageMsg, isCritical: false }]);
+        }
         
         // Trigger critical hit animation if it occurred
         if (hasCriticalHit) {
@@ -354,8 +376,19 @@ const BattleInterface: React.FC = () => {
                     {opponentMonster.name}
                   </CardTitle>
                   <p className="text-red-300/70">Level {opponentMonster.level}</p>
+                  <p className="text-red-400/60 text-sm font-mono">SPD: {opponentMonster.stats.speed}</p>
                 </div>
                 <div className="flex gap-2">
+                  {!playerGoesFirst && showTurnOrder && (
+                    <Badge className="bg-green-500/20 text-green-300 border-green-500/50 animate-pulse">
+                      ⚡ 1st
+                    </Badge>
+                  )}
+                  {playerGoesFirst && showTurnOrder && (
+                    <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/50">
+                      2nd
+                    </Badge>
+                  )}
                   {opponentMonster.isShiny && (
                     <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
                       ✨ Shiny
@@ -411,8 +444,19 @@ const BattleInterface: React.FC = () => {
                     {playerMonster.name}
                   </CardTitle>
                   <p className="text-blue-300/70">Level {playerMonster.level}</p>
+                  <p className="text-blue-400/60 text-sm font-mono">SPD: {playerMonster.stats.speed}</p>
                 </div>
                 <div className="flex gap-2">
+                  {playerGoesFirst && showTurnOrder && (
+                    <Badge className="bg-green-500/20 text-green-300 border-green-500/50 animate-pulse">
+                      ⚡ 1st
+                    </Badge>
+                  )}
+                  {!playerGoesFirst && showTurnOrder && (
+                    <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/50">
+                      2nd
+                    </Badge>
+                  )}
                   {playerMonster.isShiny && (
                     <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
                       ✨ Shiny
@@ -464,6 +508,54 @@ const BattleInterface: React.FC = () => {
           </Card>
         </div>
 
+        {/* Turn Order Display */}
+        {showTurnOrder && (
+          <Card className="border-2 border-cyan-500/50 bg-cyan-950/20 animate-pulse">
+            <CardContent className="py-4">
+              <div className="text-center">
+                <div className="text-lg font-bold text-cyan-200 mb-2">
+                  ⚡ Turn Order ⚡
+                </div>
+                {(battleLog.some(log => log.text.includes('Items are used with priority')) || 
+                  battleLog.some(log => log.text.includes('Catching attempts are made with priority'))) && (
+                  <div className="text-sm text-yellow-300 mb-2">
+                    {battleLog.some(log => log.text.includes('Items are used with priority')) && '📦 Items always go first!'}
+                    {battleLog.some(log => log.text.includes('Catching attempts are made with priority')) && '⚾ Catching always goes first!'}
+                  </div>
+                )}
+                <div className="flex justify-center items-center gap-4">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                    playerGoesFirst 
+                      ? 'bg-green-500/30 border border-green-400/50 text-green-200' 
+                      : 'bg-gray-500/30 border border-gray-400/50 text-gray-300'
+                  }`}>
+                    <span className="text-lg">{playerGoesFirst ? '1st' : '2nd'}</span>
+                    <span className="font-semibold">{playerMonster.name}</span>
+                    <span className="text-sm opacity-75">
+                      {battleLog.some(log => log.text.includes('Items are used with priority'))
+                        ? '(Item Priority)' 
+                        : battleLog.some(log => log.text.includes('Catching attempts are made with priority'))
+                          ? '(Catch Priority)'
+                          : `(${playerMonster.stats.speed} SPD)`
+                      }
+                    </span>
+                  </div>
+                  <div className="text-cyan-200 text-xl">VS</div>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                    !playerGoesFirst 
+                      ? 'bg-green-500/30 border border-green-400/50 text-green-200' 
+                      : 'bg-gray-500/30 border border-gray-400/50 text-gray-300'
+                  }`}>
+                    <span className="text-lg">{!playerGoesFirst ? '1st' : '2nd'}</span>
+                    <span className="font-semibold">{opponentMonster.name}</span>
+                    <span className="text-sm opacity-75">({opponentMonster.stats.speed} SPD)</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Battle Log */}
         <Card className="border-2 border-amber-500/50 bg-amber-950/10">
           <CardHeader>
@@ -477,7 +569,9 @@ const BattleInterface: React.FC = () => {
                   className={`text-sm p-2 bg-amber-950/20 rounded ${
                     message.isCritical 
                       ? 'text-red-400 font-bold animate-pulse border-l-4 border-red-500' 
-                      : 'text-amber-100/80'
+                      : (message.text.includes('Items are used with priority') || message.text.includes('Catching attempts are made with priority'))
+                        ? 'text-yellow-300 font-semibold border-l-4 border-yellow-500'
+                        : 'text-amber-100/80'
                   }`}
                 >
                   {message.text}

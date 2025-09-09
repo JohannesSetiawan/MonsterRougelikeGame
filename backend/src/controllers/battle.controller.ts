@@ -70,6 +70,7 @@ export class BattleController {
         playerStatModifiers?: any;
         opponentStatModifiers?: any;
       };
+      playerGoesFirst?: boolean;
     }
   ) {
     const run = this.gameService.getGameRun(runId);
@@ -138,21 +139,109 @@ export class BattleController {
         }
       }
 
-      // Process player's action
-      const playerResult = this.battleService.processBattleAction(
-        playerMonster,
-        body.opponentMonster,
-        body.action
-      );
-
-      let allEffects = [...(playerResult.effects || [])];
+      // Initialize battle tracking variables
+      let allEffects: string[] = [];
       let battleEnded = false;
       let winner: 'player' | 'opponent' | undefined;
+      let playerResult: any;
+      let enemyResult: any;
 
-      // Handle post-battle effects for player action
-      if (body.action.type === 'attack' && playerResult.success && playerResult.damage) {
-        // Apply damage to opponent
-        body.opponentMonster.currentHp = Math.max(0, body.opponentMonster.currentHp - playerResult.damage);
+      // Determine turn order based on speed (recalculate to be sure)
+      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
+      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
+      
+      // Items and catching always go first, regardless of speed (Pokemon rule)
+      let playerGoesFirst: boolean;
+      if (body.action.type === 'item') {
+        playerGoesFirst = true;
+        // Add a message indicating item usage has priority
+        allEffects.push(`📦 Items are used with priority!`);
+      } else if (body.action.type === 'catch') {
+        playerGoesFirst = true;
+        // Add a message indicating catching has priority
+        allEffects.push(`⚾ Catching attempts are made with priority!`);
+      } else {
+        // Attacks and fleeing use normal speed-based priority
+        playerGoesFirst = body.playerGoesFirst !== undefined ? body.playerGoesFirst : playerSpeed >= opponentSpeed;
+      }
+
+      // Execute actions based on turn order
+      if (playerGoesFirst) {
+        // Player goes first
+        playerResult = this.battleService.processBattleAction(
+          playerMonster,
+          body.opponentMonster,
+          body.action
+        );
+        allEffects.push(...(playerResult.effects || []));
+      } else {
+        // Enemy goes first
+        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+        enemyResult = this.battleService.processBattleAction(
+          body.opponentMonster,
+          playerMonster,
+          enemyAction
+        );
+        allEffects.push(...(enemyResult.effects || []));
+        
+        // Check if player monster fainted from enemy's first strike
+        if (enemyResult.success && enemyResult.damage) {
+          playerMonster.currentHp = Math.max(0, playerMonster.currentHp - enemyResult.damage);
+          if (playerMonster.currentHp <= 0) {
+            battleEnded = true;
+            winner = 'opponent';
+            allEffects.push(`${playerMonster.name} fainted!`);
+          }
+        }
+      }
+
+      // Handle post-battle effects for player action (if player went first or will go second)
+      if (!battleEnded && playerGoesFirst) {
+        // Player went first, now process player's action effects
+        if (body.action.type === 'attack' && playerResult.success && playerResult.damage) {
+          // Apply damage to opponent
+          body.opponentMonster.currentHp = Math.max(0, body.opponentMonster.currentHp - playerResult.damage);
+          
+          // Check if opponent fainted - battle ends immediately
+          if (body.opponentMonster.currentHp <= 0) {
+            battleEnded = true;
+            winner = 'player';
+            allEffects.push(`Wild ${body.opponentMonster.name} fainted!`);
+          }
+        }
+        
+        // Handle other action types that might end the battle
+        if (playerResult.battleEnded) {
+          battleEnded = true;
+          winner = playerResult.winner === 'player' ? 'player' : 'opponent';
+        }
+        
+      } else if (!battleEnded && !playerGoesFirst) {
+        // Enemy went first, now process player's action (only if player didn't faint)
+        playerResult = this.battleService.processBattleAction(
+          playerMonster,
+          body.opponentMonster,
+          body.action
+        );
+        allEffects.push(...(playerResult.effects || []));
+        
+        if (body.action.type === 'attack' && playerResult.success && playerResult.damage) {
+          // Apply damage to opponent
+          body.opponentMonster.currentHp = Math.max(0, body.opponentMonster.currentHp - playerResult.damage);
+          
+          // Check if opponent fainted - battle ends immediately
+          if (body.opponentMonster.currentHp <= 0) {
+            battleEnded = true;
+            winner = 'player';
+            allEffects.push(`Wild ${body.opponentMonster.name} fainted!`);
+          }
+        }
+        
+        // Handle other action types that might end the battle
+        if (playerResult.battleEnded) {
+          battleEnded = true;
+          winner = playerResult.winner === 'player' ? 'player' : 'opponent';
+        }
       }
 
       if (body.action.type === 'catch') {
@@ -337,19 +426,15 @@ export class BattleController {
         }
       }
 
-      // Check if opponent fainted from player's attack
-      if (body.opponentMonster.currentHp <= 0) {
-        battleEnded = true;
-        winner = 'player';
-        allEffects.push(`Wild ${body.opponentMonster.name} fainted!`);
-      }
-
-      // Process enemy turn if battle hasn't ended and action wasn't successful flee or catch or successful monster ball
+      // Process enemy's second turn ONLY if battle hasn't ended and opponent is still alive
       if (!battleEnded && 
+          playerGoesFirst && 
+          body.opponentMonster.currentHp > 0 &&
           !(body.action.type === 'flee' && playerResult.success) && 
           !playerResult.monsterCaught) {
+        
         const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
-        const enemyResult = this.battleService.processBattleAction(
+        enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
           enemyAction
@@ -368,6 +453,9 @@ export class BattleController {
           } else {
             allEffects.push(...(enemyResult.effects || []));
           }
+        } else {
+          // Even if attack missed or failed, add the effects
+          allEffects.push(...(enemyResult.effects || []));
         }
       }
 
@@ -396,11 +484,11 @@ export class BattleController {
 
       return {
         result: {
-          success: playerResult.success,
-          damage: playerResult.damage,
-          isCritical: playerResult.isCritical,
+          success: playerResult?.success || false,
+          damage: playerResult?.damage,
+          isCritical: playerResult?.isCritical || false,
           effects: allEffects,
-          monsterCaught: playerResult.monsterCaught,
+          monsterCaught: playerResult?.monsterCaught || false,
           battleEnded,
           winner
         },
@@ -408,6 +496,7 @@ export class BattleController {
         updatedOpponentMonster: body.opponentMonster,
         updatedRun: run,
         teamWipe: this.checkForTeamWipe(run),
+        playerGoesFirst,
         battleContext: battleContext ? {
           playerStatModifiers: battleContext.playerStatModifiers,
           opponentStatModifiers: battleContext.opponentStatModifiers
