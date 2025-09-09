@@ -128,6 +128,7 @@ export interface BattleAction {
 export interface BattleResult {
   success: boolean;
   damage?: number;
+  isCritical?: boolean;
   effects?: string[];
   monsterCaught?: boolean;
   experienceGained?: number;

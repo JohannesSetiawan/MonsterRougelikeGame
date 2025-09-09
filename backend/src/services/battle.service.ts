@@ -16,12 +16,12 @@ export class BattleService {
       defense?: number;
       speed?: number;
     }
-  ): number {
+  ): { damage: number; isCritical: boolean } {
     const move = this.monsterService.getMoveData(moveId);
     const attackerData = this.monsterService.getMonsterData(attacker.monsterId);
     const defenderData = this.monsterService.getMonsterData(defender.monsterId);
 
-    if (!move || move.power === 0) return 0;
+    if (!move || move.power === 0) return { damage: 0, isCritical: false };
 
     // Get base stats
     let attack = move.category === MoveCategory.PHYSICAL 
@@ -90,14 +90,18 @@ export class BattleService {
     // Apply ability effects to damage multipliers
     stab = this.applyAbilityEffectsToStab(attacker, stab, move);
 
+    // Critical hit calculation (1% base chance)
+    const criticalHitChance = 0.01;
+    const isCritical = Math.random() < criticalHitChance;
+    const criticalMultiplier = isCritical ? 2.0 : 1.0;
     // Random factor (85-100%)
     const randomFactor = (Math.random() * 0.15) + 0.85;
 
     // Damage calculation
     const baseDamage = ((levelFactor * move.power * attack / defense) / 50 + 2);
-    const finalDamage = Math.floor(baseDamage * stab * effectiveness * randomFactor);
+    const finalDamage = Math.floor(baseDamage * stab * effectiveness * criticalMultiplier * randomFactor);
 
-    return Math.max(1, finalDamage);
+    return { damage: Math.max(1, finalDamage), isCritical };
   }
 
   processBattleAction(
@@ -175,13 +179,18 @@ export class BattleService {
       };
     }
 
-    const damage = this.calculateDamage(attacker, defender, moveId, battleContext);
+    const { damage, isCritical } = this.calculateDamage(attacker, defender, moveId, battleContext);
     const newHp = Math.max(0, defender.currentHp - damage);
     
     const effects = [
-      `${attacker.name} used ${move.name}!`,
-      `It dealt ${damage} damage to ${defender.name}!`
+      `${attacker.name} used ${move.name}!`
     ];
+
+    if (isCritical) {
+      effects.push('Critical hit!');
+    }
+
+    effects.push(`It dealt ${damage} damage to ${defender.name}!`);
 
     // Check for effectiveness messages
     const defenderData = this.monsterService.getMonsterData(defender.monsterId);
@@ -204,6 +213,7 @@ export class BattleService {
     return {
       success: true,
       damage,
+      isCritical,
       effects,
       battleEnded,
       winner: battleEnded ? 'player' : undefined

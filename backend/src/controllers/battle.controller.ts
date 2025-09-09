@@ -398,6 +398,7 @@ export class BattleController {
         result: {
           success: playerResult.success,
           damage: playerResult.damage,
+          isCritical: playerResult.isCritical,
           effects: allEffects,
           monsterCaught: playerResult.monsterCaught,
           battleEnded,
@@ -446,8 +447,8 @@ export class BattleController {
     const defender = body.opponent;
 
     try {
-      const damage = this.battleService.calculateDamage(attacker, defender, body.moveId);
-      return { damage };
+      const { damage, isCritical } = this.battleService.calculateDamage(attacker, defender, body.moveId);
+      return { damage, isCritical };
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

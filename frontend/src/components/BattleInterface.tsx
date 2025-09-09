@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 const BattleInterface: React.FC = () => {
   const { state, dispatch } = useGame();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [battleLog, setBattleLog] = useState<string[]>([]);
+  const [battleLog, setBattleLog] = useState<Array<{text: string, isCritical?: boolean}>>([]);
   const [battleEnded, setBattleEnded] = useState(false);
   const [movesData, setMovesData] = useState<Record<string, Move>>({});
   const [showItemBag, setShowItemBag] = useState(false);
@@ -29,6 +29,7 @@ const BattleInterface: React.FC = () => {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
   } | null>(null);
+  const [criticalHitEffect, setCriticalHitEffect] = useState<'player' | 'opponent' | null>(null);
   
   // Use ref to track initialization to prevent multiple calls
   const battleInitializationRef = React.useRef<{
@@ -125,7 +126,7 @@ const BattleInterface: React.FC = () => {
       logger.debug('Battle initialization response received', 'BattleInterface');
 
       if (battleInit.effects && battleInit.effects.length > 0) {
-        setBattleLog(prev => [...prev, ...battleInit.effects]);
+        setBattleLog(prev => [...prev, ...battleInit.effects.map(text => ({ text }))]);
       }
 
       // Store battle context with stat modifiers
@@ -146,7 +147,7 @@ const BattleInterface: React.FC = () => {
 
     } catch (error) {
       ErrorHandler.handle(error, 'BattleInterface.initializeBattle');
-      setBattleLog(prev => [...prev, 'Battle initialization failed!']);
+      setBattleLog(prev => [...prev, { text: 'Battle initialization failed!' }]);
       // Reset on error so it can be retried
       battleInitializationRef.current.isInitialized = false;
     } finally {
@@ -171,9 +172,19 @@ const BattleInterface: React.FC = () => {
         battleContext || undefined
       );
 
-      // Update battle log
+      // Update battle log and check for critical hits
       if (result.result.effects) {
-        setBattleLog(prev => [...prev, ...result.result.effects!]);
+        const hasCriticalHit = result.result.isCritical;
+        setBattleLog(prev => [...prev, ...result.result.effects!.map(text => ({ 
+          text, 
+          isCritical: text.includes('Critical hit!') 
+        }))]);
+        
+        // Trigger critical hit animation if it occurred
+        if (hasCriticalHit) {
+          setCriticalHitEffect('opponent'); // Assuming player is attacking opponent
+          setTimeout(() => setCriticalHitEffect(null), 600);
+        }
       }
 
       // Update battle context if returned
@@ -196,7 +207,7 @@ const BattleInterface: React.FC = () => {
       // Check for team wipe
       if (result.teamWipe) {
         setBattleEnded(true);
-        setBattleLog(prev => [...prev, '💀 All your monsters have fainted! Your adventure ends here.']);
+        setBattleLog(prev => [...prev, { text: '💀 All your monsters have fainted! Your adventure ends here.' }]);
         setTimeout(async () => {
           if (currentRun) {
             try {
@@ -230,9 +241,9 @@ const BattleInterface: React.FC = () => {
         
         // Show winner message
         if (result.result.winner === 'player') {
-          setBattleLog(prev => [...prev, '🎉 Victory! You won the battle!']);
+          setBattleLog(prev => [...prev, { text: '🎉 Victory! You won the battle!' }]);
         } else if (result.result.winner === 'opponent') {
-          setBattleLog(prev => [...prev, '💀 Defeat! Your monster fainted!']);
+          setBattleLog(prev => [...prev, { text: '💀 Defeat! Your monster fainted!' }]);
           endDelay = 3000; // Give more time to read defeat message
         }
         
@@ -251,7 +262,7 @@ const BattleInterface: React.FC = () => {
       const errorMessage = ErrorHandler.getDisplayMessage(error, 'Action failed');
       
       // Add error message to battle log as a warning
-      setBattleLog(prev => [...prev, `⚠️ ${errorMessage}`]);
+      setBattleLog(prev => [...prev, { text: `⚠️ ${errorMessage}` }]);
       
       // Log the error for debugging but don't set global error state
       ErrorHandler.handle(error, 'BattleInterface.handleBattleAction');
@@ -335,7 +346,7 @@ const BattleInterface: React.FC = () => {
         {/* Battle Field */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Opponent Monster */}
-          <Card className="border-2 border-red-500/50 bg-red-950/20">
+          <Card className={`border-2 border-red-500/50 bg-red-950/20 ${criticalHitEffect === 'opponent' ? 'critical-hit-flash' : ''}`}>
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
                 <div>
@@ -392,7 +403,7 @@ const BattleInterface: React.FC = () => {
           </Card>
 
           {/* Player Monster */}
-          <Card className="border-2 border-blue-500/50 bg-blue-950/20">
+          <Card className={`border-2 border-blue-500/50 bg-blue-950/20 ${criticalHitEffect === 'player' ? 'critical-hit-flash' : ''}`}>
             <CardHeader className="pb-4">
               <div className="flex justify-between items-start">
                 <div>
@@ -461,8 +472,15 @@ const BattleInterface: React.FC = () => {
           <CardContent>
             <div className="space-y-2 max-h-32 overflow-y-auto">
               {battleLog.slice(-6).map((message, index) => (
-                <div key={index} className="text-sm text-amber-100/80 p-2 bg-amber-950/20 rounded">
-                  {message}
+                <div 
+                  key={index} 
+                  className={`text-sm p-2 bg-amber-950/20 rounded ${
+                    message.isCritical 
+                      ? 'text-red-400 font-bold animate-pulse border-l-4 border-red-500' 
+                      : 'text-amber-100/80'
+                  }`}
+                >
+                  {message.text}
                 </div>
               ))}
               {isProcessing && (
