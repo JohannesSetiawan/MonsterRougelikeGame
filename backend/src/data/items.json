@@ -48,7 +48,9 @@
     "type": "capture",
     "effect": "catch",
     "rarity": "common",
-    "value": 300
+    "value": 300,
+    "price": 50,
+    "isBuyable": true
   },
   "great_ball": {
     "id": "great_ball",

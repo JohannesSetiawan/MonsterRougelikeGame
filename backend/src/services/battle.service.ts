@@ -1,11 +1,30 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, MoveCategory } from '../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext } from '../types';
 import { MonsterService } from './monster.service';
+
+// Battle module services
+import { StatusEffectService } from './battle/status-effect.service';
+import { DamageCalculationService } from './battle/damage-calculation.service';
+import { BattleActionsService } from './battle/battle-actions.service';
+import { BattleAIService } from './battle/battle-ai.service';
+import { ExperienceService } from './battle/experience.service';
+import { AbilityEffectsService } from './battle/ability-effects.service';
+import { TurnManagementService } from './battle/turn-management.service';
 
 @Injectable()
 export class BattleService {
-  constructor(private monsterService: MonsterService) {}
+  constructor(
+    private monsterService: MonsterService,
+    private statusEffectService: StatusEffectService,
+    private damageCalculationService: DamageCalculationService,
+    private battleActionsService: BattleActionsService,
+    private battleAIService: BattleAIService,
+    private experienceService: ExperienceService,
+    private abilityEffectsService: AbilityEffectsService,
+    private turnManagementService: TurnManagementService
+  ) {}
 
+  // Delegate to damage calculation service
   calculateDamage(
     attacker: MonsterInstance, 
     defender: MonsterInstance, 
@@ -17,93 +36,16 @@ export class BattleService {
       speed?: number;
     }
   ): { damage: number; isCritical: boolean } {
-    const move = this.monsterService.getMoveData(moveId);
-    const attackerData = this.monsterService.getMonsterData(attacker.monsterId);
-    const defenderData = this.monsterService.getMonsterData(defender.monsterId);
-
-    if (!move || move.power === 0) return { damage: 0, isCritical: false };
-
-    // Get base stats
-    let attack = move.category === MoveCategory.PHYSICAL 
-      ? attacker.stats.attack 
-      : attacker.stats.specialAttack;
-    
-    let defense = move.category === MoveCategory.PHYSICAL 
-      ? defender.stats.defense 
-      : defender.stats.specialDefense;
-
-    // Apply temporary stat boosts from items (X Attack, X Defense, etc.)
-    if (temporaryBoosts) {
-      const isPlayerAttacker = true; // Assuming player is always the attacker for item boosts
-      
-      if (isPlayerAttacker && temporaryBoosts.attack && move.category === MoveCategory.PHYSICAL) {
-        attack = Math.floor(attack * temporaryBoosts.attack);
-      }
-      
-      if (!isPlayerAttacker && temporaryBoosts.defense && move.category === MoveCategory.PHYSICAL) {
-        defense = Math.floor(defense * temporaryBoosts.defense);
-      }
-    }
-
-    // Apply battle context stat modifiers if available
-    if (battleContext) {
-      const isPlayerAttacker = battleContext.playerMonster.id === attacker.id;
-      const isPlayerDefender = battleContext.playerMonster.id === defender.id;
-
-      if (isPlayerAttacker) {
-        const modifier = move.category === MoveCategory.PHYSICAL 
-          ? battleContext.playerStatModifiers.attack 
-          : battleContext.playerStatModifiers.specialAttack;
-        if (modifier !== undefined) attack = Math.floor(attack * modifier);
-      } else {
-        const modifier = move.category === MoveCategory.PHYSICAL 
-          ? battleContext.opponentStatModifiers.attack 
-          : battleContext.opponentStatModifiers.specialAttack;
-        if (modifier !== undefined) attack = Math.floor(attack * modifier);
-      }
-
-      if (isPlayerDefender) {
-        const modifier = move.category === MoveCategory.PHYSICAL 
-          ? battleContext.playerStatModifiers.defense 
-          : battleContext.playerStatModifiers.specialDefense;
-        if (modifier !== undefined) defense = Math.floor(defense * modifier);
-      } else {
-        const modifier = move.category === MoveCategory.PHYSICAL 
-          ? battleContext.opponentStatModifiers.defense 
-          : battleContext.opponentStatModifiers.specialDefense;
-        if (modifier !== undefined) defense = Math.floor(defense * modifier);
-      }
-    }
-
-    // Level factor
-    const levelFactor = (2 * attacker.level / 5 + 2);
-
-    // Type effectiveness
-    let effectiveness = 1;
-    for (const defenderType of defenderData.type) {
-      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
-    }
-
-    // STAB (Same Type Attack Bonus)
-    let stab = attackerData.type.includes(move.type) ? 1.5 : 1;
-
-    // Apply ability effects to damage multipliers
-    stab = this.applyAbilityEffectsToStab(attacker, stab, move);
-
-    // Critical hit calculation (1% base chance)
-    const criticalHitChance = 0.01;
-    const isCritical = Math.random() < criticalHitChance;
-    const criticalMultiplier = isCritical ? 2.0 : 1.0;
-    // Random factor (85-100%)
-    const randomFactor = (Math.random() * 0.15) + 0.85;
-
-    // Damage calculation
-    const baseDamage = ((levelFactor * move.power * attack / defense) / 50 + 2);
-    const finalDamage = Math.floor(baseDamage * stab * effectiveness * criticalMultiplier * randomFactor);
-
-    return { damage: Math.max(1, finalDamage), isCritical };
+    return this.damageCalculationService.calculateDamage(
+      attacker, 
+      defender, 
+      moveId, 
+      battleContext, 
+      temporaryBoosts
+    );
   }
 
+  // Delegate to battle actions service
   processBattleAction(
     playerMonster: MonsterInstance,
     opponentMonster: MonsterInstance,
@@ -118,340 +60,48 @@ export class BattleService {
       };
     }
   ): BattleResult {
-    switch (action.type) {
-      case 'attack':
-        return this.processAttack(playerMonster, opponentMonster, action.moveId);
-      
-      case 'catch':
-        return this.processCatch(opponentMonster, battleModifiers?.catchRate);
-      
-      case 'flee':
-        return this.processFlee(playerMonster, opponentMonster, battleModifiers?.guaranteedFlee);
-      
-      case 'item':
-        return this.processItem(action.itemId);
-      
-      default:
-        return { success: false, effects: ['Invalid action'] };
-    }
+    return this.battleActionsService.processBattleAction(
+      playerMonster,
+      opponentMonster,
+      action,
+      battleModifiers
+    );
   }
 
-  private processAttack(
+  // Delegate to battle actions service
+  processAttack(
     attacker: MonsterInstance,
     defender: MonsterInstance,
     moveId: string,
     battleContext?: BattleContext
   ): BattleResult {
-    // Safety check: dead monsters can't attack
-    if (attacker.currentHp <= 0) {
-      return { 
-        success: false, 
-        effects: [`${attacker.name} is unable to attack! (Fainted)`] 
-      };
-    }
-    
-    const move = this.monsterService.getMoveData(moveId);
-    
-    if (!move) {
-      return { success: false, effects: ['Move not found'] };
-    }
-
-    // Check if the move has PP remaining
-    const remainingPP = attacker.movePP?.[moveId] || 0;
-    
-    // Initialize PP if it doesn't exist (backwards compatibility)
-    if (!attacker.movePP) {
-      attacker.movePP = {};
-      attacker.moves.forEach(mId => {
-        const moveData = this.monsterService.getMoveData(mId);
-        attacker.movePP[mId] = moveData ? moveData.pp : 20;
-      });
-    }
-    
-    if (remainingPP <= 0) {
-      return { 
-        success: false, 
-        effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
-      };
-    }
-
-    // Consume PP
-    attacker.movePP[moveId] = Math.max(0, remainingPP - 1);
-
-    // Check accuracy
-    const hitChance = Math.random() * 100;
-    if (hitChance > move.accuracy) {
-      return { 
-        success: false, 
-        effects: [`${attacker.name} used ${move.name}, but it missed!`] 
-      };
-    }
-
-    const { damage, isCritical } = this.calculateDamage(attacker, defender, moveId, battleContext);
-    const newHp = Math.max(0, defender.currentHp - damage);
-    
-    const effects = [
-      `${attacker.name} used ${move.name}!`
-    ];
-
-    if (isCritical) {
-      effects.push('Critical hit!');
-    }
-
-    effects.push(`It dealt ${damage} damage to ${defender.name}!`);
-
-    // Check for effectiveness messages
-    const defenderData = this.monsterService.getMonsterData(defender.monsterId);
-    let effectiveness = 1;
-    for (const defenderType of defenderData.type) {
-      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
-    }
-
-    if (effectiveness > 1) {
-      effects.push("It's super effective!");
-    } else if (effectiveness < 1) {
-      effects.push("It's not very effective...");
-    }
-
-    const battleEnded = newHp === 0;
-    if (battleEnded) {
-      effects.push(`${defender.name} fainted!`);
-    }
-
-    return {
-      success: true,
-      damage,
-      isCritical,
-      effects,
-      battleEnded,
-      winner: battleEnded ? 'player' : undefined
-    };
+    return this.battleActionsService.processAttack(attacker, defender, moveId, battleContext);
   }
 
-  private processCatch(target: MonsterInstance, catchRate?: 'improved' | 'excellent'): BattleResult {
-    // Calculate catch rate with potential modifiers
-    let finalCatchRate = this.calculateCatchRate(target);
-    
-    // Apply ball type modifiers
-    if (catchRate === 'improved') {
-      finalCatchRate *= 1.5; // Great Ball: 50% better catch rate
-    } else if (catchRate === 'excellent') {
-      finalCatchRate *= 2.5; // Ultra Ball: 150% better catch rate
-    }
-    
-    // Cap the catch rate at 95%
-    finalCatchRate = Math.min(95, finalCatchRate);
-    
-    const success = Math.random() * 100 < finalCatchRate;
-
-    if (success) {
-      return {
-        success: true,
-        monsterCaught: true,
-        effects: [`${target.name} was caught successfully!`],
-        battleEnded: true
-      };
-    } else {
-      return {
-        success: false,
-        effects: [`${target.name} broke free from the capture attempt!`]
-      };
-    }
-  }
-
-  private processFlee(playerMonster: MonsterInstance, opponentMonster: MonsterInstance, guaranteed?: boolean): BattleResult {
-    // If guaranteed flee (from Escape Rope), always succeed
-    if (guaranteed) {
-      return {
-        success: true,
-        effects: ['Used Escape Rope! Got away safely!'],
-        battleEnded: true
-      };
-    }
-
-    const levelDiff = opponentMonster.level - playerMonster.level;
-
-    // If player monster level is same or higher, guaranteed flee
-    if (levelDiff <= 0) {
-      return {
-        success: true,
-        effects: ['Got away safely!'],
-        battleEnded: true
-      };
-    }
-
-    // Calculate flee chance based on level difference
-    const maxRange = 2 * levelDiff;
-    const randomNumber = Math.floor(Math.random() * (maxRange + 1)); // 0 to maxRange inclusive
-    const fleeThreshold = levelDiff;
-
-    if (randomNumber < fleeThreshold) {
-      return {
-        success: true,
-        effects: ['Got away safely!'],
-        battleEnded: true
-      };
-    } else {
-      return {
-        success: false,
-        effects: ['Could not escape!'],
-        battleEnded: false
-      };
-    }
-  }
-
-  private processItem(itemId: string): BattleResult {
-    // This will be handled by the controller which manages inventory
-    // The service just returns a success result indicating the action was valid
-    return {
-      success: true,
-      effects: [`Used ${itemId}!`],
-    };
-  }
-
-  private calculateCatchRate(monster: MonsterInstance): number {
-    // Base catch rate depends on rarity and current HP
-    const monsterData = this.monsterService.getMonsterData(monster.monsterId);
-    let baseCatchRate = 50;
-
-    switch (monsterData.rarity) {
-      case 'common': baseCatchRate = 70; break;
-      case 'uncommon': baseCatchRate = 50; break;
-      case 'rare': baseCatchRate = 30; break;
-      case 'legendary': baseCatchRate = 10; break;
-    }
-
-    // Lower HP increases catch rate
-    const hpFactor = 1 - (monster.currentHp / monster.maxHp);
-    const finalRate = baseCatchRate + (hpFactor * 30);
-
-    return Math.min(95, finalRate);
-  }
-
+  // Delegate to experience service
   generateExperience(defeatedMonster: MonsterInstance): number {
-    const baseExp = defeatedMonster.level * 100;
-    const rarityMultiplier = this.getRarityMultiplier(defeatedMonster.monsterId);
-    return Math.floor(baseExp * rarityMultiplier);
+    return this.experienceService.generateExperience(defeatedMonster);
   }
 
   calculateExperienceForNextLevel(monster: MonsterInstance): number {
-    return this.monsterService.calculateExperienceForNextLevel(monster);
+    return this.experienceService.calculateExperienceForNextLevel(monster);
   }
 
   addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
-    return this.monsterService.addExperience(monster, expGain);
+    return this.experienceService.addExperienceToMonster(monster, expGain);
   }
 
-  private getRarityMultiplier(monsterId: string): number {
-    const monster = this.monsterService.getMonsterData(monsterId);
-    switch (monster.rarity) {
-      case 'common': return 1;
-      case 'uncommon': return 1.2;
-      case 'rare': return 1.5;
-      case 'legendary': return 2;
-      default: return 1;
-    }
-  }
-
+  // Delegate to AI service
   generateEnemyAction(enemy: MonsterInstance): BattleAction {
-    // Safety check: dead monsters can't take actions
-    if (enemy.currentHp <= 0) {
-      throw new Error('Dead monster cannot take actions');
-    }
-    
-    // Simple AI: randomly choose from available moves
-    if (enemy.moves.length === 0) {
-      // Fallback if no moves available
-      return { type: 'attack', moveId: 'scratch' };
-    }
-
-    // More intelligent AI: prefer higher power moves when enemy HP is low
-    const enemyHpPercentage = enemy.currentHp / enemy.maxHp;
-    
-    if (enemyHpPercentage < 0.3) {
-      // When low on health, prefer stronger moves
-      const strongMoves = enemy.moves.filter(moveId => {
-        const move = this.monsterService.getMoveData(moveId);
-        return move && move.power >= 60;
-      });
-      
-      if (strongMoves.length > 0) {
-        const randomIndex = Math.floor(Math.random() * strongMoves.length);
-        return { type: 'attack', moveId: strongMoves[randomIndex] };
-      }
-    }
-
-    // Normal strategy: randomly choose any available move
-    const randomMoveIndex = Math.floor(Math.random() * enemy.moves.length);
-    const selectedMove = enemy.moves[randomMoveIndex];
-
-    return { type: 'attack', moveId: selectedMove };
+    return this.battleAIService.generateEnemyAction(enemy);
   }
 
-  // Ability effect methods
-  private applyAbilityEffectsToStab(
-    attacker: MonsterInstance, 
-    baseSTab: number, 
-    move: any
-  ): number {
-    const abilityData = this.monsterService.getAbilityData(attacker.ability);
-    if (!abilityData) return baseSTab;
-
-    const isLowHp = attacker.currentHp / attacker.maxHp <= 0.33; // Low HP threshold
-    let modifiedStab = baseSTab;
-
-    switch (abilityData.effect) {
-      case 'fire_boost_low_hp':
-        // Blaze: Boost Fire-type moves when HP is low
-        if (isLowHp && move.type === 'fire') {
-          modifiedStab *= 1.5; // Additional 50% boost when low HP
-        }
-        break;
-        
-      case 'water_boost_low_hp':
-        // Torrent: Boost Water-type moves when HP is low
-        if (isLowHp && move.type === 'water') {
-          modifiedStab *= 1.5; // Additional 50% boost when low HP
-        }
-        break;
-        
-      default:
-        break;
-    }
-
-    return modifiedStab;
-  }
-
-  // Apply battle start effects (like Intimidate) and return battle context
+  // Delegate to ability effects service
   initializeBattleContext(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance
   ): { battleContext: BattleContext; effects: string[] } {
-    const effects: string[] = [];
-    const battleContext: BattleContext = {
-      playerMonster,
-      opponentMonster,
-      playerStatModifiers: {},
-      opponentStatModifiers: {}
-    };
-
-    // Check player monster's ability
-    const playerAbility = this.monsterService.getAbilityData(playerMonster.ability);
-    if (playerAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces opponent's attack by 25%
-      battleContext.opponentStatModifiers.attack = 0.75;
-      effects.push(`${playerMonster.name}'s Intimidate lowered ${opponentMonster.name}'s Attack!`);
-    }
-
-    // Check opponent monster's ability
-    const opponentAbility = this.monsterService.getAbilityData(opponentMonster.ability);
-    if (opponentAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces player's attack by 25%
-      battleContext.playerStatModifiers.attack = 0.75;
-      effects.push(`${opponentMonster.name}'s Intimidate lowered ${playerMonster.name}'s Attack!`);
-    }
-
-    return { battleContext, effects };
+    return this.abilityEffectsService.initializeBattleContext(playerMonster, opponentMonster);
   }
 
   // Legacy method for compatibility - now deprecated
@@ -459,27 +109,37 @@ export class BattleService {
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance
   ): string[] {
-    const result = this.initializeBattleContext(playerMonster, opponentMonster);
-    return result.effects;
+    return this.abilityEffectsService.applyBattleStartEffects(playerMonster, opponentMonster);
   }
 
-  // Apply speed-based abilities
+  // Delegate to ability effects service
   applySpeedAbilities(monster: MonsterInstance): number {
-    const abilityData = this.monsterService.getAbilityData(monster.ability);
-    if (!abilityData) return monster.stats.speed;
+    return this.abilityEffectsService.applySpeedAbilities(monster);
+  }
 
-    let modifiedSpeed = monster.stats.speed;
+  // Delegate to status effect service
+  applyStatusDamage(monster: MonsterInstance): { damage: number; effects: string[] } {
+    return this.statusEffectService.applyStatusDamage(monster);
+  }
 
-    switch (abilityData.effect) {
-      case 'speed_boost_water':
-        // Swift Swim: Double speed in water environments (for now, just a 50% boost)
-        modifiedSpeed = Math.floor(modifiedSpeed * 1.5);
-        break;
-        
-      default:
-        break;
-    }
+  shouldSkipTurn(monster: MonsterInstance): { skip: boolean; reason?: string } {
+    return this.statusEffectService.shouldSkipTurn(monster);
+  }
 
-    return modifiedSpeed;
+  getStatusModifiedStats(monster: MonsterInstance) {
+    return this.statusEffectService.getStatusModifiedStats(monster);
+  }
+
+  // Delegate to turn management service
+  processEndOfTurn(playerMonster: MonsterInstance, opponentMonster: MonsterInstance) {
+    return this.turnManagementService.processEndOfTurn(playerMonster, opponentMonster);
+  }
+
+  determineTurnOrder(playerMonster: MonsterInstance, opponentMonster: MonsterInstance): 'player' | 'opponent' {
+    return this.turnManagementService.determineTurnOrder(playerMonster, opponentMonster);
+  }
+
+  checkBattleEnd(playerMonster: MonsterInstance, opponentMonster: MonsterInstance) {
+    return this.turnManagementService.checkBattleEnd(playerMonster, opponentMonster);
   }
 }

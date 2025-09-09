@@ -13,6 +13,17 @@ import { DatabaseService } from './services/database.service';
 import { PlayerEntity } from './entities/player.entity';
 import { GameRunEntity } from './entities/game-run.entity';
 
+// Battle module services
+import {
+  StatusEffectService,
+  DamageCalculationService,
+  BattleActionsService,
+  BattleAIService,
+  ExperienceService,
+  AbilityEffectsService,
+  TurnManagementService
+} from './services/battle';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -37,6 +48,20 @@ import { GameRunEntity } from './entities/game-run.entity';
     TypeOrmModule.forFeature([PlayerEntity, GameRunEntity]),
   ],
   controllers: [GameController, BattleController, DebugController, ShopController],
-  providers: [GameService, BattleService, MonsterService, DataLoaderService, DatabaseService],
+  providers: [
+    GameService, 
+    BattleService, 
+    MonsterService, 
+    DataLoaderService, 
+    DatabaseService,
+    // Battle module services
+    StatusEffectService,
+    DamageCalculationService,
+    BattleActionsService,
+    BattleAIService,
+    ExperienceService,
+    AbilityEffectsService,
+    TurnManagementService
+  ],
 })
 export class AppModule {}

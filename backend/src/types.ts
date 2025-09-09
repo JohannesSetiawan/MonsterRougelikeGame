@@ -62,6 +62,24 @@ export interface MonsterInstance {
   ability: string; // ability id
   experience: number;
   isShiny?: boolean;
+  statusConditions?: StatusCondition[]; // Status effects affecting this monster
+}
+
+export enum StatusEffect {
+  POISON = 'poison',
+  BURN = 'burn',
+  PARALYZE = 'paralyze',
+  FROSTBITE = 'frostbite',
+  SLEEP = 'sleep',
+  BADLY_POISONED = 'badly_poisoned',
+  BADLY_BURN = 'badly_burn',
+  CONFUSION = 'confusion'
+}
+
+export interface StatusCondition {
+  effect: StatusEffect;
+  duration?: number; // For effects that can last multiple turns
+  turnsActive?: number; // How many turns this effect has been active
 }
 
 export interface GameRun {
