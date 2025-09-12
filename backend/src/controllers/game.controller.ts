@@ -271,4 +271,44 @@ export class GameController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Get('monster/:monsterId/learnable-moves/:level')
+  getMovesLearnableAtLevel(
+    @Param('monsterId') monsterId: string,
+    @Param('level') level: string
+  ) {
+    const levelNum = parseInt(level);
+    if (isNaN(levelNum) || levelNum < 1) {
+      throw new HttpException('Invalid level', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      const moves = this.monsterService.getMovesLearnableAtLevel(monsterId, levelNum);
+      return { moves };
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post('run/:runId/monster/:monsterId/learn-move')
+  learnMove(
+    @Param('runId') runId: string,
+    @Param('monsterId') monsterId: string,
+    @Body() body: { moveId: string; moveToReplace?: string; learnMove: boolean }
+  ) {
+    if (!body.moveId || typeof body.learnMove !== 'boolean') {
+      throw new HttpException('moveId and learnMove are required', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      return this.gameService.handleMoveSelection(runId, monsterId, {
+        monsterId,
+        newMove: body.moveId,
+        selectedMoveToReplace: body.moveToReplace,
+        learnMove: body.learnMove
+      });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { gameApi } from '../api/gameApi';
 import { ErrorHandler } from '../utils/errorHandler';
 import { useGame } from '../context/GameContext';
-import type { BattleAction, MonsterInstance, GameRun, StatModifiers } from '../api/types';
+import type { BattleAction, MonsterInstance, GameRun, StatModifiers, MoveLearnEvent } from '../api/types';
 
 interface UseBattleActionsProps {
   currentRun: GameRun;
@@ -24,6 +24,8 @@ interface UseBattleActionsProps {
   } | null>>;
   setCriticalHitEffect: React.Dispatch<React.SetStateAction<'player' | 'opponent' | null>>;
   resetBattleState: () => void;
+  onMoveLearning?: (moveLearnEvents: MoveLearnEvent[]) => void;
+  onAutoLearnedMoves?: (moveIds: string[], allMoves: Record<string, any>) => void;
 }
 
 export const useBattleActions = ({
@@ -39,7 +41,9 @@ export const useBattleActions = ({
   setBattleEnded,
   setBattleContext,
   setCriticalHitEffect,
-  resetBattleState
+  resetBattleState,
+  onMoveLearning,
+  onAutoLearnedMoves
 }: UseBattleActionsProps) => {
   const { state, dispatch } = useGame();
 
@@ -101,6 +105,17 @@ export const useBattleActions = ({
       // Update run
       dispatch({ type: 'SET_CURRENT_RUN', payload: result.updatedRun });
 
+      // Check for move learning events
+      if (result.result.moveLearnEvents && result.result.moveLearnEvents.length > 0 && onMoveLearning) {
+        onMoveLearning(result.result.moveLearnEvents);
+      }
+      
+      // Handle auto-learned moves
+      if (result.result.autoLearnedMoves && result.result.autoLearnedMoves.length > 0 && onAutoLearnedMoves) {
+        // We'll fetch moves data in the component that uses this hook
+        onAutoLearnedMoves(result.result.autoLearnedMoves, {});
+      }
+
       // Check for auto-switch scenario
       if (result.result.requiresAutoSwitch) {
         // The backend has already handled the auto-switch
@@ -147,10 +162,17 @@ export const useBattleActions = ({
           endDelay = 3000;
         }
         
-        setTimeout(() => {
-          dispatch({ type: 'END_BATTLE' });
-          resetBattleState();
-        }, endDelay);
+        // Only end battle if there are no pending move learning events
+        const hasMoveEvents = result.result.moveLearnEvents && result.result.moveLearnEvents.length > 0;
+        const hasAutoLearnedMoves = result.result.autoLearnedMoves && result.result.autoLearnedMoves.length > 0;
+        
+        if (!hasMoveEvents && !hasAutoLearnedMoves) {
+          setTimeout(() => {
+            dispatch({ type: 'END_BATTLE' });
+            resetBattleState();
+          }, endDelay);
+        }
+        // If there are move events, the battle will end after move learning is complete
       }
 
     } catch (error) {
@@ -163,7 +185,7 @@ export const useBattleActions = ({
   }, [
     isProcessing, battleEnded, currentRun, playerMonster, opponentMonster, 
     battleContext, playerGoesFirst, state.player, dispatch, setIsProcessing, 
-    setBattleLog, setBattleEnded, setBattleContext, setCriticalHitEffect, resetBattleState
+    setBattleLog, setBattleEnded, setBattleContext, setCriticalHitEffect, resetBattleState, onMoveLearning
   ]);
 
   const handleAttack = useCallback((moveId: string) => {

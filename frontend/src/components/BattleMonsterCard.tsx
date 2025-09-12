@@ -16,6 +16,7 @@ interface MonsterCardProps {
   onStatsClick: () => void;
   onAbilityClick: (abilityId: string) => void;
   isProcessing: boolean;
+  shouldDeferUpdates?: boolean;
 }
 
 const MonsterCard: React.FC<MonsterCardProps> = ({
@@ -26,7 +27,8 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
   criticalHitEffect,
   onStatsClick,
   onAbilityClick,
-  isProcessing
+  isProcessing,
+  shouldDeferUpdates = false
 }) => {
   const getHealthPercentage = (current: number, max: number) => {
     return (current / max) * 100;
@@ -110,6 +112,7 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
             <ExperienceBar 
               monster={monster} 
               textColor={textColorSecondary}
+              shouldDeferUpdates={shouldDeferUpdates}
             />
           )}
           

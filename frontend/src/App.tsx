@@ -29,12 +29,12 @@ const GameContent: React.FC = () => {
   }
 
   // Show battle interface if in battle
-  if (state.battleState.inBattle) {
+  if (state.battleState.inBattle && state.battleState.playerMonster && state.battleState.opponentMonster) {
     return <BattleInterface />;
   }
 
-  // Show game interface if player has active run
-  if (state.currentRun) {
+  // Show game interface if player has active run (and not in battle)
+  if (state.currentRun && !state.battleState.inBattle) {
     return <GameInterface />;
   }
 

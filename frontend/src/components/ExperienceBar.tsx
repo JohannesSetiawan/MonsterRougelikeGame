@@ -7,14 +7,16 @@ interface ExperienceBarProps {
   monster: MonsterInstance;
   className?: string;
   textColor?: string;
+  shouldDeferUpdates?: boolean;
 }
 
 const ExperienceBar: React.FC<ExperienceBarProps> = ({ 
   monster, 
   className = "", 
-  textColor = "text-muted-foreground" 
+  textColor = "text-muted-foreground",
+  shouldDeferUpdates = false 
 }) => {
-  const experienceData = useExperienceData(monster);
+  const experienceData = useExperienceData(monster, shouldDeferUpdates);
 
   return (
     <div className={`space-y-2 ${className}`}>

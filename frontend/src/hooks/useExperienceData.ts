@@ -11,7 +11,7 @@ interface ExperienceData {
   error: string | null;
 }
 
-export const useExperienceData = (monster: MonsterInstance): ExperienceData => {
+export const useExperienceData = (monster: MonsterInstance, shouldDefer?: boolean): ExperienceData => {
   const [experienceData, setExperienceData] = useState<ExperienceData>({
     current: monster.experience,
     required: monster.level * 100, // fallback value
@@ -20,28 +20,37 @@ export const useExperienceData = (monster: MonsterInstance): ExperienceData => {
     error: null
   });
 
+
+
   useEffect(() => {
+    // Only fetch data if we're not deferring or if this is the initial load
+    if (shouldDefer && experienceData.current !== 0) {
+      return;
+    }
+
+    const currentMonster = monster;
+    
     const fetchExperienceData = async () => {
       try {
         setExperienceData(prev => ({ ...prev, loading: true, error: null }));
         
-        const result = await gameApi.getExperienceForLevel(monster.monsterId, monster.level);
+        const result = await gameApi.getExperienceForLevel(currentMonster.monsterId, currentMonster.level);
         const required = result.experienceForNextLevel;
-        const percentage = (monster.experience / required) * 100;
+        const percentage = (currentMonster.experience / required) * 100;
         
         setExperienceData({
-          current: monster.experience,
+          current: currentMonster.experience,
           required,
           percentage,
           loading: false,
           error: null
         });
       } catch (error) {
-        const fallbackRequired = monster.level * 100;
-        const percentage = (monster.experience / fallbackRequired) * 100;
+        const fallbackRequired = currentMonster.level * 100;
+        const percentage = (currentMonster.experience / fallbackRequired) * 100;
         
         setExperienceData({
-          current: monster.experience,
+          current: currentMonster.experience,
           required: fallbackRequired,
           percentage,
           loading: false,
@@ -53,7 +62,7 @@ export const useExperienceData = (monster: MonsterInstance): ExperienceData => {
     };
 
     fetchExperienceData();
-  }, [monster.monsterId, monster.level, monster.experience]);
+  }, [monster.monsterId, monster.level, monster.experience, shouldDefer]);
 
   return experienceData;
 };

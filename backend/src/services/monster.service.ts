@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, Monster, MonsterStats } from '../types';
+import { MonsterInstance, Monster, MonsterStats, MoveLearnEvent } from '../types';
 import { DataLoaderService } from './data-loader.service';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,8 +20,12 @@ export class MonsterService {
     // Select a random ability
     const ability = monster.abilities[Math.floor(Math.random() * monster.abilities.length)];
 
-    // Select starting moves (up to 4, prioritize lower level moves)
-    const availableMoves = monster.learnableMoves.slice(0, Math.min(4, monster.learnableMoves.length));
+    // Select starting moves (up to 4, prioritize moves learnable at or below current level)
+    const availableMoves = monster.learnableMoves
+      .filter(([moveId, levelLearned]) => levelLearned <= level)
+      .sort(([, a], [, b]) => a - b) // Sort by level learned (ascending)
+      .slice(0, 4) // Take first 4 moves
+      .map(([moveId]) => moveId); // Extract just the move IDs
 
     // Initialize PP for each move
     const movePP: Record<string, number> = {};
@@ -92,7 +96,7 @@ export class MonsterService {
     return 100 + nextLevel * monsterData.growth_index * 50;
   }
 
-  addExperience(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
+  addExperience(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number; moveLearnEvents: MoveLearnEvent[]; autoLearnedMoves: string[] } {
     const monsterData = this.dataLoaderService.getMonster(monster.monsterId);
     if (!monsterData) {
       throw new Error(`Monster data not found for ${monster.monsterId}`);
@@ -103,22 +107,30 @@ export class MonsterService {
     
     let leveledUp = false;
     let levelsGained = 0;
+    const moveLearnEvents: MoveLearnEvent[] = [];
+    const autoLearnedMoves: string[] = [];
     
     // Check for level ups (can gain multiple levels at once)
     while (true) {
       const expNeeded = this.calculateExperienceForNextLevel(updatedMonster);
       
       if (updatedMonster.experience >= expNeeded) {
+        const oldLevel = updatedMonster.level;
         updatedMonster.experience -= expNeeded;
         updatedMonster = this.levelUpMonster(updatedMonster);
         leveledUp = true;
         levelsGained++;
+        
+        // Check for moves learned at this level
+        const moveCheckResult = this.checkMovesLearnedAtLevel(updatedMonster, updatedMonster.level);
+        moveLearnEvents.push(...moveCheckResult.moveLearnEvents);
+        autoLearnedMoves.push(...moveCheckResult.autoLearnedMoves);
       } else {
         break;
       }
     }
     
-    return { monster: updatedMonster, leveledUp, levelsGained };
+    return { monster: updatedMonster, leveledUp, levelsGained, moveLearnEvents, autoLearnedMoves };
   }
 
   getRandomWildMonster(stageLevel: number, shinyBoost: number = 1): MonsterInstance {
@@ -213,5 +225,85 @@ export class MonsterService {
       current: monster.movePP[moveId] || 0,
       max: moveData ? moveData.pp : 0
     };
+  }
+
+  // Move Learning Methods
+  checkMovesLearnedAtLevel(monster: MonsterInstance, level: number): { moveLearnEvents: MoveLearnEvent[]; autoLearnedMoves: string[] } {
+    const monsterData = this.dataLoaderService.getMonster(monster.monsterId);
+    if (!monsterData) {
+      return { moveLearnEvents: [], autoLearnedMoves: [] };
+    }
+
+    const moveLearnEvents: MoveLearnEvent[] = [];
+    const autoLearnedMoves: string[] = [];
+    const movesAtLevel = monsterData.learnableMoves.filter(([, levelLearned]) => levelLearned === level);
+
+    for (const [moveId] of movesAtLevel) {
+      // Skip if monster already knows this move
+      if (monster.moves.includes(moveId)) {
+        continue;
+      }
+
+      const canLearn = monster.moves.length < 4;
+      
+      if (canLearn) {
+        // Automatically learn the move if there's space
+        monster.moves.push(moveId);
+        // Initialize PP for the new move
+        const moveData = this.dataLoaderService.getMove(moveId);
+        if (moveData) {
+          monster.movePP[moveId] = moveData.pp;
+        }
+        autoLearnedMoves.push(moveId);
+      } else {
+        // Need player choice for replacement
+        moveLearnEvents.push({
+          monsterId: monster.id,
+          newMove: moveId,
+          level,
+          canLearn: false,
+          currentMoves: [...monster.moves]
+        });
+      }
+    }
+
+    return { moveLearnEvents, autoLearnedMoves };
+  }
+
+  learnMove(monster: MonsterInstance, moveId: string, moveToReplace?: string): MonsterInstance {
+    const updatedMonster = { ...monster };
+    
+    // If monster has less than 4 moves, just add the new move
+    if (updatedMonster.moves.length < 4) {
+      updatedMonster.moves = [...updatedMonster.moves, moveId];
+    } else if (moveToReplace && updatedMonster.moves.includes(moveToReplace)) {
+      // Replace the specified move
+      updatedMonster.moves = updatedMonster.moves.map(move => 
+        move === moveToReplace ? moveId : move
+      );
+      // Remove PP tracking for the old move and add for the new move
+      delete updatedMonster.movePP[moveToReplace];
+    } else {
+      throw new Error('Cannot learn move: no space and no move specified to replace');
+    }
+
+    // Initialize PP for the new move
+    const moveData = this.dataLoaderService.getMove(moveId);
+    if (moveData) {
+      updatedMonster.movePP[moveId] = moveData.pp;
+    }
+
+    return updatedMonster;
+  }
+
+  getMovesLearnableAtLevel(monsterId: string, level: number): string[] {
+    const monsterData = this.dataLoaderService.getMonster(monsterId);
+    if (!monsterData) {
+      return [];
+    }
+
+    return monsterData.learnableMoves
+      .filter(([, levelLearned]) => levelLearned === level)
+      .map(([moveId]) => moveId);
   }
 }

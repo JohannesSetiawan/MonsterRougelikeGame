@@ -61,7 +61,7 @@ export interface Monster {
   type: MonsterType[];
   baseStats: MonsterStats;
   abilities: string[];
-  learnableMoves: string[];
+  learnableMoves: [string, number][]; // [move_id, level_learned] tuples
   description: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
 }
@@ -159,6 +159,23 @@ export interface BattleResult {
   battleEnded?: boolean;
   winner?: 'player' | 'opponent' | 'draw';
   requiresAutoSwitch?: boolean; // Indicates player monster died and has other monsters available
+  moveLearnEvents?: MoveLearnEvent[]; // New moves learned during level up that require choice
+  autoLearnedMoves?: string[]; // Moves automatically learned (when < 4 moves)
+}
+
+export interface MoveLearnEvent {
+  monsterId: string;
+  newMove: string;
+  level: number;
+  canLearn: boolean; // false if monster already has 4 moves
+  currentMoves?: string[]; // current moves if canLearn is false
+}
+
+export interface MoveSelectionRequest {
+  monsterId: string;
+  newMove: string;
+  selectedMoveToReplace?: string;
+  learnMove: boolean; // true to learn, false to skip
 }
 
 export interface StatModifiers {

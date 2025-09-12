@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
 import { useBattleState } from '../hooks/useBattleState';
 import { useBattleActions } from '../hooks/useBattleActions';
 import { useBattleInitialization } from '../hooks/useBattleInitialization';
+import { useMoveLearning } from '../hooks/useMoveLearning';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
@@ -13,6 +14,9 @@ import BattleLog from './BattleLog';
 import MoveSelection from './MoveSelection';
 import BattleActions from './BattleActions';
 import MonsterSwitchModal from './MonsterSwitchModal';
+import MoveLearningModal from './MoveLearningModal';
+import MoveLearnedNotification from './MoveLearnedNotification';
+import type { MoveLearnEvent } from '../api/types';
 
 const BattleInterface: React.FC = () => {
   const { state } = useGame();
@@ -26,6 +30,7 @@ const BattleInterface: React.FC = () => {
   const playerMonster = state.battleState.playerMonster;
   const opponentMonster = state.battleState.opponentMonster;
   const currentRun = state.currentRun;
+  const { dispatch } = useGame();
 
   // Use battle state hook
   const {
@@ -63,6 +68,28 @@ const BattleInterface: React.FC = () => {
     setMovesData
   });
 
+  // Callback to end battle after move learning is complete
+  const handleMoveLearningComplete = useCallback(() => {
+    if (battleEnded) {
+      setTimeout(() => {
+        dispatch({ type: 'END_BATTLE' });
+        resetBattleState();
+      }, 2000);
+    }
+  }, [battleEnded, dispatch, resetBattleState]);
+
+  // Move learning state
+  const {
+    isHandlingMoveLearning,
+    currentMoveLearnEvent,
+    startMoveLearningProcess,
+    handleMoveSelection,
+    handleAutoLearnedMoves,
+    autoLearnedMoves,
+    showAutoLearnedNotification,
+    closeAutoLearnedNotification
+  } = useMoveLearning(handleMoveLearningComplete);
+
   // Use battle actions hook
   const { handleAttack, handleUseItem, handleFlee, handleSwitch } = useBattleActions({
     currentRun: currentRun!,
@@ -77,10 +104,17 @@ const BattleInterface: React.FC = () => {
     setBattleEnded,
     setBattleContext,
     setCriticalHitEffect,
-    resetBattleState
+    resetBattleState,
+    onMoveLearning: startMoveLearningProcess,
+    onAutoLearnedMoves: (moveIds: string[]) => handleAutoLearnedMoves(moveIds, movesData || {})
   });
 
   if (!playerMonster || !opponentMonster || !currentRun) return null;
+
+  // Detect if any modal is open to prevent state updates
+  const isAnyModalOpen = isHandlingMoveLearning || showAutoLearnedNotification || showItemBag || 
+                         showPlayerStats || showOpponentStats || showSwitchModal || 
+                         !!selectedMove || !!selectedAbility;
 
   const handleOpenBag = () => {
     if (isProcessing || battleEnded) return;
@@ -104,6 +138,21 @@ const BattleInterface: React.FC = () => {
     }
   };
 
+  const handleMoveLearning = async (learnMove: boolean, moveToReplace?: string) => {
+    if (!currentMoveLearnEvent) return;
+    
+    try {
+      await handleMoveSelection(
+        currentRun.id,
+        currentMoveLearnEvent,
+        learnMove,
+        moveToReplace
+      );
+    } catch (error) {
+      console.error('Error handling move learning:', error);
+    }
+  };
+
   // Check if switching is available (has other healthy monsters)
   const canSwitch = currentRun.team.filter(monster => 
     monster.id !== playerMonster.id && monster.currentHp > 0
@@ -124,6 +173,7 @@ const BattleInterface: React.FC = () => {
             onStatsClick={() => setShowOpponentStats(true)}
             onAbilityClick={setSelectedAbility}
             isProcessing={isProcessing}
+            shouldDeferUpdates={isAnyModalOpen}
           />
 
           {/* Player Monster */}
@@ -136,6 +186,7 @@ const BattleInterface: React.FC = () => {
             onStatsClick={() => setShowPlayerStats(true)}
             onAbilityClick={setSelectedAbility}
             isProcessing={isProcessing}
+            shouldDeferUpdates={isAnyModalOpen}
           />
         </div>
 
@@ -232,9 +283,32 @@ const BattleInterface: React.FC = () => {
           onSwitchMonster={handleSwitch}
           isProcessing={isProcessing}
         />
+
+        {/* Move Learning Modal */}
+        {isHandlingMoveLearning && currentMoveLearnEvent && (
+          <MoveLearningModal
+            key={`move-learning-${currentMoveLearnEvent.monsterId}-${currentMoveLearnEvent.newMove}`}
+            isOpen={true}
+            onClose={() => {}}
+            moveLearnEvent={currentMoveLearnEvent}
+            monster={playerMonster}
+            allMoves={movesData}
+            onMoveSelection={handleMoveLearning}
+          />
+        )}
+
+        {/* Auto-learned Moves Notification */}
+        {showAutoLearnedNotification && autoLearnedMoves.length > 0 && (
+          <MoveLearnedNotification
+            isOpen={showAutoLearnedNotification}
+            onClose={closeAutoLearnedNotification}
+            monsterName={playerMonster.name}
+            learnedMoves={autoLearnedMoves}
+          />
+        )}
       </div>
     </div>
   );
 };
 
-export default BattleInterface;
+export default memo(BattleInterface);

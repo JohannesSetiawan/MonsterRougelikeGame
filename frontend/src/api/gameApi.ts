@@ -122,6 +122,26 @@ export const gameApi = {
     return response.data;
   },
 
+  getMovesLearnableAtLevel: async (monsterId: string, level: number): Promise<{ moves: string[] }> => {
+    const response = await api.get(`/game/monster/${monsterId}/learnable-moves/${level}`);
+    return response.data;
+  },
+
+  learnMove: async (
+    runId: string, 
+    monsterId: string, 
+    moveId: string, 
+    moveToReplace?: string, 
+    learnMove?: boolean
+  ): Promise<{ success: boolean; message: string; run: GameRun }> => {
+    const response = await api.post(`/game/run/${runId}/monster/${monsterId}/learn-move`, {
+      moveId,
+      moveToReplace,
+      learnMove: learnMove !== false, // default to true if not specified
+    });
+    return response.data;
+  },
+
   // Item data endpoints
   getAllItems: async (): Promise<Record<string, any>> => {
     const response = await api.get('/game/items');

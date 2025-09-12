@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GameRun, Player, MonsterInstance, Item } from '../types';
+import { GameRun, Player, MonsterInstance, Item, MoveSelectionRequest } from '../types';
 import { MonsterService } from './monster.service';
 import { DataLoaderService } from './data-loader.service';
 import { DatabaseService } from './database.service';
@@ -184,6 +184,62 @@ export class GameService {
     }
 
     return run;
+  }
+
+  handleMoveSelection(runId: string, monsterId: string, selection: MoveSelectionRequest): { success: boolean; message: string; run: GameRun } {
+    const run = this.gameRuns.get(runId);
+    if (!run || !run.isActive) {
+      throw new Error('Game run not found or not active');
+    }
+
+    // Find the monster in the team
+    const monsterIndex = run.team.findIndex(monster => monster.id === monsterId);
+    if (monsterIndex === -1) {
+      throw new Error('Monster not found in team');
+    }
+
+    const monster = run.team[monsterIndex];
+
+    // If player chose not to learn the move
+    if (!selection.learnMove) {
+      return {
+        success: true,
+        message: `${monster.name} did not learn ${this.monsterService.getMoveData(selection.newMove)?.name || selection.newMove}.`,
+        run
+      };
+    }
+
+    try {
+      // Use MonsterService to learn the move
+      const updatedMonster = this.monsterService.learnMove(
+        monster,
+        selection.newMove,
+        selection.selectedMoveToReplace
+      );
+
+      // Update the monster in the team
+      run.team[monsterIndex] = updatedMonster;
+
+      const moveName = this.monsterService.getMoveData(selection.newMove)?.name || selection.newMove;
+      let message = `${monster.name} learned ${moveName}!`;
+      
+      if (selection.selectedMoveToReplace) {
+        const replacedMoveName = this.monsterService.getMoveData(selection.selectedMoveToReplace)?.name || selection.selectedMoveToReplace;
+        message = `${monster.name} forgot ${replacedMoveName} and learned ${moveName}!`;
+      }
+
+      return {
+        success: true,
+        message,
+        run
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+        run
+      };
+    }
   }
 
   addCurrency(runId: string, amount: number): GameRun {

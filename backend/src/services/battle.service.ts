@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext } from '../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, MoveLearnEvent } from '../types';
 import { MonsterService } from './monster.service';
 
 // Battle module services
@@ -87,7 +87,7 @@ export class BattleService {
     return this.experienceService.calculateExperienceForNextLevel(monster);
   }
 
-  addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
+  addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number; moveLearnEvents: MoveLearnEvent[]; autoLearnedMoves: string[] } {
     return this.experienceService.addExperienceToMonster(monster, expGain);
   }
 

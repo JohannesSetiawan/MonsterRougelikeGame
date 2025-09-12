@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance } from '../../types';
+import { MonsterInstance, MoveLearnEvent } from '../../types';
 import { MonsterService } from '../monster.service';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class ExperienceService {
     return this.monsterService.calculateExperienceForNextLevel(monster);
   }
 
-  addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number } {
+  addExperienceToMonster(monster: MonsterInstance, expGain: number): { monster: MonsterInstance; leveledUp: boolean; levelsGained: number; moveLearnEvents: MoveLearnEvent[]; autoLearnedMoves: string[] } {
     return this.monsterService.addExperience(monster, expGain);
   }
 

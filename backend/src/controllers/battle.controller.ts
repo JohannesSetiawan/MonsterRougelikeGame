@@ -668,12 +668,14 @@ export class BattleController {
       }
 
       // Award experience and currency if player won
+      let moveLearnEvents = [];
       if (battleEnded && winner === 'player' && !playerResult.monsterCaught) {
         const expGained = this.battleService.generateExperience(body.opponentMonster);
         
         // Use the new experience system that handles level ups properly
         const expResult = this.battleService.addExperienceToMonster(playerMonster, expGained);
         Object.assign(playerMonster, expResult.monster);
+        moveLearnEvents = expResult.moveLearnEvents || [];
         
         allEffects.push(`${playerMonster.name} gained ${expGained} experience!`);
         
@@ -681,6 +683,24 @@ export class BattleController {
           allEffects.push(`${playerMonster.name} leveled up to ${playerMonster.level}!`);
           if (expResult.levelsGained > 1) {
             allEffects.push(`Gained ${expResult.levelsGained} levels!`);
+          }
+          
+          // Add notifications for auto-learned moves (learned automatically when < 4 moves)
+          if (expResult.autoLearnedMoves && expResult.autoLearnedMoves.length > 0) {
+            for (const moveId of expResult.autoLearnedMoves) {
+              const moveData = this.monsterService.getMoveData(moveId);
+              const moveName = moveData?.name || moveId;
+              allEffects.push(`${playerMonster.name} learned ${moveName}!`);
+            }
+          }
+          
+          // Add move learning choice notifications to effects (when 4 moves already known)
+          if (moveLearnEvents.length > 0) {
+            for (const event of moveLearnEvents) {
+              const moveData = this.monsterService.getMoveData(event.newMove);
+              const moveName = moveData?.name || event.newMove;
+              allEffects.push(`${playerMonster.name} wants to learn ${moveName}, but already knows 4 moves.`);
+            }
           }
         }
 
@@ -698,7 +718,8 @@ export class BattleController {
           effects: allEffects,
           monsterCaught: playerResult?.monsterCaught || false,
           battleEnded,
-          winner
+          winner,
+          moveLearnEvents
         },
         updatedPlayerMonster: playerMonster,
         updatedOpponentMonster: body.opponentMonster,
