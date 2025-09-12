@@ -188,9 +188,37 @@ export class BattleController {
         if (enemyResult.success && enemyResult.damage) {
           playerMonster.currentHp = Math.max(0, playerMonster.currentHp - enemyResult.damage);
           if (playerMonster.currentHp <= 0) {
-            battleEnded = true;
-            winner = 'opponent';
-            allEffects.push(`${playerMonster.name} fainted!`);
+            // Check for auto-switch if other monsters are available
+            const nextMonster = this.getNextHealthyMonster(run, playerMonster.id);
+            if (nextMonster) {
+              // Perform auto-switch
+              const autoSwitchResult = this.performAutoSwitch(run, playerMonster.id, body.opponentMonster, battleContext);
+              allEffects.push(...autoSwitchResult.effects);
+              
+              // Return early with switch result
+              return {
+                result: {
+                  success: true,
+                  effects: allEffects,
+                  battleEnded: false,
+                  requiresAutoSwitch: true
+                },
+                updatedPlayerMonster: autoSwitchResult.switchedMonster,
+                updatedOpponentMonster: body.opponentMonster,
+                updatedRun: run,
+                teamWipe: false,
+                playerGoesFirst: false, // Enemy attacked first
+                battleContext: battleContext ? {
+                  playerStatModifiers: {},
+                  opponentStatModifiers: battleContext.opponentStatModifiers
+                } : undefined
+              };
+            } else {
+              // No monsters left - team wipe
+              battleEnded = true;
+              winner = 'opponent';
+              allEffects.push(`${playerMonster.name} fainted!`);
+            }
           }
         }
       }
@@ -303,10 +331,40 @@ export class BattleController {
             
             // Check if the new monster fainted immediately
             if (newMonster.currentHp <= 0) {
-              battleEnded = true;
-              winner = 'opponent';
-              switchEffects.push(...(enemyResult.effects || []));
-              switchEffects.push(`${newMonster.name} fainted!`);
+              // Check for auto-switch if other monsters are available
+              const nextHealthyMonster = this.getNextHealthyMonster(run, newMonster.id);
+              if (nextHealthyMonster) {
+                // Perform auto-switch
+                const autoSwitchResult = this.performAutoSwitch(run, newMonster.id, body.opponentMonster, battleContext);
+                switchEffects.push(...(enemyResult.effects || []));
+                switchEffects.push(...autoSwitchResult.effects);
+                
+                // Return with auto-switched monster
+                return {
+                  result: {
+                    success: true,
+                    effects: switchEffects,
+                    battleEnded: false,
+                    requiresAutoSwitch: true,
+                    monsterSwitched: true
+                  },
+                  updatedPlayerMonster: autoSwitchResult.switchedMonster,
+                  updatedOpponentMonster: body.opponentMonster,
+                  updatedRun: run,
+                  teamWipe: false,
+                  playerGoesFirst: false,
+                  battleContext: battleContext ? {
+                    playerStatModifiers: {},
+                    opponentStatModifiers: battleContext.opponentStatModifiers
+                  } : undefined
+                };
+              } else {
+                // No monsters left - team wipe
+                battleEnded = true;
+                winner = 'opponent';
+                switchEffects.push(...(enemyResult.effects || []));
+                switchEffects.push(`${newMonster.name} fainted!`);
+              }
             } else {
               switchEffects.push(...(enemyResult.effects || []));
             }
@@ -510,10 +568,41 @@ export class BattleController {
           
           // Check if player monster fainted
           if (playerMonster.currentHp <= 0) {
-            battleEnded = true;
-            winner = 'opponent';
-            allEffects.push(...(enemyResult.effects || []));
-            allEffects.push(`${playerMonster.name} fainted!`);
+            // Check for auto-switch if other monsters are available
+            const nextMonster = this.getNextHealthyMonster(run, playerMonster.id);
+            if (nextMonster) {
+              // Perform auto-switch
+              const autoSwitchResult = this.performAutoSwitch(run, playerMonster.id, body.opponentMonster, battleContext);
+              allEffects.push(...(enemyResult.effects || []));
+              allEffects.push(...autoSwitchResult.effects);
+              
+              // Return early with switch result
+              return {
+                result: {
+                  success: playerResult?.success || false,
+                  damage: playerResult?.damage,
+                  isCritical: playerResult?.isCritical || false,
+                  effects: allEffects,
+                  battleEnded: false,
+                  requiresAutoSwitch: true
+                },
+                updatedPlayerMonster: autoSwitchResult.switchedMonster,
+                updatedOpponentMonster: body.opponentMonster,
+                updatedRun: run,
+                teamWipe: false,
+                playerGoesFirst,
+                battleContext: battleContext ? {
+                  playerStatModifiers: {},
+                  opponentStatModifiers: battleContext.opponentStatModifiers
+                } : undefined
+              };
+            } else {
+              // No monsters left - team wipe
+              battleEnded = true;
+              winner = 'opponent';
+              allEffects.push(...(enemyResult.effects || []));
+              allEffects.push(`${playerMonster.name} fainted!`);
+            }
           } else {
             allEffects.push(...(enemyResult.effects || []));
           }
@@ -537,9 +626,40 @@ export class BattleController {
         
         // Check if either monster fainted due to status effects
         if (playerMonster.currentHp <= 0) {
-          battleEnded = true;
-          winner = 'opponent';
-          allEffects.push(`${playerMonster.name} fainted from status effects!`);
+          // Check for auto-switch if other monsters are available
+          const nextMonster = this.getNextHealthyMonster(run, playerMonster.id);
+          if (nextMonster) {
+            // Perform auto-switch
+            const autoSwitchResult = this.performAutoSwitch(run, playerMonster.id, body.opponentMonster, battleContext);
+            allEffects.push(`${playerMonster.name} fainted from status effects!`);
+            allEffects.push(...autoSwitchResult.effects);
+            
+            // Return early with switch result
+            return {
+              result: {
+                success: playerResult?.success || false,
+                damage: playerResult?.damage,
+                isCritical: playerResult?.isCritical || false,
+                effects: allEffects,
+                battleEnded: false,
+                requiresAutoSwitch: true
+              },
+              updatedPlayerMonster: autoSwitchResult.switchedMonster,
+              updatedOpponentMonster: body.opponentMonster,
+              updatedRun: run,
+              teamWipe: false,
+              playerGoesFirst,
+              battleContext: battleContext ? {
+                playerStatModifiers: {},
+                opponentStatModifiers: battleContext.opponentStatModifiers
+              } : undefined
+            };
+          } else {
+            // No monsters left - team wipe
+            battleEnded = true;
+            winner = 'opponent';
+            allEffects.push(`${playerMonster.name} fainted from status effects!`);
+          }
         } else if (body.opponentMonster.currentHp <= 0) {
           battleEnded = true;
           winner = 'player';
@@ -599,6 +719,54 @@ export class BattleController {
   private checkForTeamWipe(run: any): boolean {
     // Check if all monsters in team have 0 HP without ending the run yet
     return run.team.every(monster => monster.currentHp <= 0);
+  }
+
+  private getNextHealthyMonster(run: any, currentMonsterId: string): MonsterInstance | null {
+    // Find the first healthy monster that's not the current one
+    return run.team.find(monster => 
+      monster.id !== currentMonsterId && monster.currentHp > 0
+    ) || null;
+  }
+
+  private performAutoSwitch(
+    run: any, 
+    faintedMonsterId: string, 
+    opponentMonster: MonsterInstance,
+    battleContext: any
+  ): {
+    switchedMonster: MonsterInstance;
+    effects: string[];
+    battleEnded?: boolean;
+    winner?: 'player' | 'opponent';
+  } {
+    const nextMonster = this.getNextHealthyMonster(run, faintedMonsterId);
+    
+    if (!nextMonster) {
+      // No healthy monsters left - team wipe
+      return {
+        switchedMonster: null as any,
+        effects: ['💀 All your monsters have fainted! Your adventure ends here.'],
+        battleEnded: true,
+        winner: 'opponent'
+      };
+    }
+
+    const faintedMonster = run.team.find(m => m.id === faintedMonsterId);
+    const switchEffects = [
+      `${faintedMonster?.name} fainted!`,
+      `💫 ${nextMonster.name} is automatically sent out!`
+    ];
+
+    // Reset stat modifiers for the new monster
+    if (battleContext) {
+      battleContext.playerStatModifiers = {};
+    }
+
+    return {
+      switchedMonster: nextMonster,
+      effects: switchEffects,
+      battleEnded: false
+    };
   }
 
   @Post(':runId/damage')

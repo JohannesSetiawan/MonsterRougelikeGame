@@ -101,6 +101,14 @@ export const useBattleActions = ({
       // Update run
       dispatch({ type: 'SET_CURRENT_RUN', payload: result.updatedRun });
 
+      // Check for auto-switch scenario
+      if (result.result.requiresAutoSwitch) {
+        // The backend has already handled the auto-switch
+        // Just update the display to show the new monster is active
+        setBattleLog(prev => [...prev, { text: '⚡ Battle continues with your next monster!' }]);
+        return; // Don't end the battle, continue with the new monster
+      }
+
       // Check for team wipe
       if (result.teamWipe) {
         setBattleEnded(true);

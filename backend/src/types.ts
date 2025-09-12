@@ -173,6 +173,7 @@ export interface BattleResult {
   experienceGained?: number;
   battleEnded?: boolean;
   winner?: 'player' | 'opponent' | 'draw';
+  requiresAutoSwitch?: boolean; // Indicates player monster died and has other monsters available
 }
 
 export interface StatModifiers {
