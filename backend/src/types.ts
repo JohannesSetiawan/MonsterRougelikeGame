@@ -169,6 +169,7 @@ export interface BattleResult {
   isCritical?: boolean;
   effects?: string[];
   monsterCaught?: boolean;
+  monsterSwitched?: boolean;
   experienceGained?: number;
   battleEnded?: boolean;
   winner?: 'player' | 'opponent' | 'draw';

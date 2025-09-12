@@ -12,6 +12,7 @@ import TurnOrderDisplay from './TurnOrderDisplay';
 import BattleLog from './BattleLog';
 import MoveSelection from './MoveSelection';
 import BattleActions from './BattleActions';
+import MonsterSwitchModal from './MonsterSwitchModal';
 
 const BattleInterface: React.FC = () => {
   const { state } = useGame();
@@ -20,6 +21,7 @@ const BattleInterface: React.FC = () => {
   const [showOpponentStats, setShowOpponentStats] = useState(false);
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
+  const [showSwitchModal, setShowSwitchModal] = useState(false);
 
   const playerMonster = state.battleState.playerMonster;
   const opponentMonster = state.battleState.opponentMonster;
@@ -62,7 +64,7 @@ const BattleInterface: React.FC = () => {
   });
 
   // Use battle actions hook
-  const { handleAttack, handleUseItem, handleFlee } = useBattleActions({
+  const { handleAttack, handleUseItem, handleFlee, handleSwitch } = useBattleActions({
     currentRun: currentRun!,
     playerMonster: playerMonster!,
     opponentMonster: opponentMonster!,
@@ -90,6 +92,22 @@ const BattleInterface: React.FC = () => {
       setShowItemBag(false);
     }
   };
+
+  const handleOpenSwitchModal = () => {
+    if (isProcessing || battleEnded) return;
+    setShowSwitchModal(true);
+  };
+
+  const handleCloseSwitchModal = () => {
+    if (!isProcessing) {
+      setShowSwitchModal(false);
+    }
+  };
+
+  // Check if switching is available (has other healthy monsters)
+  const canSwitch = currentRun.team.filter(monster => 
+    monster.id !== playerMonster.id && monster.currentHp > 0
+  ).length > 0;
 
   return (
     <div className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -151,9 +169,11 @@ const BattleInterface: React.FC = () => {
           {/* Other Actions */}
           <BattleActions
             onOpenBag={handleOpenBag}
+            onSwitch={handleOpenSwitchModal}
             onFlee={handleFlee}
             isProcessing={isProcessing}
             battleEnded={battleEnded}
+            canSwitch={canSwitch}
           />
         </div>
 
@@ -203,6 +223,15 @@ const BattleInterface: React.FC = () => {
             onClose={() => setSelectedAbility(null)} 
           />
         )}
+
+        <MonsterSwitchModal
+          isOpen={showSwitchModal}
+          onClose={handleCloseSwitchModal}
+          team={currentRun.team}
+          currentMonsterId={playerMonster.id}
+          onSwitchMonster={handleSwitch}
+          isProcessing={isProcessing}
+        />
       </div>
     </div>
   );

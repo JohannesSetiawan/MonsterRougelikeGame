@@ -180,9 +180,15 @@ export const useBattleActions = ({
     handleBattleAction({ type: 'flee' });
   }, [isProcessing, battleEnded, handleBattleAction]);
 
+  const handleSwitch = useCallback((newMonsterId: string) => {
+    if (isProcessing || battleEnded) return;
+    handleBattleAction({ type: 'switch', newMonsterId });
+  }, [isProcessing, battleEnded, handleBattleAction]);
+
   return {
     handleAttack,
     handleUseItem,
-    handleFlee
+    handleFlee,
+    handleSwitch
   };
 };

@@ -39,6 +39,9 @@ export class BattleActionsService {
       case 'item':
         return this.processItem(action.itemId);
       
+      case 'switch':
+        return this.processSwitch(action.newMonsterId);
+      
       default:
         return { success: false, effects: ['Invalid action'] };
     }
@@ -261,6 +264,22 @@ export class BattleActionsService {
     return {
       success: true,
       effects: [`Used ${itemId}!`],
+    };
+  }
+
+  private processSwitch(newMonsterId?: string): BattleResult {
+    if (!newMonsterId) {
+      return { 
+        success: false, 
+        effects: ['No monster selected for switching'] 
+      };
+    }
+
+    // The actual monster switching logic will be handled by the controller
+    // which has access to the game run and can validate the monster exists
+    return {
+      success: true,
+      effects: [`Switching to new monster...`],
     };
   }
 

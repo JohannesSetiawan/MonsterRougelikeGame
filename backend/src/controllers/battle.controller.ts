@@ -272,6 +272,70 @@ export class BattleController {
         }
       }
 
+      // Handle monster switching
+      if (body.action.type === 'switch' && body.action.newMonsterId) {
+        const newMonster = run.team.find(m => m.id === body.action.newMonsterId);
+        if (!newMonster) {
+          throw new HttpException('Monster not found in team', HttpStatus.BAD_REQUEST);
+        }
+        if (newMonster.currentHp <= 0) {
+          throw new HttpException('Cannot switch to a fainted monster', HttpStatus.BAD_REQUEST);
+        }
+        if (newMonster.id === body.playerMonsterId) {
+          throw new HttpException('Monster is already in battle', HttpStatus.BAD_REQUEST);
+        }
+        
+        // Switch is successful - update the active monster
+        const switchEffects = [`${playerMonster.name}, come back!`, `Go, ${newMonster.name}!`];
+        
+        // Process enemy's attack on the new monster (switching gives opponent a free turn)
+        if (!battleEnded && body.opponentMonster.currentHp > 0) {
+          const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+          enemyResult = this.battleService.processBattleAction(
+            body.opponentMonster,
+            newMonster,
+            enemyAction
+          );
+
+          if (enemyResult.success && enemyResult.damage) {
+            // Apply damage to the newly switched monster
+            newMonster.currentHp = Math.max(0, newMonster.currentHp - enemyResult.damage);
+            
+            // Check if the new monster fainted immediately
+            if (newMonster.currentHp <= 0) {
+              battleEnded = true;
+              winner = 'opponent';
+              switchEffects.push(...(enemyResult.effects || []));
+              switchEffects.push(`${newMonster.name} fainted!`);
+            } else {
+              switchEffects.push(...(enemyResult.effects || []));
+            }
+          } else {
+            // Even if attack missed or failed, add the effects
+            switchEffects.push(...(enemyResult.effects || []));
+          }
+        }
+
+        return {
+          result: {
+            success: true,
+            effects: switchEffects,
+            battleEnded,
+            winner,
+            monsterSwitched: true
+          },
+          updatedPlayerMonster: newMonster, // Return the new active monster
+          updatedOpponentMonster: body.opponentMonster,
+          updatedRun: run,
+          teamWipe: this.checkForTeamWipe(run),
+          playerGoesFirst: false, // Switching always gives opponent priority next turn
+          battleContext: battleContext ? {
+            playerStatModifiers: {}, // Reset stat modifiers for new monster
+            opponentStatModifiers: battleContext.opponentStatModifiers
+          } : undefined
+        };
+      }
+
       // Handle item usage
       if (body.action.type === 'item' && body.action.itemId) {
         const item = run.inventory.find(item => item.id === body.action.itemId);

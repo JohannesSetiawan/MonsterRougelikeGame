@@ -78,7 +78,7 @@
   "poison_sting": {
     "id": "poison_sting",
     "name": "Poison Sting",
-    "type": "fire",
+    "type": "poison",
     "category": "physical",
     "power": 35,
     "accuracy": 100,
@@ -90,7 +90,7 @@
   "thunder_wave": {
     "id": "thunder_wave",
     "name": "Thunder Wave",
-    "type": "fire",
+    "type": "electric",
     "category": "status",
     "power": 0,
     "accuracy": 90,
@@ -102,7 +102,7 @@
   "sleep_powder": {
     "id": "sleep_powder",
     "name": "Sleep Powder",
-    "type": "fire",
+    "type": "grass",
     "category": "status",
     "power": 0,
     "accuracy": 75,
@@ -114,7 +114,7 @@
   "confuse_ray": {
     "id": "confuse_ray",
     "name": "Confuse Ray",
-    "type": "fire",
+    "type": "ghost",
     "category": "status",
     "power": 0,
     "accuracy": 100,

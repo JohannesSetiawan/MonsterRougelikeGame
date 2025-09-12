@@ -5,15 +5,19 @@ import { Button } from '@/components/ui/button';
 interface BattleActionsProps {
   onOpenBag: () => void;
   onFlee: () => void;
+  onSwitch: () => void;
   isProcessing: boolean;
   battleEnded: boolean;
+  canSwitch: boolean;
 }
 
 const BattleActions: React.FC<BattleActionsProps> = ({
   onOpenBag,
   onFlee,
+  onSwitch,
   isProcessing,
-  battleEnded
+  battleEnded,
+  canSwitch
 }) => {
   return (
     <Card className="border-2 border-secondary/50">
@@ -28,6 +32,14 @@ const BattleActions: React.FC<BattleActionsProps> = ({
           className="w-full"
         >
           🎒 Bag
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onSwitch}
+          disabled={isProcessing || battleEnded || !canSwitch}
+          className="w-full"
+        >
+          🔄 Switch
         </Button>
         <Button
           variant="destructive"
