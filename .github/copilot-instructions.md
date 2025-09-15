@@ -17,3 +17,4 @@ This project is a Pokemon-inspired roguelike game with React frontend and NestJS
 - Adhere to Single Responsibility Principle (SRP) and Keep It Simple Stupid (KISS) in code design.
 - No need to test or run the code since developer will handle that.
 - Prioritize performance and efficiency in your implementations.
+- Make sure the code is secure and adhere security best practices.

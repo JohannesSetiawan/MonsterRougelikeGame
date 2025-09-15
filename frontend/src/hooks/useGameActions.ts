@@ -64,12 +64,32 @@ export const useGameActions = () => {
         
         // If it's a wild monster encounter, start battle
         if (result.encounter.type === 'wild_monster') {
-          const activeMonster = result.run.team.find(m => m.currentHp > 0);
-          if (activeMonster) {
-            dispatch({ 
-              type: 'START_BATTLE', 
-              payload: { player: activeMonster, opponent: result.encounter.data } 
-            });
+          const healthyMonsters = result.run.team.filter(m => m.currentHp > 0);
+          if (healthyMonsters.length > 0) {
+            // Check if it's a double battle
+            if (result.encounter.data?.isDoubleBattle) {
+              // For double battles, select two healthy player monsters
+              const playerMonster1 = healthyMonsters[0];
+              const playerMonster2 = healthyMonsters.length > 1 ? healthyMonsters[1] : undefined;
+              
+              dispatch({ 
+                type: 'START_BATTLE', 
+                payload: { 
+                  player: playerMonster1, 
+                  opponent: result.encounter.data.monster1,
+                  isDoubleBattle: true,
+                  player2: playerMonster2,
+                  opponent2: result.encounter.data.monster2
+                } 
+              });
+            } else {
+              // Regular single battle
+              const activeMonster = healthyMonsters[0];
+              dispatch({ 
+                type: 'START_BATTLE', 
+                payload: { player: activeMonster, opponent: result.encounter.data } 
+              });
+            }
           } else {
             // All monsters fainted - trigger defeat
             alert('All your monsters have fainted! Your adventure ends here.');

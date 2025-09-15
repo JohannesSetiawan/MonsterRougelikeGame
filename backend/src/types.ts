@@ -161,6 +161,7 @@ export interface BattleAction {
   itemId?: string;
   newMonsterId?: string;
   targetMoveId?: string; // For items that target specific moves (like Ether)
+  targetMonsterId?: string; // For targeting specific opponent monster in double battles
 }
 
 export interface BattleResult {
@@ -175,6 +176,7 @@ export interface BattleResult {
   winner?: 'player' | 'opponent' | 'draw';
   requiresAutoSwitch?: boolean;
   moveLearnEvents?: MoveLearnEvent[]; // New moves learned during level up
+  targetMonsterId?: string; // Which monster was targeted (for double battles)
 }
 
 export interface MoveLearnEvent {
@@ -192,6 +194,19 @@ export interface MoveSelectionRequest {
   learnMove: boolean; // true to learn, false to skip
 }
 
+export interface DoubleBattleState {
+  isDoubleBattle: boolean;
+  playerActiveMonsters: MonsterInstance[]; // 1-2 active monsters for player
+  opponentActiveMonsters: MonsterInstance[]; // 1-2 active monsters for opponent
+  playerStatModifiers: StatModifiers[];
+  opponentStatModifiers: StatModifiers[];
+}
+
+export interface DoubleBattleAction extends BattleAction {
+  attackerId?: string; // Which player monster is performing the action
+  targetMonsterId?: string; // Which opponent monster to target
+}
+
 export interface StatModifiers {
   attack?: number;
   defense?: number;
@@ -205,6 +220,12 @@ export interface BattleContext {
   opponentMonster: MonsterInstance;
   playerStatModifiers: StatModifiers;
   opponentStatModifiers: StatModifiers;
+  // Double battle specific fields
+  isDoubleBattle?: boolean;
+  playerMonster2?: MonsterInstance;
+  opponentMonster2?: MonsterInstance;
+  playerStatModifiers2?: StatModifiers;
+  opponentStatModifiers2?: StatModifiers;
 }
 
 // Type effectiveness chart

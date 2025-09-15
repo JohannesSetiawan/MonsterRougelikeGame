@@ -9,6 +9,8 @@ import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
 import AbilityInfo from './AbilityInfo';
 import BattleMonsterCard from './BattleMonsterCard';
+import DoubleBattleField from './DoubleBattleField';
+import DoubleBattleMoveSelection from './DoubleBattleMoveSelection';
 import TurnOrderDisplay from './TurnOrderDisplay';
 import BattleLog from './BattleLog';
 import MoveSelection from './MoveSelection';
@@ -16,7 +18,6 @@ import BattleActions from './BattleActions';
 import MonsterSwitchModal from './MonsterSwitchModal';
 import MoveLearningModal from './MoveLearningModal';
 import MoveLearnedNotification from './MoveLearnedNotification';
-import type { MoveLearnEvent } from '../api/types';
 
 const BattleInterface: React.FC = () => {
   const { state } = useGame();
@@ -111,6 +112,17 @@ const BattleInterface: React.FC = () => {
 
   if (!playerMonster || !opponentMonster || !currentRun) return null;
 
+  // Check if this is a double battle from battle state or battle context
+  const isDoubleBattle = state.battleState.isDoubleBattle || battleContext?.isDoubleBattle || false;
+  const playerMonsters = isDoubleBattle 
+    ? [playerMonster, state.battleState.playerMonster2 || battleContext?.playerMonster2].filter(m => m != null)
+    : [playerMonster].filter(m => m != null);
+  const opponentMonsters = isDoubleBattle && state.battleState.opponentMonster2
+    ? [opponentMonster, state.battleState.opponentMonster2].filter(m => m != null)
+    : isDoubleBattle && battleContext?.opponentMonster2
+      ? [opponentMonster, battleContext.opponentMonster2].filter(m => m != null)
+      : [opponentMonster].filter(m => m != null);
+
   // Detect if any modal is open to prevent state updates
   const isAnyModalOpen = isHandlingMoveLearning || showAutoLearnedNotification || showItemBag || 
                          showPlayerStats || showOpponentStats || showSwitchModal || 
@@ -130,6 +142,13 @@ const BattleInterface: React.FC = () => {
   const handleOpenSwitchModal = () => {
     if (isProcessing || battleEnded) return;
     setShowSwitchModal(true);
+  };
+
+  const handleDoubleBattleAttack = (attackerId: string, moveId: string, targetId?: string) => {
+    if (isProcessing || battleEnded) return;
+    
+    // Call the enhanced attack handler with attacker and target information
+    handleAttack(moveId, targetId, attackerId);
   };
 
   const handleCloseSwitchModal = () => {
@@ -162,33 +181,56 @@ const BattleInterface: React.FC = () => {
     <div className="min-h-screen p-4 md:p-6 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Battle Field */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Opponent Monster */}
-          <BattleMonsterCard
-            monster={opponentMonster}
-            isPlayer={false}
-            goesFirst={!playerGoesFirst}
+        {isDoubleBattle ? (
+          <DoubleBattleField
+            playerMonsters={playerMonsters}
+            opponentMonsters={opponentMonsters}
+            playerGoesFirst={playerGoesFirst}
             showTurnOrder={showTurnOrder}
             criticalHitEffect={criticalHitEffect}
-            onStatsClick={() => setShowOpponentStats(true)}
+            onPlayerStatsClick={(_monsterId) => {
+              // For now, just show the first player monster's stats
+              // TODO: Support individual monster stat viewing in double battles
+              setShowPlayerStats(true);
+            }}
+            onOpponentStatsClick={(_monsterId) => {
+              // For now, just show the first opponent monster's stats  
+              // TODO: Support individual monster stat viewing in double battles
+              setShowOpponentStats(true);
+            }}
             onAbilityClick={setSelectedAbility}
             isProcessing={isProcessing}
             shouldDeferUpdates={isAnyModalOpen}
           />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Opponent Monster */}
+            <BattleMonsterCard
+              monster={opponentMonster}
+              isPlayer={false}
+              goesFirst={!playerGoesFirst}
+              showTurnOrder={showTurnOrder}
+              criticalHitEffect={criticalHitEffect}
+              onStatsClick={() => setShowOpponentStats(true)}
+              onAbilityClick={setSelectedAbility}
+              isProcessing={isProcessing}
+              shouldDeferUpdates={isAnyModalOpen}
+            />
 
-          {/* Player Monster */}
-          <BattleMonsterCard
-            monster={playerMonster}
-            isPlayer={true}
-            goesFirst={playerGoesFirst}
-            showTurnOrder={showTurnOrder}
-            criticalHitEffect={criticalHitEffect}
-            onStatsClick={() => setShowPlayerStats(true)}
-            onAbilityClick={setSelectedAbility}
-            isProcessing={isProcessing}
-            shouldDeferUpdates={isAnyModalOpen}
-          />
-        </div>
+            {/* Player Monster */}
+            <BattleMonsterCard
+              monster={playerMonster}
+              isPlayer={true}
+              goesFirst={playerGoesFirst}
+              showTurnOrder={showTurnOrder}
+              criticalHitEffect={criticalHitEffect}
+              onStatsClick={() => setShowPlayerStats(true)}
+              onAbilityClick={setSelectedAbility}
+              isProcessing={isProcessing}
+              shouldDeferUpdates={isAnyModalOpen}
+            />
+          </div>
+        )}
 
         {/* Turn Order Display */}
         <TurnOrderDisplay
@@ -208,14 +250,28 @@ const BattleInterface: React.FC = () => {
         {/* Battle Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Moves Section */}
-          <MoveSelection
-            playerMonster={playerMonster}
-            movesData={movesData}
-            onAttack={handleAttack}
-            onMoveInfo={setSelectedMove}
-            isProcessing={isProcessing}
-            battleEnded={battleEnded}
-          />
+          {isDoubleBattle ? (
+            <div className="lg:col-span-3">
+              <DoubleBattleMoveSelection
+                playerMonsters={playerMonsters}
+                opponentMonsters={opponentMonsters}
+                movesData={movesData}
+                onAttack={handleDoubleBattleAttack}
+                onMoveInfo={setSelectedMove}
+                isProcessing={isProcessing}
+                battleEnded={battleEnded}
+              />
+            </div>
+          ) : (
+            <MoveSelection
+              playerMonster={playerMonster}
+              movesData={movesData}
+              onAttack={handleAttack}
+              onMoveInfo={setSelectedMove}
+              isProcessing={isProcessing}
+              battleEnded={battleEnded}
+            />
+          )}
 
           {/* Other Actions */}
           <BattleActions

@@ -18,6 +18,10 @@ export class BattleController {
     @Body() body: {
       playerMonsterId: string;
       opponentMonster: MonsterInstance;
+      // Double battle fields
+      isDoubleBattle?: boolean;
+      playerMonsterId2?: string;
+      opponentMonster2?: MonsterInstance;
     }
   ) {
     try {
@@ -31,29 +35,69 @@ export class BattleController {
         throw new HttpException('Player monster not found', HttpStatus.BAD_REQUEST);
       }
 
-      // Initialize battle context with ability effects like Intimidate
-      const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster);
-      
       // Reset stat boost usage for new battle
       if (run?.temporaryEffects?.usedStatBoosts) {
         run.temporaryEffects.usedStatBoosts = {};
       }
-      
-      // Determine turn order with speed abilities applied
-      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
-      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
-      const playerGoesFirst = playerSpeed >= opponentSpeed;
 
-      return {
-        effects: battleStartEffects,
-        playerGoesFirst,
-        updatedPlayerMonster: playerMonster,
-        updatedOpponentMonster: body.opponentMonster,
-        battleContext: {
-          playerStatModifiers: battleContext.playerStatModifiers,
-          opponentStatModifiers: battleContext.opponentStatModifiers
+      // Handle double battle initialization
+      if (body.isDoubleBattle && body.playerMonsterId2 && body.opponentMonster2) {
+        const playerMonster2 = run.team.find(m => m.id === body.playerMonsterId2);
+        if (!playerMonster2) {
+          throw new HttpException('Second player monster not found', HttpStatus.BAD_REQUEST);
         }
-      };
+
+        // Initialize double battle context
+        const { battleContext, effects: battleStartEffects } = this.battleService.initializeDoubleBattleContext(
+          playerMonster, playerMonster2, body.opponentMonster, body.opponentMonster2
+        );
+
+        // Determine turn order based on fastest monsters
+        const playerSpeed1 = this.battleService.applySpeedAbilities(playerMonster);
+        const playerSpeed2 = this.battleService.applySpeedAbilities(playerMonster2);
+        const opponentSpeed1 = this.battleService.applySpeedAbilities(body.opponentMonster);
+        const opponentSpeed2 = this.battleService.applySpeedAbilities(body.opponentMonster2);
+
+        const maxPlayerSpeed = Math.max(playerSpeed1, playerSpeed2);
+        const maxOpponentSpeed = Math.max(opponentSpeed1, opponentSpeed2);
+        const playerGoesFirst = maxPlayerSpeed >= maxOpponentSpeed;
+
+        return {
+          effects: battleStartEffects,
+          playerGoesFirst,
+          updatedPlayerMonster: playerMonster,
+          updatedOpponentMonster: body.opponentMonster,
+          battleContext: {
+            playerStatModifiers: battleContext.playerStatModifiers,
+            opponentStatModifiers: battleContext.opponentStatModifiers,
+            isDoubleBattle: true,
+            playerMonster2: playerMonster2,
+            opponentMonster2: body.opponentMonster2,
+            playerStatModifiers2: battleContext.playerStatModifiers2,
+            opponentStatModifiers2: battleContext.opponentStatModifiers2
+          }
+        };
+      } else {
+        // Regular single battle initialization
+        const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster);
+        
+        // Determine turn order with speed abilities applied
+        const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
+        const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
+        const playerGoesFirst = playerSpeed >= opponentSpeed;
+
+        return {
+          effects: battleStartEffects,
+          playerGoesFirst,
+          updatedPlayerMonster: playerMonster,
+          updatedOpponentMonster: body.opponentMonster,
+          battleContext: {
+            playerStatModifiers: battleContext.playerStatModifiers,
+            opponentStatModifiers: battleContext.opponentStatModifiers,
+            isDoubleBattle: false
+          }
+        };
+      }
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -69,6 +113,12 @@ export class BattleController {
       battleContext?: {
         playerStatModifiers?: any;
         opponentStatModifiers?: any;
+        // Double battle fields
+        isDoubleBattle?: boolean;
+        playerMonster2?: MonsterInstance;
+        opponentMonster2?: MonsterInstance;
+        playerStatModifiers2?: any;
+        opponentStatModifiers2?: any;
       };
       playerGoesFirst?: boolean;
     }
@@ -92,6 +142,16 @@ export class BattleController {
       const monsterBall = run.inventory.find(item => item.id === 'monster_ball' && item.quantity > 0);
       if (!monsterBall) {
         throw new HttpException('No Monster Balls available', HttpStatus.BAD_REQUEST);
+      }
+
+      // In double battles, can only capture when only one opponent monster remains
+      if (body.battleContext?.isDoubleBattle) {
+        const aliveOpponents = [body.opponentMonster, body.battleContext.opponentMonster2]
+          .filter(monster => monster && monster.currentHp > 0);
+        
+        if (aliveOpponents.length > 1) {
+          throw new HttpException('Cannot capture monsters in double battles until only one opponent remains', HttpStatus.BAD_REQUEST);
+        }
       }
     }
 
@@ -139,7 +199,15 @@ export class BattleController {
         }
       }
 
-      // Initialize battle tracking variables
+      // Check if this is a double battle
+      const isDoubleBattle = body.battleContext?.isDoubleBattle || false;
+      
+      if (isDoubleBattle) {
+        // Handle double battle logic
+        return this.handleDoubleBattleAction(runId, body);
+      }
+
+      // Initialize battle tracking variables for single battle
       let allEffects: string[] = [];
       let battleEnded = false;
       let winner: 'player' | 'opponent' | undefined;
@@ -176,7 +244,7 @@ export class BattleController {
         allEffects.push(...(playerResult.effects || []));
       } else {
         // Enemy goes first
-        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster, [playerMonster]);
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
@@ -318,14 +386,12 @@ export class BattleController {
         
         // Process enemy's attack on the new monster (switching gives opponent a free turn)
         if (!battleEnded && body.opponentMonster.currentHp > 0) {
-          const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
-          enemyResult = this.battleService.processBattleAction(
-            body.opponentMonster,
-            newMonster,
-            enemyAction
-          );
-
-          if (enemyResult.success && enemyResult.damage) {
+        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster, [newMonster]);
+        enemyResult = this.battleService.processBattleAction(
+          body.opponentMonster,
+          newMonster,
+          enemyAction
+        );          if (enemyResult.success && enemyResult.damage) {
             // Apply damage to the newly switched monster
             newMonster.currentHp = Math.max(0, newMonster.currentHp - enemyResult.damage);
             
@@ -555,7 +621,7 @@ export class BattleController {
           !(body.action.type === 'flee' && playerResult.success) && 
           !playerResult.monsterCaught) {
         
-        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster, [playerMonster]);
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
@@ -787,6 +853,30 @@ export class BattleController {
       switchedMonster: nextMonster,
       effects: switchEffects,
       battleEnded: false
+    };
+  }
+
+  private async handleDoubleBattleAction(runId: string, body: any) {
+    // This is a placeholder for double battle handling
+    // For now, return a basic response structure
+    // TODO: Implement full double battle logic
+    
+    const run = this.gameService.getGameRun(runId);
+    const playerMonster = run.team.find(m => m.id === body.playerMonsterId);
+    
+    return {
+      result: {
+        success: false,
+        effects: ['Double battle support is currently under development'],
+        battleEnded: false,
+        winner: undefined
+      },
+      updatedPlayerMonster: playerMonster,
+      updatedOpponentMonster: body.opponentMonster,
+      updatedRun: run,
+      teamWipe: false,
+      playerGoesFirst: body.playerGoesFirst || false,
+      battleContext: body.battleContext
     };
   }
 
