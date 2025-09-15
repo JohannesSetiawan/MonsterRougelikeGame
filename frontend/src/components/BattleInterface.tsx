@@ -4,6 +4,7 @@ import { useBattleState } from '../hooks/useBattleState';
 import { useBattleActions } from '../hooks/useBattleActions';
 import { useBattleInitialization } from '../hooks/useBattleInitialization';
 import { useMoveLearning } from '../hooks/useMoveLearning';
+import type { DoubleBattleAction } from '../hooks/useDoubleBattleActions';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
@@ -144,11 +145,31 @@ const BattleInterface: React.FC = () => {
     setShowSwitchModal(true);
   };
 
-  const handleDoubleBattleAttack = (attackerId: string, moveId: string, targetId?: string) => {
+  const handleExecuteDoubleBattleActions = async (actions: DoubleBattleAction[]) => {
     if (isProcessing || battleEnded) return;
     
-    // Call the enhanced attack handler with attacker and target information
-    handleAttack(moveId, targetId, attackerId);
+    setBattleLog(prev => [...prev, { text: '⚔️ Both monsters are ready to act!' }]);
+    
+    // Execute each action with the existing system
+    // The actions will be executed in the order selected, creating a more coordinated feel
+    for (let i = 0; i < actions.length; i++) {
+      const action = actions[i];
+      if (action.type === 'attack' && action.moveId) {
+        const monster = playerMonsters.find(m => m.id === action.monsterId);
+        if (monster && monster.currentHp > 0) {
+          setBattleLog(prev => [...prev, { text: `${monster.name} is executing their move...` }]);
+          
+          // Execute the attack
+          handleAttack(action.moveId, action.targetId, action.monsterId);
+          
+          // Wait a bit before the next action
+          if (i < actions.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
+      }
+      // Add other action types (item, switch) as needed
+    }
   };
 
   const handleCloseSwitchModal = () => {
@@ -256,7 +277,7 @@ const BattleInterface: React.FC = () => {
                 playerMonsters={playerMonsters}
                 opponentMonsters={opponentMonsters}
                 movesData={movesData}
-                onAttack={handleDoubleBattleAttack}
+                onExecuteActions={handleExecuteDoubleBattleActions}
                 onMoveInfo={setSelectedMove}
                 isProcessing={isProcessing}
                 battleEnded={battleEnded}

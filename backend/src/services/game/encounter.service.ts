@@ -133,8 +133,8 @@ export class EncounterService {
       return false;
     }
 
-    // 10% chance for double battle
-    return Math.random() < 0;
+    // Temporarily 100% chance for testing double battle fix
+    return Math.random() < 1;
   }
 
   updateTemporaryEffects(run: GameRun): void {
