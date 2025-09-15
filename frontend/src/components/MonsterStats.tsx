@@ -154,10 +154,10 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
           </div>
           
           {/* Status Effects */}
-          {monster.statusConditions && monster.statusConditions.length > 0 && (
+          {monster.statusCondition && (
             <div className="mt-3">
               <p className="text-sm text-muted-foreground mb-2">Status Effects:</p>
-              <StatusEffectsDisplay statusConditions={monster.statusConditions} />
+              <StatusEffectsDisplay statusCondition={monster.statusCondition} />
             </div>
           )}
         </CardHeader>

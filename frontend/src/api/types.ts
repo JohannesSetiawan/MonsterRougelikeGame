@@ -79,7 +79,7 @@ export interface MonsterInstance {
   ability: string;
   experience: number;
   isShiny?: boolean;
-  statusConditions?: StatusCondition[];
+  statusCondition?: StatusCondition; // Single status effect affecting this monster
   // Client-side only properties for display
   statModifiers?: StatModifiers;
 }

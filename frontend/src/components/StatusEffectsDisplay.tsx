@@ -4,11 +4,11 @@ import type { StatusCondition } from '../api/types';
 import { StatusEffect } from '../api/types';
 
 interface StatusEffectsDisplayProps {
-  statusConditions?: StatusCondition[];
+  statusCondition?: StatusCondition;
 }
 
-const StatusEffectsDisplay: React.FC<StatusEffectsDisplayProps> = ({ statusConditions }) => {
-  if (!statusConditions || statusConditions.length === 0) {
+const StatusEffectsDisplay: React.FC<StatusEffectsDisplayProps> = ({ statusCondition }) => {
+  if (!statusCondition) {
     return null;
   }
 
@@ -80,24 +80,15 @@ const StatusEffectsDisplay: React.FC<StatusEffectsDisplayProps> = ({ statusCondi
     }
   };
 
+  const statusInfo = getStatusEffectInfo(statusCondition.effect);
+  
   return (
-    <div className="flex flex-wrap gap-1">
-      {statusConditions.map((condition, index) => {
-        const statusInfo = getStatusEffectInfo(condition.effect);
-        return (
-          <Badge 
-            key={`${condition.effect}-${index}`}
-            className={`${statusInfo.color} text-xs`}
-            title={statusInfo.description}
-          >
-            {statusInfo.emoji} {statusInfo.name}
-            {condition.turnsActive !== undefined && condition.turnsActive > 0 && (
-              <span className="ml-1 text-xs opacity-70">({condition.turnsActive})</span>
-            )}
-          </Badge>
-        );
-      })}
-    </div>
+    <Badge 
+      className={`${statusInfo.color} text-xs`}
+      title={statusInfo.description}
+    >
+      {statusInfo.emoji} {statusInfo.name}
+    </Badge>
   );
 };
 

@@ -79,7 +79,7 @@ export interface MonsterInstance {
   ability: string; // ability id
   experience: number;
   isShiny?: boolean;
-  statusConditions?: StatusCondition[]; // Status effects affecting this monster
+  statusCondition?: StatusCondition; // Single status effect affecting this monster
 }
 
 export enum StatusEffect {

@@ -117,10 +117,10 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
           )}
           
           {/* Status Effects Display */}
-          {monster.statusConditions && monster.statusConditions.length > 0 && (
+          {monster.statusCondition && (
             <div className="space-y-1">
               <span className={`${textColorSecondary} text-sm`}>Status:</span>
-              <StatusEffectsDisplay statusConditions={monster.statusConditions} />
+              <StatusEffectsDisplay statusCondition={monster.statusCondition} />
             </div>
           )}
         </div>

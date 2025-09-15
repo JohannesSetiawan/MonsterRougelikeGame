@@ -122,5 +122,17 @@
     "description": "A sinister ray that confuses the target.",
     "effect": "confusion_chance",
     "effect_chance": 100
+  },
+  "will_o_wisp": {
+    "id": "will_o_wisp",
+    "name": "Will-O-Wisp",
+    "type": "fire",
+    "category": "status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "A sinister flame that burns the target.",
+    "effect": "burn_chance",
+    "effect_chance": 100
   }
 }

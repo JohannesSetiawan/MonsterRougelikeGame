@@ -99,16 +99,13 @@ const MonsterSwitchModal: React.FC<MonsterSwitchModalProps> = ({
                     </div>
                   </div>
                   
-                  {monster.statusConditions && monster.statusConditions.length > 0 && (
+                  {monster.statusCondition && (
                     <div className="mt-2 flex gap-1">
-                      {monster.statusConditions.map((condition, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800"
-                        >
-                          {condition.effect}
-                        </span>
-                      ))}
+                      <span
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-red-100 text-red-800"
+                      >
+                        {monster.statusCondition.effect}
+                      </span>
                     </div>
                   )}
                 </CardContent>

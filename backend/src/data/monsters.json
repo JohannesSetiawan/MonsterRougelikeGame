@@ -17,8 +17,7 @@
       ["ember", 5],
       ["flame_burst", 12],
       ["blast_burns", 18],
-      ["water_gun", 21],
-      ["bubble_beam", 23],
+      ["will_o_wisp", 23],
       ["confuse_ray", 24]
     ],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
