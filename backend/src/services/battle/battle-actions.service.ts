@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect } from '../../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
@@ -136,13 +136,41 @@ export class BattleActionsService {
       };
     }
 
-    const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, moveId, battleContext);
-    const newHp = Math.max(0, defender.currentHp - damage);
-    defender.currentHp = newHp;
-    
     const effects = [
       `${attacker.name} used ${move.name}!`
     ];
+
+    // Handle status moves differently from damaging moves
+    if (move.category === MoveCategory.STATUS) {
+      // For status moves, only process the status effect
+      if (move.effect && move.effect_chance) {
+        const effectResult = this.processMoveEffect(move, defender);
+        if (effectResult.applied) {
+          effects.push(effectResult.message);
+        } else {
+          // Status move failed - this happens when target already has a status condition
+          effects.push(`But it failed!`);
+          return {
+            success: false,
+            effects,
+            battleEnded: false
+          };
+        }
+      }
+
+      return {
+        success: true,
+        damage: 0,
+        isCritical: false,
+        effects,
+        battleEnded: false
+      };
+    }
+
+    // Handle damaging moves
+    const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, moveId, battleContext);
+    const newHp = Math.max(0, defender.currentHp - damage);
+    defender.currentHp = newHp;
 
     if (isCritical) {
       effects.push('Critical hit!');
@@ -168,7 +196,7 @@ export class BattleActionsService {
       effects.push(`${defender.name} fainted!`);
     }
 
-    // Process move effects (like status conditions) - only if target didn't faint
+    // Process move effects (like status conditions) for damaging moves - only if target didn't faint
     if (move.effect && move.effect_chance && !battleEnded) {
       const effectResult = this.processMoveEffect(move, defender);
       if (effectResult.applied) {
