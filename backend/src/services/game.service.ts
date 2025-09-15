@@ -1,90 +1,61 @@
 import { Injectable } from '@nestjs/common';
 import { GameRun, Player, MonsterInstance, Item, MoveSelectionRequest } from '../types';
 import { MonsterService } from './monster.service';
-import { DataLoaderService } from './data-loader.service';
-import { DatabaseService } from './database.service';
-import { v4 as uuidv4 } from 'uuid';
+import { 
+  PlayerManagementService, 
+  GameRunService, 
+  InventoryService, 
+  EncounterService 
+} from './game';
+import { EncounterResult } from './game/encounter.service';
 
 @Injectable()
 export class GameService {
-  private players: Map<string, Player> = new Map();
-  private gameRuns: Map<string, GameRun> = new Map();
-
   constructor(
-    private monsterService: MonsterService,
-    private dataLoaderService: DataLoaderService,
-    private databaseService: DatabaseService
+    private playerManagementService: PlayerManagementService,
+    private gameRunService: GameRunService,
+    private inventoryService: InventoryService,
+    private encounterService: EncounterService,
+    private monsterService: MonsterService
   ) {}
 
   async createPlayer(username: string): Promise<Player> {
-    // Check if username already exists
-    const existingPlayer = await this.databaseService.getPlayerByUsername(username);
-    if (existingPlayer) {
-      throw new Error('Username already exists. Please choose a different username.');
-    }
-
-    const playerData: Omit<Player, 'id' | 'createdAt'> = {
-      username,
-      permanentCurrency: 100, // Starting currency
-      unlockedStarters: [...this.dataLoaderService.getStarterMonsters()],
-      unlockedAbilities: [],
-      totalRuns: 0,
-      bestStage: 0,
-    };
-
-    // Save to database
-    const savedPlayer = await this.databaseService.createPlayer(playerData);
-    
-    // Also keep in memory for current session
-    this.players.set(savedPlayer.id, savedPlayer);
-    
-    return savedPlayer;
+    return this.playerManagementService.createPlayer(username);
   }
 
   async loadPlayer(playerId: string): Promise<Player | null> {
-    // Load player from database and populate memory
-    const player = await this.databaseService.getPlayerById(playerId);
+    const player = await this.playerManagementService.loadPlayer(playerId);
     if (player) {
-      this.players.set(player.id, player);
-      
       // Also load the latest game run if exists
-      const latestGameRun = await this.databaseService.getLatestGameRunForPlayer(playerId);
-      if (latestGameRun) {
-        this.gameRuns.set(latestGameRun.id, latestGameRun);
-      }
+      await this.gameRunService.loadLatestGameRunForPlayer(playerId);
     }
     return player;
   }
 
   async loadPlayerByUsername(username: string): Promise<Player | null> {
-    // Load player from database by username and populate memory
-    const player = await this.databaseService.getPlayerByUsername(username);
+    const player = await this.playerManagementService.loadPlayerByUsername(username);
     if (player) {
-      this.players.set(player.id, player);
-      
       // Also load the latest game run if exists
-      const latestGameRun = await this.databaseService.getLatestGameRunForPlayer(player.id);
-      if (latestGameRun) {
-        this.gameRuns.set(latestGameRun.id, latestGameRun);
-      }
+      await this.gameRunService.loadLatestGameRunForPlayer(player.id);
     }
     return player;
   }
 
   async savePlayerProgress(playerId: string): Promise<{ success: boolean; message: string }> {
-    const player = this.players.get(playerId);
-    if (!player) {
-      return { success: false, message: 'Player not found in memory' };
-    }
-
     try {
       // Save player data
-      await this.databaseService.savePlayerState(player);
+      const playerResult = await this.playerManagementService.savePlayerProgress(playerId);
+      if (!playerResult.success) {
+        return playerResult;
+      }
 
       // Save active game run if exists
       const activeRun = this.getActiveRun(playerId);
       if (activeRun) {
-        await this.databaseService.saveGameRunState(activeRun);
+        const runResult = await this.gameRunService.saveGameRunProgress(activeRun.id);
+        if (!runResult.success) {
+          return runResult;
+        }
       }
 
       return { success: true, message: 'Progress saved successfully!' };
@@ -94,511 +65,97 @@ export class GameService {
   }
 
   getPlayer(playerId: string): Player | undefined {
-    return this.players.get(playerId);
+    return this.playerManagementService.getPlayer(playerId);
   }
 
   async startNewRun(playerId: string, starterId: string): Promise<GameRun> {
-    const player = this.players.get(playerId);
+    const player = this.playerManagementService.getPlayer(playerId);
     if (!player) {
       throw new Error('Player not found');
     }
 
-    if (!player.unlockedStarters.includes(starterId)) {
-      throw new Error('Starter not unlocked');
-    }
-
-    // End any active runs
-    const activeRun = await this.getActiveRun(playerId);
-    if (activeRun) {
-      activeRun.isActive = false;
-      activeRun.endedAt = new Date();
-    }
-
-    // Create starter monster
-    const starterMonster = this.monsterService.createMonsterInstance(starterId, 5);
-
-    // Create new run
-    const gameRun: GameRun = {
-      id: this.generateId(),
-      playerId,
-      currentStage: 1,
-      team: [starterMonster],
-      inventory: this.getStartingInventory(),
-      currency: player.permanentCurrency,
-      isActive: true,
-      createdAt: new Date()
-    };
-
-    this.gameRuns.set(gameRun.id, gameRun);
-    player.totalRuns++;
+    // Create new run with starting inventory
+    const gameRun = await this.gameRunService.startNewRun(
+      playerId, 
+      starterId, 
+      player.unlockedStarters, 
+      player.permanentCurrency
+    );
+    
+    // Set up starting inventory
+    gameRun.inventory = this.inventoryService.getStartingInventory();
+    
+    // Update player stats
+    this.playerManagementService.updatePlayerStats(playerId, { totalRuns: player.totalRuns + 1 });
 
     return gameRun;
   }
 
   getActiveRun(playerId: string): GameRun | undefined {
-    for (const run of this.gameRuns.values()) {
-      if (run.playerId === playerId && run.isActive) {
-        return run;
-      }
-    }
-    return undefined;
+    return this.gameRunService.getActiveRun(playerId);
   }
 
   getGameRun(runId: string): GameRun | undefined {
-    return this.gameRuns.get(runId);
+    return this.gameRunService.getGameRun(runId);
   }
 
   progressStage(runId: string): GameRun {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
-    }
-
-    run.currentStage++;
+    const run = this.gameRunService.progressStage(runId);
     
     // Update player's best stage
-    const player = this.players.get(run.playerId);
+    const player = this.playerManagementService.getPlayer(run.playerId);
     if (player && run.currentStage > player.bestStage) {
-      player.bestStage = run.currentStage;
-    }
-
-    // Check for victory condition (reaching stage 20)
-    if (run.currentStage > 200000) {
-      this.endRun(runId, 'victory');
-      return run;
+      this.playerManagementService.updatePlayerStats(run.playerId, { bestStage: run.currentStage });
     }
 
     return run;
   }
 
   addMonsterToTeam(runId: string, monster: MonsterInstance): GameRun {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
-    }
-
-    if (run.team.length < 6) { // Max team size
-      run.team.push(monster);
-    } else {
-      throw new Error('Team is full');
-    }
-
-    return run;
+    return this.gameRunService.addMonsterToTeam(runId, monster);
   }
 
   handleMoveSelection(runId: string, monsterId: string, selection: MoveSelectionRequest): { success: boolean; message: string; run: GameRun } {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
-    }
-
-    // Find the monster in the team
-    const monsterIndex = run.team.findIndex(monster => monster.id === monsterId);
-    if (monsterIndex === -1) {
-      throw new Error('Monster not found in team');
-    }
-
-    const monster = run.team[monsterIndex];
-
-    // If player chose not to learn the move
-    if (!selection.learnMove) {
-      return {
-        success: true,
-        message: `${monster.name} did not learn ${this.monsterService.getMoveData(selection.newMove)?.name || selection.newMove}.`,
-        run
-      };
-    }
-
-    try {
-      // Use MonsterService to learn the move
-      const updatedMonster = this.monsterService.learnMove(
-        monster,
-        selection.newMove,
-        selection.selectedMoveToReplace
-      );
-
-      // Update the monster in the team
-      run.team[monsterIndex] = updatedMonster;
-
-      const moveName = this.monsterService.getMoveData(selection.newMove)?.name || selection.newMove;
-      let message = `${monster.name} learned ${moveName}!`;
-      
-      if (selection.selectedMoveToReplace) {
-        const replacedMoveName = this.monsterService.getMoveData(selection.selectedMoveToReplace)?.name || selection.selectedMoveToReplace;
-        message = `${monster.name} forgot ${replacedMoveName} and learned ${moveName}!`;
-      }
-
-      return {
-        success: true,
-        message,
-        run
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-        run
-      };
-    }
+    return this.gameRunService.handleMoveSelection(runId, monsterId, selection);
   }
 
   addCurrency(runId: string, amount: number): GameRun {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
+    const run = this.getGameRun(runId);
+    if (!run) {
+      throw new Error('Game run not found');
     }
-
-    run.currency += amount;
-    return run;
+    return this.inventoryService.addCurrency(run, amount);
   }
 
   addItem(runId: string, item: Item): GameRun {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
+    const run = this.getGameRun(runId);
+    if (!run) {
+      throw new Error('Game run not found');
     }
-
-    const existingItem = run.inventory.find(i => i.id === item.id);
-    if (existingItem) {
-      existingItem.quantity += item.quantity;
-    } else {
-      run.inventory.push(item);
-    }
-
-    return run;
+    return this.inventoryService.addItem(run, item);
   }
 
   useItem(runId: string, itemId: string, targetMonsterId?: string, moveId?: string): { success: boolean; message: string; run: GameRun } {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
+    const run = this.getGameRun(runId);
+    if (!run) {
+      throw new Error('Game run not found');
     }
-
-    const item = run.inventory.find(i => i.id === itemId && i.quantity > 0);
-    if (!item) {
-      return { success: false, message: 'Item not found or out of stock', run };
-    }
-
-    const targetMonster = targetMonsterId 
-      ? run.team.find(m => m.id === targetMonsterId)
-      : run.team.find(m => m.currentHp < m.maxHp); // Auto-target injured monster
-
-    if (!targetMonster && (item.type === 'healing' || item.effect.startsWith('pp_restore') || item.effect.startsWith('boost_'))) {
-      return { success: false, message: 'No valid target for this item', run };
-    }
-
-    let success = false;
-    let message = '';
-
-    switch (item.effect) {
-      case 'heal_50':
-        if (targetMonster) {
-          const healAmount = Math.min(50, targetMonster.maxHp - targetMonster.currentHp);
-          targetMonster.currentHp += healAmount;
-          success = true;
-          message = `${targetMonster.name} recovered ${healAmount} HP!`;
-        }
-        break;
-      
-      case 'heal_200':
-        if (targetMonster) {
-          const healAmount = Math.min(200, targetMonster.maxHp - targetMonster.currentHp);
-          targetMonster.currentHp += healAmount;
-          success = true;
-          message = `${targetMonster.name} recovered ${healAmount} HP!`;
-        }
-        break;
-      
-      case 'heal_500':
-        if (targetMonster) {
-          const healAmount = Math.min(500, targetMonster.maxHp - targetMonster.currentHp);
-          targetMonster.currentHp += healAmount;
-          success = true;
-          message = `${targetMonster.name} recovered ${healAmount} HP!`;
-        }
-        break;
-      
-      case 'heal_full':
-        if (targetMonster) {
-          const healAmount = targetMonster.maxHp - targetMonster.currentHp;
-          targetMonster.currentHp = targetMonster.maxHp;
-          success = true;
-          message = `${targetMonster.name} fully recovered ${healAmount} HP!`;
-        }
-        break;
-      
-      case 'revive_half':
-        if (targetMonster && targetMonster.currentHp === 0) {
-          targetMonster.currentHp = Math.floor(targetMonster.maxHp / 2);
-          success = true;
-          message = `${targetMonster.name} was revived with half HP!`;
-        } else if (targetMonster && targetMonster.currentHp > 0) {
-          message = `${targetMonster.name} is not fainted!`;
-        }
-        break;
-      
-      case 'revive_full':
-        if (targetMonster && targetMonster.currentHp === 0) {
-          targetMonster.currentHp = targetMonster.maxHp;
-          success = true;
-          message = `${targetMonster.name} was revived with full HP!`;
-        } else if (targetMonster && targetMonster.currentHp > 0) {
-          message = `${targetMonster.name} is not fainted!`;
-        }
-        break;
-      
-      case 'level_up':
-        if (targetMonster) {
-          const leveledUpMonster = this.monsterService.levelUpMonster(targetMonster);
-          // Update the target monster with the leveled up stats
-          Object.assign(targetMonster, leveledUpMonster);
-          success = true;
-          message = `${targetMonster.name} leveled up to level ${targetMonster.level}!`;
-        }
-        break;
-
-      case 'catch_improved':
-        // This will be handled in battle context, just mark as successful for inventory management
-        success = true;
-        message = 'Great Ball is ready to use!';
-        break;
-
-      case 'catch_excellent':
-        // This will be handled in battle context, just mark as successful for inventory management
-        success = true;
-        message = 'Ultra Ball is ready to use!';
-        break;
-
-      case 'pp_restore_10':
-        if (targetMonster && moveId) {
-          const moveData = this.monsterService.getMoveData(moveId);
-          if (moveData && targetMonster.moves.includes(moveId)) {
-            if (!targetMonster.movePP) targetMonster.movePP = {};
-            const currentPP = targetMonster.movePP[moveId] || 0;
-            const maxPP = moveData.pp;
-            const restoreAmount = Math.min(10, maxPP - currentPP);
-            targetMonster.movePP[moveId] = currentPP + restoreAmount;
-            success = true;
-            message = `${moveData.name} recovered ${restoreAmount} PP!`;
-          } else {
-            message = 'Invalid move selected!';
-          }
-        } else {
-          message = 'Please select a move to restore PP!';
-        }
-        break;
-
-      case 'pp_restore_full':
-        if (targetMonster && moveId) {
-          const moveData = this.monsterService.getMoveData(moveId);
-          if (moveData && targetMonster.moves.includes(moveId)) {
-            if (!targetMonster.movePP) targetMonster.movePP = {};
-            const currentPP = targetMonster.movePP[moveId] || 0;
-            const maxPP = moveData.pp;
-            const restoreAmount = maxPP - currentPP;
-            targetMonster.movePP[moveId] = maxPP;
-            success = true;
-            message = `${moveData.name} fully recovered ${restoreAmount} PP!`;
-          } else {
-            message = 'Invalid move selected!';
-          }
-        } else {
-          message = 'Please select a move to restore PP!';
-        }
-        break;
-
-      case 'pp_restore_all_10':
-        if (targetMonster) {
-          if (!targetMonster.movePP) targetMonster.movePP = {};
-          let totalRestored = 0;
-          targetMonster.moves.forEach(moveId => {
-            const moveData = this.monsterService.getMoveData(moveId);
-            if (moveData) {
-              const currentPP = targetMonster.movePP[moveId] || 0;
-              const maxPP = moveData.pp;
-              const restoreAmount = Math.min(10, maxPP - currentPP);
-              targetMonster.movePP[moveId] = currentPP + restoreAmount;
-              totalRestored += restoreAmount;
-            }
-          });
-          success = true;
-          message = `All moves recovered ${totalRestored} total PP!`;
-        }
-        break;
-
-      case 'pp_restore_all_full':
-        if (targetMonster) {
-          this.monsterService.restoreAllPP(targetMonster);
-          success = true;
-          message = `${targetMonster.name}'s PP was fully restored for all moves!`;
-        }
-        break;
-
-      case 'guaranteed_flee':
-        // This will be handled in battle context, just mark as successful for inventory management
-        success = true;
-        message = 'Escape Rope is ready to use!';
-        break;
-
-      case 'boost_attack':
-        if (targetMonster) {
-          // Add temporary battle boost - this will be handled in battle context
-          success = true;
-          message = `${targetMonster.name}'s Attack was boosted!`;
-        }
-        break;
-
-      case 'boost_defense':
-        if (targetMonster) {
-          // Add temporary battle boost - this will be handled in battle context
-          success = true;
-          message = `${targetMonster.name}'s Defense was boosted!`;
-        }
-        break;
-
-      case 'boost_speed':
-        if (targetMonster) {
-          // Add temporary battle boost - this will be handled in battle context
-          success = true;
-          message = `${targetMonster.name}'s Speed was boosted!`;
-        }
-        break;
-
-      case 'boost_shiny_rate':
-        // Legacy temporary effect (keeping for backward compatibility)
-        if (!run.temporaryEffects) run.temporaryEffects = {};
-        run.temporaryEffects.shinyBoost = {
-          active: true,
-          duration: 10, // 10 encounters
-          multiplier: 5 // 5x shiny rate
-        };
-        success = true;
-        message = 'Shiny encounter rate increased for the next 10 encounters!';
-        break;
-
-      case 'permanent_shiny_boost':
-        // Add permanent luck charm effect
-        if (!run.permanentItems) run.permanentItems = [];
-        run.permanentItems.push('luck_charm');
-        success = true;
-        message = 'Luck Charm activated! Shiny encounter rate permanently increased by 2x!';
-        break;
-      
-      default:
-        message = 'Unknown item effect';
-        break;
-    }
-
-    if (success) {
-      item.quantity--;
-      if (item.quantity === 0) {
-        run.inventory = run.inventory.filter(i => i.id !== itemId);
-      }
-    }
-
-    return { success, message, run };
+    return this.inventoryService.useItem(run, itemId, targetMonsterId, moveId);
   }
 
   endRun(runId: string, reason: 'victory' | 'defeat'): GameRun {
-    const run = this.gameRuns.get(runId);
-    if (!run || !run.isActive) {
-      throw new Error('Game run not found or not active');
-    }
-
-    run.isActive = false;
-    run.endedAt = new Date();
+    const run = this.gameRunService.endRun(runId, reason);
 
     // Award permanent currency based on performance
-    const player = this.players.get(run.playerId);
-    if (player) {
-      const currencyReward = run.currentStage * 10 + (reason === 'victory' ? 100 : 0);
-      player.permanentCurrency += currencyReward;
-    }
+    const currencyReward = run.currentStage * 10 + (reason === 'victory' ? 100 : 0);
+    this.playerManagementService.updatePlayerStats(run.playerId, { permanentCurrency: currencyReward });
 
     return run;
   }
 
-  generateRandomEncounter(stageLevel: number, runId?: string): {
-    type: 'wild_monster' | 'trainer' | 'item' | 'rest_site';
-    data?: any;
-  } {
-    const encounterTypes = ['wild_monster', 'wild_monster','wild_monster', 'wild_monster','wild_monster', 'wild_monster', 'item', 'rest_site']; // Higher chance for monsters
-    const randomType = encounterTypes[Math.floor(Math.random() * encounterTypes.length)] as any;
-
-    // Check for shiny boost if runId is provided
-    let shinyBoost = 1;
-    if (runId) {
-      const run = this.gameRuns.get(runId);
-      
-      // Check for permanent luck charms
-      if (run?.permanentItems) {
-        const luckCharmCount = run.permanentItems.filter(item => item === 'luck_charm').length;
-        shinyBoost *= Math.pow(2, luckCharmCount); // 2x multiplier per luck charm, stacks
-      }
-      
-      // Check for temporary shiny boost (legacy)
-      if (run?.temporaryEffects?.shinyBoost?.active) {
-        shinyBoost *= run.temporaryEffects.shinyBoost.multiplier;
-        
-        // Decrease duration and deactivate if expired
-        run.temporaryEffects.shinyBoost.duration--;
-        if (run.temporaryEffects.shinyBoost.duration <= 0) {
-          run.temporaryEffects.shinyBoost.active = false;
-        }
-      }
-    }
-
-    switch (randomType) {
-      case 'wild_monster':
-        return {
-          type: 'wild_monster',
-          data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
-        };
-      
-      case 'item':
-        return {
-          type: 'item',
-          data: this.generateRandomItem()
-        };
-      
-      case 'rest_site':
-        return {
-          type: 'rest_site',
-          data: { healPercentage: 50 }
-        };
-      
-      default:
-        return {
-          type: 'wild_monster',
-          data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
-        };
-    }
-  }
-
-  private generateRandomItem(): Item {
-    const allItems = this.dataLoaderService.getItems();
-    const commonItems = Object.values(allItems).filter(item => 
-      item.rarity === 'common' || item.rarity === 'uncommon'
-    );
-    
-    if (commonItems.length === 0) {
-      // Fallback if no items are loaded
-      return { 
-        id: 'potion', 
-        name: 'Potion', 
-        description: 'Restores 50 HP', 
-        type: 'healing', 
-        effect: 'heal_50', 
-        quantity: 1 
-      };
-    }
-
-    const selectedItem = commonItems[Math.floor(Math.random() * commonItems.length)];
-    return { ...selectedItem, quantity: 1 };
-  }
-
-  private generateId(): string {
-    return uuidv4();
+  generateRandomEncounter(stageLevel: number, runId?: string): EncounterResult {
+    const run = runId ? this.getGameRun(runId) : undefined;
+    return this.encounterService.generateRandomEncounter(stageLevel, run);
   }
 
   restoreMonsterPP(
@@ -606,85 +163,18 @@ export class GameService {
     monsterId: string, 
     options: { moveId?: string; amount?: number; restoreAll?: boolean }
   ) {
-    const run = this.gameRuns.get(runId);
-    if (!run) {
-      throw new Error('Game run not found');
-    }
-
-    const monster = run.team.find(m => m.id === monsterId);
-    if (!monster) {
-      throw new Error('Monster not found in team');
-    }
-
-    if (options.restoreAll) {
-      this.monsterService.restoreAllPP(monster);
-    } else if (options.moveId) {
-      this.monsterService.restoreMovePP(monster, options.moveId, options.amount);
-    }
-
-    return { success: true, monster };
+    return this.gameRunService.restoreMonsterPP(runId, monsterId, options);
   }
 
   restoreTeamPP(runId: string) {
-    const run = this.gameRuns.get(runId);
-    if (!run) {
-      throw new Error('Game run not found');
-    }
-
-    run.team.forEach(monster => {
-      this.monsterService.restoreAllPP(monster);
-    });
-
-    return { success: true, team: run.team };
+    return this.gameRunService.restoreTeamPP(runId);
   }
 
   useRestSite(runId: string) {
-    const run = this.gameRuns.get(runId);
-    if (!run) {
-      throw new Error('Game run not found');
-    }
-
-    // Fully restore HP and PP for all team members
-    run.team.forEach(monster => {
-      monster.currentHp = monster.maxHp; // Full HP restoration
-      this.monsterService.restoreAllPP(monster); // Full PP restoration
-    });
-
-    return { 
-      success: true, 
-      message: 'Your team has been fully healed and all PP has been restored!',
-      team: run.team 
-    };
+    return this.gameRunService.useRestSite(runId);
   }
 
   getItemData(itemId: string) {
-    const allItems = this.dataLoaderService.getItems();
-    return allItems[itemId];
-  }
-
-  private getStartingInventory(): Item[] {
-    const allItems = this.dataLoaderService.getItems();
-    
-    // Get specific starting items from the JSON data
-    const potionItem = allItems['potion'];
-    const monsterBallItem = allItems['monster_ball'];
-    
-    const startingItems: Item[] = [];
-    
-    if (potionItem) {
-      startingItems.push({
-        ...potionItem,
-        quantity: 3
-      });
-    }
-    
-    if (monsterBallItem) {
-      startingItems.push({
-        ...monsterBallItem,
-        quantity: 5
-      });
-    }
-    
-    return startingItems;
+    return this.inventoryService.getItemData(itemId);
   }
 }

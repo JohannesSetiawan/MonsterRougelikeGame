@@ -78,7 +78,8 @@ export const InventorySection: React.FC<InventorySectionProps> = ({
                       disabled={processingItemId === item.id || isLoading}
                       className="w-full"
                     >
-                      {processingItemId === item.id ? 'Using...' : 'Use Item'}
+                      {processingItemId === item.id ? 'Using...' : 
+                       item.type === 'healing' ? 'Choose Target' : 'Use Item'}
                     </Button>
                   )}
                 </CardContent>

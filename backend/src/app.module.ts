@@ -10,6 +10,15 @@ import { BattleService } from './services/battle.service';
 import { MonsterService } from './services/monster.service';
 import { DataLoaderService } from './services/data-loader.service';
 import { DatabaseService } from './services/database.service';
+
+// Game module services
+import { 
+  PlayerManagementService, 
+  GameRunService, 
+  InventoryService, 
+  EncounterService 
+} from './services/game';
+
 import { PlayerEntity } from './entities/player.entity';
 import { GameRunEntity } from './entities/game-run.entity';
 
@@ -54,6 +63,11 @@ import {
     MonsterService, 
     DataLoaderService, 
     DatabaseService,
+    // Game module services
+    PlayerManagementService,
+    GameRunService,
+    InventoryService,
+    EncounterService,
     // Battle module services
     StatusEffectService,
     DamageCalculationService,

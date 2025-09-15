@@ -10,11 +10,10 @@ This project is a Pokemon-inspired roguelike game with React frontend and NestJS
 - Monster catching mechanics with stats, types, moves, and abilities
 - Procedural generation and run-based progression
 
-## Progress Tracking
-- [x] Project Requirements Clarified
-- [x] Project Structure Created
-- [x] Backend Implementation Complete
-- [x] Frontend Implementation Complete
-- [x] Game Mechanics Integration Complete
-- [x] Documentation Complete
-- [ ] Testing and Launch
+## Important Instruction for Every Prompt
+- Ensure all new features are well-documented.
+- Ensure code is modular and maintainable.
+- No need to check or use the terminal or command line.
+- Adhere to Single Responsibility Principle (SRP) and Keep It Simple Stupid (KISS) in code design.
+- No need to test or run the code since developer will handle that.
+- Prioritize performance and efficiency in your implementations.

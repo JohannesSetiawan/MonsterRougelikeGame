@@ -9,6 +9,7 @@ import type { MonsterInstance } from '../api/types';
 interface MonsterSelectionModalProps {
   monsters: MonsterInstance[];
   itemName: string;
+  itemType?: string;
   onSelectMonster: (monsterId: string) => void;
   onClose: () => void;
   isProcessing: boolean;
@@ -17,6 +18,7 @@ interface MonsterSelectionModalProps {
 const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
   monsters,
   itemName,
+  itemType,
   onSelectMonster,
   onClose,
   isProcessing
@@ -34,8 +36,17 @@ const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
     return Math.min(100, (expInLevel / expNeeded) * 100);
   };
 
-  // Filter out fainted monsters for certain items
-  const availableMonsters = monsters.filter(monster => monster.currentHp > 0);
+  // Filter monsters based on item type
+  const getAvailableMonsters = () => {
+    if (itemType === 'healing') {
+      // For regular healing items, exclude fainted monsters
+      return monsters.filter(monster => monster.currentHp > 0);
+    }
+    // For revive items or other items, show all monsters
+    return monsters;
+  };
+
+  const availableMonsters = getAvailableMonsters();
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -46,6 +57,11 @@ const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
             Choose which monster to use {itemName} on
+            {itemType === 'healing' && (
+              <span className="block mt-1 text-xs">
+                💡 Healing items can only be used on conscious monsters that aren't at full health
+              </span>
+            )}
           </p>
         </DialogHeader>
         
@@ -55,49 +71,65 @@ const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
               <p className="text-muted-foreground">No available monsters for this item</p>
             </div>
           ) : (
-            availableMonsters.map((monster) => (
-              <Card 
-                key={monster.id} 
-                className="border transition-colors hover:border-primary/50 cursor-pointer"
-                onClick={() => !isProcessing && onSelectMonster(monster.id)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-semibold text-foreground flex items-center gap-2">
-                        {monster.name}
-                        {monster.isShiny && (
-                          <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
-                            ✨
-                          </Badge>
-                        )}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">Level {monster.level}</p>
+            availableMonsters.map((monster) => {
+              const isValidTarget = itemType === 'healing' ? 
+                monster.currentHp > 0 && monster.currentHp < monster.maxHp :
+                true;
+              const isFullHealth = monster.currentHp >= monster.maxHp;
+              const isFainted = monster.currentHp === 0;
+
+              return (
+                <Card 
+                  key={monster.id} 
+                  className={`border transition-colors ${
+                    isValidTarget ? 'hover:border-primary/50 cursor-pointer' : 
+                    'opacity-50 cursor-not-allowed border-muted'
+                  }`}
+                  onClick={() => !isProcessing && isValidTarget && onSelectMonster(monster.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-foreground flex items-center gap-2">
+                          {monster.name}
+                          {monster.isShiny && (
+                            <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50">
+                              ✨
+                            </Badge>
+                          )}
+                          {!isValidTarget && itemType === 'healing' && (
+                            <Badge variant="outline" className="text-xs">
+                              {isFainted ? 'Fainted' : isFullHealth ? 'Full HP' : 'Unavailable'}
+                            </Badge>
+                          )}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">Level {monster.level}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">HP</span>
-                      <span>{monster.currentHp}/{monster.maxHp}</span>
-                    </div>
-                    <Progress 
-                      value={getHealthPercentage(monster.currentHp, monster.maxHp)} 
-                      className="h-2"
-                    />
                     
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">EXP</span>
-                      <span>{getExperiencePercentage(monster).toFixed(1)}%</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">HP</span>
+                        <span>{monster.currentHp}/{monster.maxHp}</span>
+                      </div>
+                      <Progress 
+                        value={getHealthPercentage(monster.currentHp, monster.maxHp)} 
+                        className="h-2"
+                      />
+                      
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">EXP</span>
+                        <span>{getExperiencePercentage(monster).toFixed(1)}%</span>
+                      </div>
+                      <Progress 
+                        value={getExperiencePercentage(monster)} 
+                        className="h-2"
+                      />
                     </div>
-                    <Progress 
-                      value={getExperiencePercentage(monster)} 
-                      className="h-2"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
         

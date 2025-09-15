@@ -14,16 +14,21 @@ export const useItemActions = () => {
     try {
       let result;
       
-      // Handle rare candy with monster selection
-      if (itemId === 'rare_candy' && targetMonsterId) {
+      // Handle items that require monster selection
+      if (targetMonsterId) {
         result = await gameApi.useItem(state.currentRun.id, itemId, targetMonsterId);
       } else {
         result = await gameApi.useItem(state.currentRun.id, itemId);
       }
       
-      dispatch({ type: 'SET_CURRENT_RUN', payload: result.run });
-      // Show message to user
-      alert(result.message);
+      if (result.success) {
+        dispatch({ type: 'SET_CURRENT_RUN', payload: result.run });
+        // Show success message to user
+        alert(result.message);
+      } else {
+        // Show error message to user
+        alert(result.message);
+      }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to use item' });
     } finally {
@@ -31,11 +36,12 @@ export const useItemActions = () => {
     }
   };
 
-  const handleItemClick = (item: { id: string }) => {
+  const handleItemClick = (item: { id: string; type?: string }) => {
     // Items that require monster selection
     if (item.id === 'rare_candy' || 
         item.id === 'elixir' || 
-        item.id === 'max_elixir') {
+        item.id === 'max_elixir' ||
+        item.type === 'healing') { // All healing items now require target selection
       setShowMonsterSelection(item.id);
     } else {
       handleUseItem(item.id);

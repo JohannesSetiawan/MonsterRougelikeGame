@@ -116,6 +116,7 @@ const GameInterface: React.FC = () => {
           <MonsterSelectionModal
             monsters={state.currentRun.team}
             itemName={state.currentRun.inventory.find(item => item.id === showMonsterSelection)?.name || showMonsterSelection}
+            itemType={state.currentRun.inventory.find(item => item.id === showMonsterSelection)?.type}
             onSelectMonster={(monsterId) => handleMonsterSelection(showMonsterSelection, monsterId)}
             onClose={() => setShowMonsterSelection(null)}
             isProcessing={processingItemId === showMonsterSelection}
