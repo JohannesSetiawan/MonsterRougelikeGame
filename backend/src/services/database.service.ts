@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PlayerEntity } from '../entities/player.entity';
 import { GameRunEntity } from '../entities/game-run.entity';
 import { Player, GameRun } from '../types';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DatabaseService {
@@ -14,9 +15,10 @@ export class DatabaseService {
     private gameRunRepository: Repository<GameRunEntity>,
   ) {}
 
-  async createPlayer(playerData: Omit<Player, 'id' | 'createdAt'>): Promise<Player> {
+  async createPlayer(playerData: Omit<Player, 'id' | 'createdAt'>, passwordHash: string): Promise<Player> {
     const playerEntity = this.playerRepository.create({
       ...playerData,
+      passwordHash,
       unlockedStarters: playerData.unlockedStarters || [],
       unlockedAbilities: playerData.unlockedAbilities || [],
     });
@@ -114,6 +116,19 @@ export class DatabaseService {
       bestStage: entity.bestStage,
       createdAt: entity.createdAt,
     };
+  }
+
+  async verifyPlayerPassword(playerId: string, password: string): Promise<boolean> {
+    const playerEntity = await this.playerRepository.findOne({
+      where: { id: playerId },
+      select: ['id', 'passwordHash'],
+    });
+
+    if (!playerEntity || !playerEntity.passwordHash) {
+      return false;
+    }
+
+    return await bcrypt.compare(password, playerEntity.passwordHash);
   }
 
   private mapGameRunEntityToGameRun(entity: GameRunEntity): GameRun {

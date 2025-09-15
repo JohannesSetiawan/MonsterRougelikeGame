@@ -9,6 +9,9 @@ export class PlayerEntity {
   @Column({ unique: true })
   username: string;
 
+  @Column()
+  passwordHash: string;
+
   @Column({ default: 100 })
   permanentCurrency: number;
 

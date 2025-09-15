@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Player } from '../../types';
 import { DataLoaderService } from '../data-loader.service';
 import { DatabaseService } from '../database.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class PlayerManagementService {
@@ -12,12 +13,16 @@ export class PlayerManagementService {
     private databaseService: DatabaseService
   ) {}
 
-  async createPlayer(username: string): Promise<Player> {
+  async createPlayer(username: string, password: string): Promise<Player> {
     // Check if username already exists
     const existingPlayer = await this.databaseService.getPlayerByUsername(username);
     if (existingPlayer) {
       throw new Error('Username already exists. Please choose a different username.');
     }
+
+    // Hash the password
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const playerData: Omit<Player, 'id' | 'createdAt'> = {
       username,
@@ -29,7 +34,7 @@ export class PlayerManagementService {
     };
 
     // Save to database
-    const savedPlayer = await this.databaseService.createPlayer(playerData);
+    const savedPlayer = await this.databaseService.createPlayer(playerData, passwordHash);
     
     // Also keep in memory for current session
     this.players.set(savedPlayer.id, savedPlayer);
@@ -46,14 +51,7 @@ export class PlayerManagementService {
     return player;
   }
 
-  async loadPlayerByUsername(username: string): Promise<Player | null> {
-    // Load player from database by username and populate memory
-    const player = await this.databaseService.getPlayerByUsername(username);
-    if (player) {
-      this.players.set(player.id, player);
-    }
-    return player;
-  }
+
 
   async savePlayerProgress(playerId: string): Promise<{ success: boolean; message: string }> {
     const player = this.players.get(playerId);
@@ -90,6 +88,34 @@ export class PlayerManagementService {
       player.permanentCurrency += updates.permanentCurrency;
     }
 
+    return player;
+  }
+
+  async authenticatePlayer(identifier: string, password: string): Promise<Player | null> {
+    // Try to find player by username or ID
+    let player: Player | null = null;
+    
+    // Check if identifier is a UUID (ID) or username
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+    
+    if (isUUID) {
+      player = await this.databaseService.getPlayerById(identifier);
+    } else {
+      player = await this.databaseService.getPlayerByUsername(identifier);
+    }
+
+    if (!player) {
+      return null;
+    }
+
+    // Verify password
+    const isPasswordValid = await this.databaseService.verifyPlayerPassword(player.id, password);
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    // Store in memory for current session
+    this.players.set(player.id, player);
     return player;
   }
 

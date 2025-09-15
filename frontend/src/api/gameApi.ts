@@ -12,8 +12,13 @@ const api = axios.create({
 
 export const gameApi = {
   // Player endpoints
-  createPlayer: async (username: string): Promise<Player> => {
-    const response = await api.post('/game/player', { username });
+  createPlayer: async (username: string, password: string): Promise<Player> => {
+    const response = await api.post('/game/player', { username, password });
+    return response.data;
+  },
+
+  loginPlayer: async (identifier: string, password: string): Promise<Player> => {
+    const response = await api.post('/game/player/login', { identifier, password });
     return response.data;
   },
 
@@ -27,10 +32,7 @@ export const gameApi = {
     return response.data;
   },
 
-  loadPlayerByUsername: async (username: string): Promise<Player> => {
-    const response = await api.post('/game/player/load-by-username', { username });
-    return response.data;
-  },
+
 
   savePlayerProgress: async (playerId: string): Promise<{ success: boolean; message: string }> => {
     const response = await api.post(`/game/player/${playerId}/save`);

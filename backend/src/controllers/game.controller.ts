@@ -13,11 +13,16 @@ export class GameController {
   ) {}
 
   @Post('player')
-  async createPlayer(@Body() body: { username: string }) {
-    if (!body.username) {
-      throw new HttpException('Username is required', HttpStatus.BAD_REQUEST);
+  async createPlayer(@Body() body: { username: string; password: string }) {
+    if (!body.username || !body.password) {
+      throw new HttpException('Username and password are required', HttpStatus.BAD_REQUEST);
     }
-    return await this.gameService.createPlayer(body.username);
+    
+    if (body.password.length < 6) {
+      throw new HttpException('Password must be at least 6 characters long', HttpStatus.BAD_REQUEST);
+    }
+    
+    return await this.gameService.createPlayer(body.username, body.password);
   }
 
   @Get('player/:playerId')
@@ -38,18 +43,20 @@ export class GameController {
     return player;
   }
 
-  @Post('player/load-by-username')
-  async loadPlayerByUsername(@Body() body: { username: string }) {
-    if (!body.username) {
-      throw new HttpException('Username is required', HttpStatus.BAD_REQUEST);
+  @Post('player/login')
+  async loginPlayer(@Body() body: { identifier: string; password: string }) {
+    if (!body.identifier || !body.password) {
+      throw new HttpException('Identifier (username or ID) and password are required', HttpStatus.BAD_REQUEST);
     }
     
-    const player = await this.gameService.loadPlayerByUsername(body.username);
+    const player = await this.gameService.authenticatePlayer(body.identifier, body.password);
     if (!player) {
-      throw new HttpException('Player not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
     return player;
   }
+
+
 
   @Post('player/:playerId/save')
   async savePlayerProgress(@Param('playerId') playerId: string) {

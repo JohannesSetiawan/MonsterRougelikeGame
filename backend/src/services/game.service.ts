@@ -19,8 +19,8 @@ export class GameService {
     private monsterService: MonsterService
   ) {}
 
-  async createPlayer(username: string): Promise<Player> {
-    return this.playerManagementService.createPlayer(username);
+  async createPlayer(username: string, password: string): Promise<Player> {
+    return this.playerManagementService.createPlayer(username, password);
   }
 
   async loadPlayer(playerId: string): Promise<Player | null> {
@@ -32,8 +32,10 @@ export class GameService {
     return player;
   }
 
-  async loadPlayerByUsername(username: string): Promise<Player | null> {
-    const player = await this.playerManagementService.loadPlayerByUsername(username);
+
+
+  async authenticatePlayer(identifier: string, password: string): Promise<Player | null> {
+    const player = await this.playerManagementService.authenticatePlayer(identifier, password);
     if (player) {
       // Also load the latest game run if exists
       await this.gameRunService.loadLatestGameRunForPlayer(player.id);
