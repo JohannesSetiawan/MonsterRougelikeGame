@@ -31,6 +31,28 @@ export interface AvailableItem {
   rarity?: string;
 }
 
+export interface AvailableMove {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  power: number;
+  accuracy: number;
+  pp: number;
+  description: string;
+}
+
+export interface LearnableMove extends AvailableMove {
+  levelLearned: number;
+  alreadyKnows: boolean;
+}
+
+export interface LearnableMovesResponse {
+  success: boolean;
+  learnableMoves: LearnableMove[];
+  currentMoves: AvailableMove[];
+}
+
 class DebugApi {
   async addMonsterToTeam(runId: string, request: DebugAddMonsterRequest): Promise<DebugResponse> {
     const response = await fetch(`${API_BASE_URL}/debug/run/${runId}/add-monster`, {
@@ -200,6 +222,62 @@ class DebugApi {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || 'Failed to get available items');
+    }
+
+    return response.json();
+  }
+
+  async getAvailableMoves(): Promise<AvailableMove[]> {
+    const response = await fetch(`${API_BASE_URL}/debug/moves/available`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to get available moves');
+    }
+
+    return response.json();
+  }
+
+  async getLearnableMoves(runId: string, monsterId: string): Promise<LearnableMovesResponse> {
+    const response = await fetch(`${API_BASE_URL}/debug/run/${runId}/monster/${monsterId}/learnable-moves`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to get learnable moves');
+    }
+
+    return response.json();
+  }
+
+  async learnMove(runId: string, monsterId: string, moveId: string, moveToReplace?: string): Promise<DebugResponse> {
+    const response = await fetch(`${API_BASE_URL}/debug/run/${runId}/learn-move`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ monsterId, moveId, moveToReplace }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to learn move');
+    }
+
+    return response.json();
+  }
+
+  async forgetMove(runId: string, monsterId: string, moveId: string): Promise<DebugResponse> {
+    const response = await fetch(`${API_BASE_URL}/debug/run/${runId}/forget-move`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ monsterId, moveId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to forget move');
     }
 
     return response.json();

@@ -27,15 +27,6 @@ const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
     return (current / max) * 100;
   };
 
-  const getExperiencePercentage = (monster: MonsterInstance) => {
-    // Calculate experience percentage for current level
-    const currentLevelExp = Math.pow(monster.level, 3);
-    const nextLevelExp = Math.pow(monster.level + 1, 3);
-    const expInLevel = monster.experience - currentLevelExp;
-    const expNeeded = nextLevelExp - currentLevelExp;
-    return Math.min(100, (expInLevel / expNeeded) * 100);
-  };
-
   // Filter monsters based on item type
   const getAvailableMonsters = () => {
     if (itemType === 'healing') {
@@ -114,15 +105,6 @@ const MonsterSelectionModal: React.FC<MonsterSelectionModalProps> = ({
                       </div>
                       <Progress 
                         value={getHealthPercentage(monster.currentHp, monster.maxHp)} 
-                        className="h-2"
-                      />
-                      
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">EXP</span>
-                        <span>{getExperiencePercentage(monster).toFixed(1)}%</span>
-                      </div>
-                      <Progress 
-                        value={getExperiencePercentage(monster)} 
                         className="h-2"
                       />
                     </div>

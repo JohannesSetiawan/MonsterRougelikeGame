@@ -300,4 +300,174 @@ export class DebugController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
+  @Post('run/:runId/learn-move')
+  learnMove(
+    @Param('runId') runId: string,
+    @Body() body: { monsterId: string; moveId: string; moveToReplace?: string }
+  ) {
+    try {
+      const run = this.gameService.getGameRun(runId);
+      if (!run || !run.isActive) {
+        throw new HttpException('Game run not found or not active', HttpStatus.NOT_FOUND);
+      }
+
+      const monster = run.team.find(m => m.id === body.monsterId);
+      if (!monster) {
+        throw new HttpException('Monster not found in team', HttpStatus.NOT_FOUND);
+      }
+
+      // Check if move exists
+      const moveData = this.dataLoaderService.getMove(body.moveId);
+      if (!moveData) {
+        throw new HttpException('Move not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check if monster already knows this move
+      if (monster.moves.includes(body.moveId)) {
+        throw new HttpException('Monster already knows this move', HttpStatus.BAD_REQUEST);
+      }
+
+      // Learn the move using monster service
+      const updatedMonster = this.monsterService.learnMove(monster, body.moveId, body.moveToReplace);
+      
+      // Update the monster in the team
+      const monsterIndex = run.team.findIndex(m => m.id === body.monsterId);
+      run.team[monsterIndex] = updatedMonster;
+
+      return { 
+        success: true, 
+        run, 
+        monster: updatedMonster,
+        message: `${monster.name} learned ${moveData.name}!` 
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Post('run/:runId/forget-move')
+  forgetMove(
+    @Param('runId') runId: string,
+    @Body() body: { monsterId: string; moveId: string }
+  ) {
+    try {
+      const run = this.gameService.getGameRun(runId);
+      if (!run || !run.isActive) {
+        throw new HttpException('Game run not found or not active', HttpStatus.NOT_FOUND);
+      }
+
+      const monster = run.team.find(m => m.id === body.monsterId);
+      if (!monster) {
+        throw new HttpException('Monster not found in team', HttpStatus.NOT_FOUND);
+      }
+
+      // Check if monster knows this move
+      if (!monster.moves.includes(body.moveId)) {
+        throw new HttpException('Monster does not know this move', HttpStatus.BAD_REQUEST);
+      }
+
+      // Get move data for message
+      const moveData = this.dataLoaderService.getMove(body.moveId);
+      const moveName = moveData ? moveData.name : body.moveId;
+
+      // Remove the move
+      monster.moves = monster.moves.filter(move => move !== body.moveId);
+      
+      // Remove PP tracking for the forgotten move
+      if (monster.movePP && monster.movePP[body.moveId] !== undefined) {
+        delete monster.movePP[body.moveId];
+      }
+
+      return { 
+        success: true, 
+        run, 
+        monster,
+        message: `${monster.name} forgot ${moveName}!` 
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Get('moves/available')
+  getAvailableMoves() {
+    const moves = this.dataLoaderService.getMoves();
+    return Object.keys(moves).map(id => ({
+      id,
+      ...moves[id]
+    }));
+  }
+
+  @Get('run/:runId/monster/:monsterId/learnable-moves')
+  getLearnableMoves(
+    @Param('runId') runId: string,
+    @Param('monsterId') monsterId: string
+  ) {
+    try {
+      const run = this.gameService.getGameRun(runId);
+      if (!run || !run.isActive) {
+        throw new HttpException('Game run not found or not active', HttpStatus.NOT_FOUND);
+      }
+
+      const monster = run.team.find(m => m.id === monsterId);
+      if (!monster) {
+        throw new HttpException('Monster not found in team', HttpStatus.NOT_FOUND);
+      }
+
+      const monsterData = this.dataLoaderService.getMonster(monster.monsterId);
+      if (!monsterData) {
+        throw new HttpException('Monster data not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Get all learnable moves for this monster
+      const learnableMoves = monsterData.learnableMoves.map(([moveId, level]) => {
+        const moveData = this.dataLoaderService.getMove(moveId);
+        return {
+          id: moveId,
+          name: moveData?.name || moveId,
+          type: moveData?.type,
+          category: moveData?.category,
+          power: moveData?.power,
+          accuracy: moveData?.accuracy,
+          pp: moveData?.pp,
+          description: moveData?.description,
+          levelLearned: level,
+          alreadyKnows: monster.moves.includes(moveId)
+        };
+      });
+
+      // Sort by level learned
+      learnableMoves.sort((a, b) => a.levelLearned - b.levelLearned);
+
+      return {
+        success: true,
+        learnableMoves,
+        currentMoves: monster.moves.map(moveId => {
+          const moveData = this.dataLoaderService.getMove(moveId);
+          return {
+            id: moveId,
+            name: moveData?.name || moveId,
+            type: moveData?.type,
+            category: moveData?.category,
+            power: moveData?.power,
+            accuracy: moveData?.accuracy,
+            pp: moveData?.pp,
+            description: moveData?.description
+          };
+        })
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

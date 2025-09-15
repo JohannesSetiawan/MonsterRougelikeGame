@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { debugApi } from '../api/debugApi';
-import type { AvailableMonster, AvailableItem } from '../api/debugApi';
+import type { AvailableMonster, AvailableItem, AvailableMove, LearnableMovesResponse } from '../api/debugApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,16 @@ const DebugPage: React.FC<DebugPageProps> = ({ onClose }) => {
   const { state, dispatch } = useGame();
   const [availableMonsters, setAvailableMonsters] = useState<AvailableMonster[]>([]);
   const [availableItems, setAvailableItems] = useState<AvailableItem[]>([]);
+  const [availableMoves, setAvailableMoves] = useState<AvailableMove[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'team' | 'inventory' | 'general'>('team');
+  const [activeTab, setActiveTab] = useState<'team' | 'inventory' | 'moves' | 'general'>('team');
+  
+  // Move learning states
+  const [selectedMonsterForMoves, setSelectedMonsterForMoves] = useState<string>('');
+  const [learnableMovesData, setLearnableMovesData] = useState<LearnableMovesResponse | null>(null);
+  const [selectedMoveToLearn, setSelectedMoveToLearn] = useState<string>('');
+  const [selectedMoveToReplace, setSelectedMoveToReplace] = useState<string>('');
 
   // Form states
   const [newStage, setNewStage] = useState<string>('');
@@ -35,12 +42,14 @@ const DebugPage: React.FC<DebugPageProps> = ({ onClose }) => {
 
   const loadAvailableData = async () => {
     try {
-      const [monsters, items] = await Promise.all([
+      const [monsters, items, moves] = await Promise.all([
         debugApi.getAvailableMonsters(),
-        debugApi.getAvailableItems()
+        debugApi.getAvailableItems(),
+        debugApi.getAvailableMoves()
       ]);
       setAvailableMonsters(monsters);
       setAvailableItems(items);
+      setAvailableMoves(moves);
     } catch (error) {
       setMessage('Failed to load available data');
     }
@@ -173,6 +182,69 @@ const DebugPage: React.FC<DebugPageProps> = ({ onClose }) => {
     );
   };
 
+  const loadLearnableMoves = async (monsterId: string) => {
+    if (!state.currentRun) return;
+    
+    setIsLoading(true);
+    try {
+      const data = await debugApi.getLearnableMoves(state.currentRun.id, monsterId);
+      setLearnableMovesData(data);
+    } catch (error) {
+      showMessage(error instanceof Error ? error.message : 'Failed to load learnable moves');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMonsterSelectForMoves = (monsterId: string) => {
+    setSelectedMonsterForMoves(monsterId);
+    setLearnableMovesData(null);
+    if (monsterId) {
+      loadLearnableMoves(monsterId);
+    }
+  };
+
+  const handleLearnMove = () => {
+    if (!selectedMoveToLearn || !selectedMonsterForMoves) {
+      showMessage('Please select a monster and move');
+      return;
+    }
+
+    // Check if monster already has 4 moves and no replacement is selected
+    const monster = state.currentRun?.team.find(m => m.id === selectedMonsterForMoves);
+    if (monster && monster.moves.length >= 4 && !selectedMoveToReplace) {
+      showMessage('Monster already knows 4 moves. Please select a move to replace.');
+      return;
+    }
+
+    executeDebugAction(
+      () => debugApi.learnMove(
+        state.currentRun!.id, 
+        selectedMonsterForMoves, 
+        selectedMoveToLearn, 
+        selectedMoveToReplace || undefined
+      ),
+      'Move learned!'
+    ).then(() => {
+      // Refresh learnable moves data
+      loadLearnableMoves(selectedMonsterForMoves);
+      setSelectedMoveToLearn('');
+      setSelectedMoveToReplace('');
+    });
+  };
+
+  const handleForgetMove = (moveId: string) => {
+    if (!selectedMonsterForMoves) return;
+
+    executeDebugAction(
+      () => debugApi.forgetMove(state.currentRun!.id, selectedMonsterForMoves, moveId),
+      'Move forgotten!'
+    ).then(() => {
+      // Refresh learnable moves data
+      loadLearnableMoves(selectedMonsterForMoves);
+    });
+  };
+
   if (!state.currentRun) {
     return (
       <Dialog open={true} onOpenChange={onClose}>
@@ -219,6 +291,13 @@ const DebugPage: React.FC<DebugPageProps> = ({ onClose }) => {
             size="sm"
           >
             Inventory
+          </Button>
+          <Button
+            variant={activeTab === 'moves' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('moves')}
+            size="sm"
+          >
+            Move Management
           </Button>
           <Button
             variant={activeTab === 'general' ? 'default' : 'outline'}
@@ -451,6 +530,203 @@ const DebugPage: React.FC<DebugPageProps> = ({ onClose }) => {
                 )}
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Move Management Tab */}
+        {activeTab === 'moves' && (
+          <div className="space-y-6">
+            {/* Monster Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Select Monster</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <select
+                  value={selectedMonsterForMoves}
+                  onChange={(e) => handleMonsterSelectForMoves(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  disabled={isLoading}
+                >
+                  <option value="">Select Monster</option>
+                  {state.currentRun.team.map(monster => (
+                    <option key={monster.id} value={monster.id}>
+                      {monster.name} (Level {monster.level})
+                      {monster.isShiny && ' ✨'}
+                    </option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
+
+            {/* Current Moves */}
+            {selectedMonsterForMoves && learnableMovesData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Current Moves ({learnableMovesData.currentMoves.length}/4)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {learnableMovesData.currentMoves.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">No moves learned</p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {learnableMovesData.currentMoves.map((move) => (
+                        <div key={move.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold">{move.name}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {move.type}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {move.category}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{move.description}</p>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Power: {move.power || 'N/A'} | Accuracy: {move.accuracy}% | PP: {move.pp}
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => handleForgetMove(move.id)}
+                            disabled={isLoading}
+                            size="sm"
+                            variant="destructive"
+                          >
+                            Forget
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Learn New Move */}
+            {selectedMonsterForMoves && learnableMovesData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Learn New Move</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Available Moves</label>
+                    <select
+                      value={selectedMoveToLearn}
+                      onChange={(e) => setSelectedMoveToLearn(e.target.value)}
+                      className="w-full p-2 border rounded-md"
+                      disabled={isLoading}
+                    >
+                      <option value="">Select Move to Learn</option>
+                      {learnableMovesData.learnableMoves
+                        .filter(move => !move.alreadyKnows)
+                        .map(move => (
+                          <option key={move.id} value={move.id}>
+                            {move.name} (Level {move.levelLearned}) - {move.type} - Power: {move.power || 'N/A'}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Move replacement selection if monster has 4 moves */}
+                  {learnableMovesData.currentMoves.length >= 4 && selectedMoveToLearn && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Replace Move (Monster already knows 4 moves)
+                      </label>
+                      <select
+                        value={selectedMoveToReplace}
+                        onChange={(e) => setSelectedMoveToReplace(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                        disabled={isLoading}
+                      >
+                        <option value="">Select Move to Replace</option>
+                        {learnableMovesData.currentMoves.map(move => (
+                          <option key={move.id} value={move.id}>
+                            {move.name} - {move.type}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Move details for selected move */}
+                  {selectedMoveToLearn && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      {(() => {
+                        const move = learnableMovesData.learnableMoves.find(m => m.id === selectedMoveToLearn);
+                        return move ? (
+                          <div>
+                            <h4 className="font-semibold mb-2 flex items-center gap-2">
+                              {move.name}
+                              <Badge variant="outline" className="text-xs">{move.type}</Badge>
+                              <Badge variant="secondary" className="text-xs">{move.category}</Badge>
+                            </h4>
+                            <p className="text-sm text-muted-foreground mb-2">{move.description}</p>
+                            <div className="text-xs text-muted-foreground">
+                              Power: {move.power || 'N/A'} | Accuracy: {move.accuracy}% | PP: {move.pp} | 
+                              Learned at Level: {move.levelLearned}
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleLearnMove}
+                    disabled={
+                      isLoading || 
+                      !selectedMoveToLearn || 
+                      (learnableMovesData.currentMoves.length >= 4 && !selectedMoveToReplace)
+                    }
+                    className="w-full"
+                  >
+                    Learn Move
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Learnable Moves List */}
+            {selectedMonsterForMoves && learnableMovesData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">All Learnable Moves</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 max-h-96 overflow-y-auto">
+                    {learnableMovesData.learnableMoves.map((move) => (
+                      <div 
+                        key={move.id} 
+                        className={`p-3 border rounded-lg ${move.alreadyKnows ? 'bg-green-50 border-green-200' : ''}`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{move.name}</h4>
+                            <Badge variant="outline" className="text-xs">{move.type}</Badge>
+                            <Badge variant="secondary" className="text-xs">{move.category}</Badge>
+                            {move.alreadyKnows && (
+                              <Badge variant="default" className="text-xs bg-green-600">Known</Badge>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            Level {move.levelLearned}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-1">{move.description}</p>
+                        <div className="text-xs text-muted-foreground">
+                          Power: {move.power || 'N/A'} | Accuracy: {move.accuracy}% | PP: {move.pp}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
