@@ -105,22 +105,7 @@ export class EncounterService {
     }
   }
 
-  private shouldGenerateDoubleBattle(run?: GameRun): boolean {
-    // Double battles can only occur if player has at least 2 non-fainted monsters
-    if (!run || !run.team) {
-      return false;
-    }
 
-    const healthyMonsters = run.team.filter(monster => monster.currentHp > 0);
-    
-    // Need at least 2 healthy monsters for double battles
-    if (healthyMonsters.length < 2) {
-      return false;
-    }
-
-    // Temporarily 100% chance for testing double battle fix
-    return Math.random() < 1;
-  }
 
   updateTemporaryEffects(run: GameRun): void {
     if (!run.temporaryEffects) {

@@ -4,7 +4,6 @@ import { useBattleState } from '../hooks/useBattleState';
 import { useBattleActions } from '../hooks/useBattleActions';
 import { useBattleInitialization } from '../hooks/useBattleInitialization';
 import { useMoveLearning } from '../hooks/useMoveLearning';
-import type { DoubleBattleAction } from '../hooks/useDoubleBattleActions';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
@@ -17,7 +16,6 @@ import BattleActions from './BattleActions';
 import MonsterSwitchModal from './MonsterSwitchModal';
 import MoveLearningModal from './MoveLearningModal';
 import MoveLearnedNotification from './MoveLearnedNotification';
-import type { MoveLearnEvent } from '../api/types';
 
 const BattleInterface: React.FC = () => {
   const { state } = useGame();
@@ -133,33 +131,6 @@ const BattleInterface: React.FC = () => {
     setShowSwitchModal(true);
   };
 
-  const handleExecuteDoubleBattleActions = async (actions: DoubleBattleAction[]) => {
-    if (isProcessing || battleEnded) return;
-    
-    setBattleLog(prev => [...prev, { text: '⚔️ Both monsters are ready to act!' }]);
-    
-    // Execute each action with the existing system
-    // The actions will be executed in the order selected, creating a more coordinated feel
-    for (let i = 0; i < actions.length; i++) {
-      const action = actions[i];
-      if (action.type === 'attack' && action.moveId) {
-        const monster = playerMonsters.find(m => m.id === action.monsterId);
-        if (monster && monster.currentHp > 0) {
-          setBattleLog(prev => [...prev, { text: `${monster.name} is executing their move...` }]);
-          
-          // Execute the attack
-          handleAttack(action.moveId, action.targetId, action.monsterId);
-          
-          // Wait a bit before the next action
-          if (i < actions.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-          }
-        }
-      }
-      // Add other action types (item, switch) as needed
-    }
-  };
-
   const handleCloseSwitchModal = () => {
     if (!isProcessing) {
       setShowSwitchModal(false);
@@ -236,28 +207,14 @@ const BattleInterface: React.FC = () => {
         {/* Battle Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Moves Section */}
-          {isDoubleBattle ? (
-            <div className="lg:col-span-3">
-              <DoubleBattleMoveSelection
-                playerMonsters={playerMonsters}
-                opponentMonsters={opponentMonsters}
-                movesData={movesData}
-                onExecuteActions={handleExecuteDoubleBattleActions}
-                onMoveInfo={setSelectedMove}
-                isProcessing={isProcessing}
-                battleEnded={battleEnded}
-              />
-            </div>
-          ) : (
-            <MoveSelection
-              playerMonster={playerMonster}
-              movesData={movesData}
-              onAttack={handleAttack}
-              onMoveInfo={setSelectedMove}
-              isProcessing={isProcessing}
-              battleEnded={battleEnded}
-            />
-          )}
+          <MoveSelection
+            playerMonster={playerMonster}
+            movesData={movesData}
+            onAttack={handleAttack}
+            onMoveInfo={setSelectedMove}
+            isProcessing={isProcessing}
+            battleEnded={battleEnded}
+          />
 
           {/* Other Actions */}
           <BattleActions

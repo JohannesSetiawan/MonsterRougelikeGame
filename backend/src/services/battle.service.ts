@@ -143,47 +143,7 @@ export class BattleService {
     return this.turnManagementService.checkBattleEnd(playerMonster, opponentMonster);
   }
 
-  // Double battle helper methods
-  getValidTargets(monsters: MonsterInstance[]): MonsterInstance[] {
-    return monsters.filter(monster => monster.currentHp > 0);
-  }
 
-  redirectTargetIfDead(
-    targetMonsterId: string, 
-    availableTargets: MonsterInstance[]
-  ): MonsterInstance | null {
-    // First check if the original target is still alive
-    const originalTarget = availableTargets.find(m => m.id === targetMonsterId);
-    if (originalTarget && originalTarget.currentHp > 0) {
-      return originalTarget;
-    }
-
-    // If original target is dead, find the first alive target
-    const aliveTargets = this.getValidTargets(availableTargets);
-    return aliveTargets.length > 0 ? aliveTargets[0] : null;
-  }
-
-  checkDoubleBattleEnd(
-    playerMonsters: MonsterInstance[], 
-    opponentMonsters: MonsterInstance[]
-  ): { battleEnded: boolean; winner?: 'player' | 'opponent' | 'draw' } {
-    const alivePlayerMonsters = this.getValidTargets(playerMonsters);
-    const aliveOpponentMonsters = this.getValidTargets(opponentMonsters);
-
-    if (alivePlayerMonsters.length === 0 && aliveOpponentMonsters.length === 0) {
-      return { battleEnded: true, winner: 'draw' };
-    }
-    
-    if (alivePlayerMonsters.length === 0) {
-      return { battleEnded: true, winner: 'opponent' };
-    }
-    
-    if (aliveOpponentMonsters.length === 0) {
-      return { battleEnded: true, winner: 'player' };
-    }
-
-    return { battleEnded: false };
-  }
 
 
 }
