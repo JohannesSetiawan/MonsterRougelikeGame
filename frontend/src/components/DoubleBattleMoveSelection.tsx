@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import type { MonsterInstance, Move } from '../api/types';
 import { cn } from '../lib/utils';
 import TargetSelectionModal from './TargetSelectionModal';
-import { useDoubleBattleActions, type DoubleBattleAction } from '../hooks/useDoubleBattleActions';
 
 interface DoubleBattleMoveSelectionProps {
   playerMonsters: MonsterInstance[];
   opponentMonsters: MonsterInstance[];
   movesData?: Record<string, Move>;
-  onExecuteActions: (actions: DoubleBattleAction[]) => void;
+  onAttack: (attackerId: string, moveId: string, targetId?: string) => void;
   onMoveInfo: (moveId: string) => void;
   isProcessing: boolean;
   battleEnded: boolean;
@@ -18,7 +17,7 @@ const DoubleBattleMoveSelection: React.FC<DoubleBattleMoveSelectionProps> = ({
   playerMonsters,
   opponentMonsters,
   movesData,
-  onExecuteActions,
+  onAttack,
   onMoveInfo,
   isProcessing,
   battleEnded
@@ -27,27 +26,11 @@ const DoubleBattleMoveSelection: React.FC<DoubleBattleMoveSelectionProps> = ({
   const [selectedMove, setSelectedMove] = useState<string | null>(null);
   const [showTargetSelection, setShowTargetSelection] = useState(false);
 
+  const alivePlayerMonsters = playerMonsters.filter(m => m.currentHp > 0);
   const aliveOpponentMonsters = opponentMonsters.filter(m => m.currentHp > 0);
-  
-  // Use double battle actions hook
-  const {
-    isSelectionPhase,
-    allActionsSelected,
-    alivePlayerMonsters,
-    selectAction,
-    clearAction,
-    executeActions,
-    getSelectedAction,
-    getActionSummary
-  } = useDoubleBattleActions({
-    playerMonsters,
-    isProcessing,
-    battleEnded,
-    onExecuteActions
-  });
 
   const handleMoveSelect = (attackerId: string, moveId: string) => {
-    if (isProcessing || battleEnded || !isSelectionPhase) return;
+    if (isProcessing || battleEnded) return;
 
     // In double battles, if there are multiple alive opponents, show target selection
     if (aliveOpponentMonsters.length > 1) {
@@ -56,30 +39,16 @@ const DoubleBattleMoveSelection: React.FC<DoubleBattleMoveSelectionProps> = ({
       setShowTargetSelection(true);
     } else if (aliveOpponentMonsters.length === 1) {
       // Only one opponent alive, target automatically
-      selectAction({
-        monsterId: attackerId,
-        type: 'attack',
-        moveId,
-        targetId: aliveOpponentMonsters[0].id
-      });
+      onAttack(attackerId, moveId, aliveOpponentMonsters[0].id);
     } else {
       // No opponents alive (shouldn't happen in normal gameplay)
-      selectAction({
-        monsterId: attackerId,
-        type: 'attack',
-        moveId
-      });
+      onAttack(attackerId, moveId);
     }
   };
 
   const handleTargetSelect = (targetId: string) => {
     if (selectedAttacker && selectedMove) {
-      selectAction({
-        monsterId: selectedAttacker,
-        type: 'attack',
-        moveId: selectedMove,
-        targetId
-      });
+      onAttack(selectedAttacker, selectedMove, targetId);
     }
     setSelectedAttacker(null);
     setSelectedMove(null);
@@ -103,59 +72,14 @@ const DoubleBattleMoveSelection: React.FC<DoubleBattleMoveSelectionProps> = ({
     return movesData[selectedMove]?.name || selectedMove;
   };
 
-  // Get action summary for display
-  const actionSummary = getActionSummary();
-
   return (
     <div className="space-y-4">
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-white">
-          Choose Actions for Both Monsters
-        </h3>
-        <p className="text-sm text-slate-400 mt-1">
-          Select moves for each monster, then execute all actions together
-        </p>
-      </div>
+      <h3 className="text-lg font-semibold text-white text-center">
+        Choose Attacker & Move
+      </h3>
 
-      {/* Action Summary */}
-      <div className="bg-slate-700 rounded-lg p-3 border border-slate-600">
-        <h4 className="text-white font-medium mb-2">Selected Actions:</h4>
-        <div className="space-y-1">
-          {actionSummary.map(({ monster, action, hasSelected }) => (
-            <div key={monster.id} className="flex items-center justify-between text-sm">
-              <span className="text-slate-300">{monster.name}:</span>
-              <span className={cn(
-                hasSelected ? "text-green-400" : "text-slate-500"
-              )}>
-                {hasSelected 
-                  ? `${action?.type === 'attack' ? 'Attack' : 'Action'} selected`
-                  : 'Waiting for action...'
-                }
-              </span>
-            </div>
-          ))}
-        </div>
-        {allActionsSelected && (
-          <button
-            onClick={executeActions}
-            disabled={isProcessing || !isSelectionPhase}
-            className="w-full mt-3 px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Execute All Actions
-          </button>
-        )}
-      </div>
-
-      {alivePlayerMonsters.map((monster) => {
-        const hasSelectedAction = getSelectedAction(monster.id) !== undefined;
-        const selectedAction = getSelectedAction(monster.id);
-        return (
-        <div key={monster.id} className={cn(
-          "bg-slate-800 rounded-lg border p-4 transition-colors",
-          hasSelectedAction 
-            ? "border-green-500 bg-slate-700" 
-            : "border-slate-600"
-        )}>
+      {alivePlayerMonsters.map((monster) => (
+        <div key={monster.id} className="bg-slate-800 rounded-lg border border-slate-600 p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-medium text-white">{monster.name}</h4>
             <span className="text-sm text-slate-400">
@@ -212,25 +136,8 @@ const DoubleBattleMoveSelection: React.FC<DoubleBattleMoveSelectionProps> = ({
               );
             })}
           </div>
-          
-          {/* Show selected action */}
-          {hasSelectedAction && (
-            <div className="mt-3 px-3 py-2 bg-green-800 rounded text-sm text-green-100">
-              ✓ Action selected: {selectedAction?.type === 'attack' ? 'Attack' : 'Action'}
-              {selectedAction?.type === 'attack' && (
-                <button
-                  onClick={() => clearAction(monster.id)}
-                  disabled={isProcessing || !isSelectionPhase}
-                  className="ml-2 text-red-300 hover:text-red-200 disabled:opacity-50"
-                >
-                  (Change)
-                </button>
-              )}
-            </div>
-          )}
         </div>
-        );
-      })}
+      ))}
 
       <TargetSelectionModal
         isOpen={showTargetSelection}

@@ -857,119 +857,24 @@ export class BattleController {
   }
 
   private async handleDoubleBattleAction(runId: string, body: any) {
+    // This is a placeholder for double battle handling
+    // For now, return a basic response structure
+    // TODO: Implement full double battle logic
+    
     const run = this.gameService.getGameRun(runId);
-    if (!run || !run.isActive) {
-      throw new HttpException('Game run not found or not active', HttpStatus.BAD_REQUEST);
-    }
-
     const playerMonster = run.team.find(m => m.id === body.playerMonsterId);
-    if (!playerMonster) {
-      throw new HttpException('Player monster not found', HttpStatus.BAD_REQUEST);
-    }
-
-    let allEffects: string[] = [];
-    let battleEnded = false;
-    let winner: 'player' | 'opponent' | undefined;
-
-    // Handle the player's action
-    const playerResult = this.battleService.processBattleAction(
-      playerMonster,
-      body.opponentMonster,
-      body.action
-    );
-
-    allEffects.push(...(playerResult.effects || []));
-
-    // Apply damage if it was an attack
-    if (body.action.type === 'attack' && playerResult.success && playerResult.damage) {
-      body.opponentMonster.currentHp = Math.max(0, body.opponentMonster.currentHp - playerResult.damage);
-      
-      if (body.opponentMonster.currentHp <= 0) {
-        allEffects.push(`Wild ${body.opponentMonster.name} fainted!`);
-      }
-    }
-
-    // Check double battle end conditions - get all opponent monsters from battle context
-    const opponentMonsters = [
-      body.opponentMonster,
-      body.battleContext?.opponentMonster2
-    ].filter(monster => monster != null);
-
-    const battleEndCheck = this.battleService.checkDoubleBattleEnd(
-      run.team,
-      opponentMonsters
-    );
-
-    if (battleEndCheck.battleEnded) {
-      battleEnded = true;
-      winner = battleEndCheck.winner === 'draw' ? undefined : battleEndCheck.winner;
-      
-      if (battleEndCheck.winner === 'player') {
-        allEffects.push('🎉 All opponent monsters defeated! Victory!');
-      } else if (battleEndCheck.winner === 'opponent') {
-        allEffects.push('💀 All your monsters have fainted!');
-      } else if (battleEndCheck.winner === 'draw') {
-        allEffects.push('⚖️ Battle ended in a draw!');
-      }
-    }
-
-    // Handle opponent AI actions if battle hasn't ended
-    if (!battleEnded) {
-      const aliveOpponents = opponentMonsters.filter(m => m.currentHp > 0);
-      const alivePlayerMonsters = run.team.filter(m => m.currentHp > 0);
-
-      for (const opponentMonster of aliveOpponents) {
-        if (alivePlayerMonsters.length === 0) break;
-
-        // Generate AI action for opponent
-        const aiAction = this.battleService.generateEnemyAction(opponentMonster, alivePlayerMonsters);
-        
-        // Get the actual target monster (AI should have selected the lowest HP target)
-        const targetMonster = alivePlayerMonsters.find(m => m.currentHp > 0) || alivePlayerMonsters[0];
-        
-        const aiResult = this.battleService.processBattleAction(
-          opponentMonster,
-          targetMonster,
-          aiAction
-        );
-
-        allEffects.push(...(aiResult.effects || []));
-
-        // Apply AI damage
-        if (aiAction.type === 'attack' && aiResult.success && aiResult.damage) {
-          targetMonster.currentHp = Math.max(0, targetMonster.currentHp - aiResult.damage);
-          
-          if (targetMonster.currentHp <= 0) {
-            allEffects.push(`${targetMonster.name} fainted!`);
-          }
-        }
-
-        // Re-check battle end after opponent action
-        const newBattleEndCheck = this.battleService.checkDoubleBattleEnd(
-          run.team,
-          opponentMonsters
-        );
-
-        if (newBattleEndCheck.battleEnded) {
-          battleEnded = true;
-          winner = newBattleEndCheck.winner === 'draw' ? undefined : newBattleEndCheck.winner;
-          break;
-        }
-      }
-    }
-
+    
     return {
       result: {
-        success: true,
-        effects: allEffects,
-        battleEnded,
-        winner,
-        isCritical: playerResult.isCritical || false
+        success: false,
+        effects: ['Double battle support is currently under development'],
+        battleEnded: false,
+        winner: undefined
       },
       updatedPlayerMonster: playerMonster,
       updatedOpponentMonster: body.opponentMonster,
       updatedRun: run,
-      teamWipe: this.checkForTeamWipe(run),
+      teamWipe: false,
       playerGoesFirst: body.playerGoesFirst || false,
       battleContext: body.battleContext
     };
@@ -1004,6 +909,4 @@ export class BattleController {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
-
-
 }

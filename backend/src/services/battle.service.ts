@@ -229,6 +229,4 @@ export class BattleService {
 
     return { battleEnded: false };
   }
-
-
 }
