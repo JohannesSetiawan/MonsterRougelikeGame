@@ -19,7 +19,7 @@
     "pp": 25,
     "description": "The target is attacked with small flames that may also leave the target with a burn.",
     "effect": "burn_chance",
-    "effect_chance": 10
+    "effect_chance": 100
   },
   "flame_burst": {
     "id": "flame_burst",

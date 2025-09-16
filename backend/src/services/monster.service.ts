@@ -145,7 +145,7 @@ export class MonsterService {
     });
 
     const randomId = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
-    const level = Math.max(1, Math.ceil(stageLevel / 10) + Math.floor(Math.random() * 5) - 1); // ±1 level variance
+    const level = Math.max(1, Math.ceil(stageLevel / 10) + Math.floor(Math.random() * 3) - 1); // ±1 level variance
     
     return this.createMonsterInstance(randomId, level, shinyBoost);
   }

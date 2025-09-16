@@ -146,8 +146,6 @@ export interface BattleAction {
   itemId?: string;
   newMonsterId?: string;
   targetMoveId?: string; // For items that target specific moves (like Ether)
-  targetMonsterId?: string; // For targeting specific opponent monster in double battles
-  attackerId?: string; // Which player monster is performing the action (double battles)
 }
 
 export interface BattleResult {
@@ -163,7 +161,6 @@ export interface BattleResult {
   requiresAutoSwitch?: boolean; // Indicates player monster died and has other monsters available
   moveLearnEvents?: MoveLearnEvent[]; // New moves learned during level up that require choice
   autoLearnedMoves?: string[]; // Moves automatically learned (when < 4 moves)
-  targetMonsterId?: string; // Which monster was targeted (for double battles)
 }
 
 export interface MoveLearnEvent {
@@ -212,12 +209,6 @@ export interface BattleActionResponse {
   battleContext?: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   };
 }
 
@@ -229,32 +220,5 @@ export interface BattleInitResponse {
   battleContext: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
-  };
-}
-
-export interface DoubleBattleState {
-  isDoubleBattle: boolean;
-  playerActiveMonsters: MonsterInstance[]; // 1-2 active monsters for player
-  opponentActiveMonsters: MonsterInstance[]; // 1-2 active monsters for opponent
-  playerStatModifiers: StatModifiers[];
-  opponentStatModifiers: StatModifiers[];
-}
-
-export interface DoubleBattleActionResponse extends BattleActionResponse {
-  updatedPlayerMonster2?: MonsterInstance;
-  updatedOpponentMonster2?: MonsterInstance;
-  battleContext?: {
-    playerStatModifiers: StatModifiers;
-    opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   };
 }

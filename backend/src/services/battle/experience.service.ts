@@ -20,34 +20,6 @@ export class ExperienceService {
     return this.monsterService.addExperience(monster, expGain);
   }
 
-  // For double battles: distribute the same amount of XP to all active player monsters
-  addExperienceToMultipleMonsters(monsters: MonsterInstance[], expGain: number): { 
-    monsters: MonsterInstance[]; 
-    levelUpResults: Array<{ 
-      monster: MonsterInstance; 
-      leveledUp: boolean; 
-      levelsGained: number; 
-      moveLearnEvents: MoveLearnEvent[]; 
-      autoLearnedMoves: string[] 
-    }> 
-  } {
-    const results = monsters.map(monster => {
-      const result = this.monsterService.addExperience(monster, expGain);
-      return {
-        monster: result.monster,
-        leveledUp: result.leveledUp,
-        levelsGained: result.levelsGained,
-        moveLearnEvents: result.moveLearnEvents,
-        autoLearnedMoves: result.autoLearnedMoves
-      };
-    });
-
-    return {
-      monsters: results.map(r => r.monster),
-      levelUpResults: results
-    };
-  }
-
   private getRarityMultiplier(monsterId: string): number {
     const monster = this.monsterService.getMonsterData(monsterId);
     switch (monster.rarity) {

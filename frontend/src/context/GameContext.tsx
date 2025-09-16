@@ -10,9 +10,6 @@ interface GameState {
     playerMonster: MonsterInstance | null;
     opponentMonster: MonsterInstance | null;
     inBattle: boolean;
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance | null;
-    opponentMonster2?: MonsterInstance | null;
   };
   isLoading: boolean;
   error: string | null;
@@ -24,7 +21,7 @@ type GameAction =
   | { type: 'SET_PLAYER'; payload: Player }
   | { type: 'SET_CURRENT_RUN'; payload: GameRun }
   | { type: 'SET_ENCOUNTER'; payload: Encounter | null }
-  | { type: 'START_BATTLE'; payload: { player: MonsterInstance; opponent: MonsterInstance; isDoubleBattle?: boolean; player2?: MonsterInstance; opponent2?: MonsterInstance } }
+  | { type: 'START_BATTLE'; payload: { player: MonsterInstance; opponent: MonsterInstance } }
   | { type: 'UPDATE_BATTLE_MONSTERS'; payload: { player: MonsterInstance; opponent: MonsterInstance } }
   | { type: 'END_BATTLE' }
   | { type: 'UPDATE_PLAYER_MONSTER'; payload: MonsterInstance }
@@ -39,9 +36,6 @@ const initialState: GameState = {
     playerMonster: null,
     opponentMonster: null,
     inBattle: false,
-    isDoubleBattle: false,
-    playerMonster2: null,
-    opponentMonster2: null,
   },
   isLoading: false,
   error: null,
@@ -71,9 +65,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           playerMonster: action.payload.player,
           opponentMonster: action.payload.opponent,
           inBattle: true,
-          isDoubleBattle: action.payload.isDoubleBattle || false,
-          playerMonster2: action.payload.player2 || undefined,
-          opponentMonster2: action.payload.opponent2 || undefined,
         },
       };
     
@@ -94,9 +85,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           playerMonster: null,
           opponentMonster: null,
           inBattle: false,
-          isDoubleBattle: false,
-          playerMonster2: null,
-          opponentMonster2: null,
         },
         currentEncounter: null,
       };
@@ -123,9 +111,6 @@ function gameReducer(state: GameState, action: GameAction): GameState {
             playerMonster: null,
             opponentMonster: null,
             inBattle: false,
-            isDoubleBattle: false,
-            playerMonster2: null,
-            opponentMonster2: null,
           },
           currentEncounter: null,
         };

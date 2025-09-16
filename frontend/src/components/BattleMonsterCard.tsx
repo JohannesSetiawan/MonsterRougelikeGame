@@ -30,11 +30,6 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
   isProcessing,
   shouldDeferUpdates = false
 }) => {
-  // Add null check to prevent undefined errors
-  if (!monster) {
-    return null;
-  }
-
   const getHealthPercentage = (current: number, max: number) => {
     return (current / max) * 100;
   };

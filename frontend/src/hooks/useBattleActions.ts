@@ -11,12 +11,6 @@ interface UseBattleActionsProps {
   battleContext: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   } | null;
   playerGoesFirst: boolean;
   isProcessing: boolean;
@@ -27,12 +21,6 @@ interface UseBattleActionsProps {
   setBattleContext: React.Dispatch<React.SetStateAction<{
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   } | null>>;
   setCriticalHitEffect: React.Dispatch<React.SetStateAction<'player' | 'opponent' | null>>;
   resetBattleState: () => void;
@@ -200,35 +188,13 @@ export const useBattleActions = ({
     setBattleLog, setBattleEnded, setBattleContext, setCriticalHitEffect, resetBattleState, onMoveLearning
   ]);
 
-  const handleAttack = useCallback((moveId: string, targetId?: string, attackerId?: string) => {
+  const handleAttack = useCallback((moveId: string) => {
     if (isProcessing || battleEnded) return;
-    
-    const action: BattleAction = { 
-      type: 'attack', 
-      moveId,
-      ...(targetId && { targetMonsterId: targetId }),
-      ...(attackerId && { attackerId })
-    };
-    
-    handleBattleAction(action);
+    handleBattleAction({ type: 'attack', moveId });
   }, [isProcessing, battleEnded, handleBattleAction]);
 
   const handleUseItem = useCallback((itemId: string, targetMoveId?: string) => {
     if (isProcessing || battleEnded) return;
-    
-    // Special validation for capture items in double battles
-    const captureItems = ['monster_ball', 'great_ball', 'ultra_ball'];
-    if (captureItems.includes(itemId) && battleContext?.isDoubleBattle) {
-      const aliveOpponents = [opponentMonster, battleContext.opponentMonster2]
-        .filter(monster => monster && monster.currentHp > 0);
-      
-      if (aliveOpponents.length > 1) {
-        setBattleLog(prev => [...prev, { 
-          text: '⚠️ Cannot capture monsters in double battles until only one opponent remains!' 
-        }]);
-        return;
-      }
-    }
     
     const action: BattleAction = { 
       type: 'item', 
@@ -237,7 +203,7 @@ export const useBattleActions = ({
     };
     
     handleBattleAction(action);
-  }, [isProcessing, battleEnded, handleBattleAction, battleContext, opponentMonster, setBattleLog]);
+  }, [isProcessing, battleEnded, handleBattleAction]);
 
   const handleFlee = useCallback(() => {
     if (isProcessing || battleEnded) return;

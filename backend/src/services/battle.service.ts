@@ -91,23 +91,9 @@ export class BattleService {
     return this.experienceService.addExperienceToMonster(monster, expGain);
   }
 
-  // For double battles: distribute XP to multiple monsters
-  addExperienceToMultipleMonsters(monsters: MonsterInstance[], expGain: number): { 
-    monsters: MonsterInstance[]; 
-    levelUpResults: Array<{ 
-      monster: MonsterInstance; 
-      leveledUp: boolean; 
-      levelsGained: number; 
-      moveLearnEvents: MoveLearnEvent[]; 
-      autoLearnedMoves: string[] 
-    }> 
-  } {
-    return this.experienceService.addExperienceToMultipleMonsters(monsters, expGain);
-  }
-
   // Delegate to AI service
-  generateEnemyAction(enemy: MonsterInstance, targets?: MonsterInstance[]): BattleAction {
-    return this.battleAIService.generateEnemyAction(enemy, targets);
+  generateEnemyAction(enemy: MonsterInstance): BattleAction {
+    return this.battleAIService.generateEnemyAction(enemy);
   }
 
   // Delegate to ability effects service
@@ -116,37 +102,6 @@ export class BattleService {
     opponentMonster: MonsterInstance
   ): { battleContext: BattleContext; effects: string[] } {
     return this.abilityEffectsService.initializeBattleContext(playerMonster, opponentMonster);
-  }
-
-  // Initialize double battle context
-  initializeDoubleBattleContext(
-    playerMonster1: MonsterInstance,
-    playerMonster2: MonsterInstance,
-    opponentMonster1: MonsterInstance,
-    opponentMonster2: MonsterInstance
-  ): { battleContext: BattleContext; effects: string[] } {
-    // Initialize context for primary monsters
-    const { battleContext: primaryContext, effects: primaryEffects } = 
-      this.abilityEffectsService.initializeBattleContext(playerMonster1, opponentMonster1);
-
-    // Initialize context for secondary monsters
-    const { battleContext: secondaryContext, effects: secondaryEffects } = 
-      this.abilityEffectsService.initializeBattleContext(playerMonster2, opponentMonster2);
-
-    // Combine into double battle context
-    const doubleBattleContext: BattleContext = {
-      ...primaryContext,
-      isDoubleBattle: true,
-      playerMonster2: playerMonster2,
-      opponentMonster2: opponentMonster2,
-      playerStatModifiers2: secondaryContext.playerStatModifiers,
-      opponentStatModifiers2: secondaryContext.opponentStatModifiers
-    };
-
-    return {
-      battleContext: doubleBattleContext,
-      effects: [...primaryEffects, ...secondaryEffects]
-    };
   }
 
   // Legacy method for compatibility - now deprecated
@@ -229,4 +184,6 @@ export class BattleService {
 
     return { battleEnded: false };
   }
+
+
 }

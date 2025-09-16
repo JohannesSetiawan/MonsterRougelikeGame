@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import type { Move, StatModifiers, MonsterInstance } from '../api/types';
+import type { Move, StatModifiers } from '../api/types';
 
 interface BattleState {
   isProcessing: boolean;
@@ -9,12 +9,6 @@ interface BattleState {
   battleContext: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   } | null;
   criticalHitEffect: 'player' | 'opponent' | null;
   playerGoesFirst: boolean;
@@ -29,12 +23,6 @@ interface UseBattleStateReturn extends BattleState {
   setBattleContext: React.Dispatch<React.SetStateAction<{
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   } | null>>;
   setCriticalHitEffect: React.Dispatch<React.SetStateAction<'player' | 'opponent' | null>>;
   setPlayerGoesFirst: React.Dispatch<React.SetStateAction<boolean>>;
@@ -55,12 +43,6 @@ export const useBattleState = (): UseBattleStateReturn => {
   const [battleContext, setBattleContext] = useState<{
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
-    // Double battle fields
-    isDoubleBattle?: boolean;
-    playerMonster2?: MonsterInstance;
-    opponentMonster2?: MonsterInstance;
-    playerStatModifiers2?: StatModifiers;
-    opponentStatModifiers2?: StatModifiers;
   } | null>(null);
   const [criticalHitEffect, setCriticalHitEffect] = useState<'player' | 'opponent' | null>(null);
   const [playerGoesFirst, setPlayerGoesFirst] = useState<boolean>(true);

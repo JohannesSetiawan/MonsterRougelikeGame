@@ -6,7 +6,6 @@ import { InventoryService } from './inventory.service';
 export interface EncounterResult {
   type: 'wild_monster' | 'trainer' | 'item' | 'rest_site';
   data?: any;
-  isDoubleBattle?: boolean;
 }
 
 @Injectable()
@@ -28,24 +27,10 @@ export class EncounterService {
 
     switch (randomType) {
       case 'wild_monster':
-        // Check for double battle conditions (10% chance if player has 2+ healthy monsters)
-        const isDoubleBattle = this.shouldGenerateDoubleBattle(run);
-        
-        if (isDoubleBattle) {
-          return {
-            type: 'wild_monster',
-            data: {
-              isDoubleBattle: true,
-              monster1: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost),
-              monster2: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
-            }
-          };
-        } else {
-          return {
-            type: 'wild_monster',
-            data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
-          };
-        }
+        return {
+          type: 'wild_monster',
+          data: this.monsterService.getRandomWildMonster(stageLevel, shinyBoost)
+        };
       
       case 'item':
         return {
@@ -133,8 +118,8 @@ export class EncounterService {
       return false;
     }
 
-    // 10% chance for double battle
-    return Math.random() < 0;
+    // Temporarily 100% chance for testing double battle fix
+    return Math.random() < 1;
   }
 
   updateTemporaryEffects(run: GameRun): void {
