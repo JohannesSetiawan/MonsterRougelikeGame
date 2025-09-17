@@ -144,7 +144,8 @@ export class BattleActionsService {
     if (move.category === MoveCategory.STATUS) {
       // For status moves, only process the status effect
       if (move.effect && move.effect_chance) {
-        const effectResult = this.processMoveEffect(move, defender);
+        const isTargetPlayer = battleContext ? battleContext.playerMonster.id === defender.id : false;
+        const effectResult = this.processMoveEffect(move, defender, battleContext, isTargetPlayer);
         if (effectResult.applied) {
           effects.push(effectResult.message);
         } else {
@@ -198,7 +199,8 @@ export class BattleActionsService {
 
     // Process move effects (like status conditions) for damaging moves - only if target didn't faint
     if (move.effect && move.effect_chance && !battleEnded) {
-      const effectResult = this.processMoveEffect(move, defender);
+      const isTargetPlayer = battleContext ? battleContext.playerMonster.id === defender.id : false;
+      const effectResult = this.processMoveEffect(move, defender, battleContext, isTargetPlayer);
       if (effectResult.applied) {
         effects.push(effectResult.message);
       }
@@ -330,7 +332,7 @@ export class BattleActionsService {
     return Math.min(95, finalRate);
   }
 
-  private processMoveEffect(move: any, target: MonsterInstance): { applied: boolean; message: string } {
+  private processMoveEffect(move: any, target: MonsterInstance, battleContext?: BattleContext, isTargetPlayer?: boolean): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
     if (!move.effect || !move.effect_chance) {
       return { applied: false, message: '' };
     }
@@ -369,8 +371,18 @@ export class BattleActionsService {
       
       // Add more status effects as needed
       case 'speed_lower_chance':
-        // This would need a different implementation for stat debuffs
-        // For now, just return a placeholder
+        // Apply -1 stage to speed stat
+        if (battleContext && isTargetPlayer !== undefined) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.speed || 0;
+          const newStage = Math.max(-6, currentStage - 1);
+          targetModifiers.speed = newStage;
+          return { 
+            applied: true, 
+            message: `${target.name}'s speed was lowered!`,
+            statChange: { stat: 'speed', stages: -1 }
+          };
+        }
         return { applied: true, message: `${target.name}'s speed was lowered!` };
       
       default:

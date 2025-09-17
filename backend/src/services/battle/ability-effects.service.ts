@@ -22,16 +22,16 @@ export class AbilityEffectsService {
     // Check player monster's ability
     const playerAbility = this.monsterService.getAbilityData(playerMonster.ability);
     if (playerAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces opponent's attack by 25%
-      battleContext.opponentStatModifiers.attack = 0.75;
+      // Intimidate reduces opponent's attack by 1 stage
+      battleContext.opponentStatModifiers.attack = -1;
       effects.push(`${playerMonster.name}'s Intimidate lowered ${opponentMonster.name}'s Attack!`);
     }
 
     // Check opponent monster's ability
     const opponentAbility = this.monsterService.getAbilityData(opponentMonster.ability);
     if (opponentAbility?.effect === 'lower_opponent_attack') {
-      // Intimidate reduces player's attack by 25%
-      battleContext.playerStatModifiers.attack = 0.75;
+      // Intimidate reduces player's attack by 1 stage
+      battleContext.playerStatModifiers.attack = -1;
       effects.push(`${opponentMonster.name}'s Intimidate lowered ${playerMonster.name}'s Attack!`);
     }
 

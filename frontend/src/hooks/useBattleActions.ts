@@ -193,13 +193,14 @@ export const useBattleActions = ({
     handleBattleAction({ type: 'attack', moveId });
   }, [isProcessing, battleEnded, handleBattleAction]);
 
-  const handleUseItem = useCallback((itemId: string, targetMoveId?: string) => {
+  const handleUseItem = useCallback((itemId: string, targetMoveId?: string, targetMonsterId?: string) => {
     if (isProcessing || battleEnded) return;
     
     const action: BattleAction = { 
       type: 'item', 
       itemId,
-      ...(targetMoveId && { targetMoveId })
+      ...(targetMoveId && { targetMoveId }),
+      ...(targetMonsterId && { targetId: targetMonsterId })
     };
     
     handleBattleAction(action);

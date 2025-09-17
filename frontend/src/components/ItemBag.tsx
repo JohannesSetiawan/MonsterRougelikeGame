@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
-import type { Item } from '../api/types';
+import type { Item, MonsterInstance } from '../api/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import ItemInfo from './ItemInfo';
 import MoveSelectionModal from './MoveSelectionModal';
+import MonsterSelectionModal from './MonsterSelectionModal';
 
 interface ItemBagProps {
   inventory: Item[];
-  onUseItem: (itemId: string, targetMoveId?: string) => void;
+  onUseItem: (itemId: string, targetMoveId?: string, targetMonsterId?: string) => void;
   onClose: () => void;
   isProcessing: boolean;
   inBattle?: boolean;
   activeMonster?: any; // For move selection in battle
   movesData?: Record<string, any>; // For move selection
+  team?: MonsterInstance[]; // For monster selection in battle
 }
 
 const ItemBag: React.FC<ItemBagProps> = ({ 
@@ -24,10 +26,12 @@ const ItemBag: React.FC<ItemBagProps> = ({
   isProcessing, 
   inBattle = false, 
   activeMonster, 
-  movesData = {} 
+  movesData = {},
+  team = []
 }) => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [showMoveSelection, setShowMoveSelection] = useState<string | null>(null);
+  const [showMonsterSelection, setShowMonsterSelection] = useState<string | null>(null);
   
   const getItemIcon = (itemType: string) => {
     switch (itemType) {
@@ -84,9 +88,13 @@ const ItemBag: React.FC<ItemBagProps> = ({
   const handleItemUse = (item: Item) => {
     // Items that require move selection (only ether items, not elixir items)
     const moveSelectionItems = ['ether', 'max_ether'];
+    // Items that require monster selection when in battle
+    const healingItems = ['potion', 'super_potion', 'hyper_potion', 'max_potion'];
     
     if (moveSelectionItems.includes(item.id)) {
       setShowMoveSelection(item.id);
+    } else if (inBattle && healingItems.includes(item.id)) {
+      setShowMonsterSelection(item.id);
     } else {
       onUseItem(item.id);
     }
@@ -95,6 +103,11 @@ const ItemBag: React.FC<ItemBagProps> = ({
   const handleMoveSelection = (itemId: string, moveId: string) => {
     setShowMoveSelection(null);
     onUseItem(itemId, moveId);
+  };
+
+  const handleMonsterSelection = (itemId: string, monsterId: string) => {
+    setShowMonsterSelection(null);
+    onUseItem(itemId, undefined, monsterId);
   };
 
   const usableItems = getUsableItems();
@@ -203,6 +216,18 @@ const ItemBag: React.FC<ItemBagProps> = ({
           itemName={usableItems.find(item => item.id === showMoveSelection)?.name || showMoveSelection}
           onSelectMove={(moveId) => handleMoveSelection(showMoveSelection, moveId)}
           onClose={() => setShowMoveSelection(null)}
+          isProcessing={isProcessing}
+        />
+      )}
+
+      {/* Monster Selection Modal for healing items in battle */}
+      {showMonsterSelection && team.length > 0 && (
+        <MonsterSelectionModal
+          monsters={team}
+          itemName={usableItems.find(item => item.id === showMonsterSelection)?.name || showMonsterSelection}
+          itemType="healing"
+          onSelectMonster={(monsterId) => handleMonsterSelection(showMonsterSelection, monsterId)}
+          onClose={() => setShowMonsterSelection(null)}
           isProcessing={isProcessing}
         />
       )}

@@ -2,7 +2,7 @@ import { Controller, Post, Body, Param, HttpException, HttpStatus } from '@nestj
 import { BattleService } from '../services/battle.service';
 import { GameService } from '../services/game.service';
 import { MonsterService } from '../services/monster.service';
-import { BattleAction, MonsterInstance } from '../types';
+import { BattleAction, MonsterInstance, StatStageCalculator } from '../types';
 
 @Controller('battle')
 export class BattleController {
@@ -123,20 +123,6 @@ export class BattleController {
           playerStatModifiers: body.battleContext.playerStatModifiers || {},
           opponentStatModifiers: body.battleContext.opponentStatModifiers || {}
         };
-        
-        // Apply temporary stat boosts from items if they exist in the run
-        if (run.temporaryEffects?.statBoosts) {
-          const statBoosts = run.temporaryEffects.statBoosts;
-          if (statBoosts.attack) {
-            battleContext.playerStatModifiers.attack = (battleContext.playerStatModifiers.attack || 1) * statBoosts.attack;
-          }
-          if (statBoosts.defense) {
-            battleContext.playerStatModifiers.defense = (battleContext.playerStatModifiers.defense || 1) * statBoosts.defense;
-          }
-          if (statBoosts.speed) {
-            battleContext.playerStatModifiers.speed = (battleContext.playerStatModifiers.speed || 1) * statBoosts.speed;
-          }
-        }
       }
 
       // Initialize battle tracking variables
@@ -411,7 +397,9 @@ export class BattleController {
             case 'hyper_potion':
             case 'max_potion':
               // Use the game service's useItem method for healing items
-              const healResult = this.gameService.useItem(runId, body.action.itemId, body.playerMonsterId);
+              // Use targetId if provided, otherwise default to active monster
+              const targetMonsterId = body.action.targetId || body.playerMonsterId;
+              const healResult = this.gameService.useItem(runId, body.action.itemId, targetMonsterId);
               allEffects.push(healResult.message);
               break;
             
@@ -488,19 +476,19 @@ export class BattleController {
             case 'x_attack':
             case 'x_defense':
             case 'x_speed':
-              // Apply temporary stat boost for the current battle
+              // Apply temporary stat boost for the current battle (+1 stage)
               if (!run.temporaryEffects) run.temporaryEffects = {};
               if (!run.temporaryEffects.statBoosts) run.temporaryEffects.statBoosts = {};
               if (!run.temporaryEffects.usedStatBoosts) run.temporaryEffects.usedStatBoosts = {};
 
               const statType = body.action.itemId.replace('x_', '');
-              run.temporaryEffects.statBoosts[statType] = 1.5; // 50% boost
+              run.temporaryEffects.statBoosts[statType] = 1; // +1 stage boost
               run.temporaryEffects.usedStatBoosts[statType] = true; // Mark as used
 
-              // Update battle context with the new modifiers
+              // Update battle context with the new stage-based modifiers
               if (battleContext) {
-                const currentModifier = battleContext.playerStatModifiers[statType] || 1;
-                battleContext.playerStatModifiers[statType] = currentModifier * 1.5;
+                const currentStage = battleContext.playerStatModifiers[statType] || 0;
+                battleContext.playerStatModifiers[statType] = Math.max(-6, Math.min(6, currentStage + 1));
               }
 
               allEffects.push(`${playerMonster.name}'s ${statType} was boosted!`);
@@ -510,10 +498,12 @@ export class BattleController {
             case 'max_ether':
               // For ether items, we need move selection - use game service
               if (body.action.targetMoveId) {
+                // Use targetId if provided, otherwise default to active monster
+                const etherTargetMonsterId = body.action.targetId || body.playerMonsterId;
                 const itemResult = await this.gameService.useItem(
                   runId, 
                   body.action.itemId, 
-                  body.playerMonsterId,
+                  etherTargetMonsterId,
                   body.action.targetMoveId
                 );
                 if (itemResult.success) {
@@ -529,10 +519,12 @@ export class BattleController {
             case 'elixir':
             case 'max_elixir':
               // For elixir items, restore all moves - use game service
+              // Use targetId if provided, otherwise default to active monster
+              const elixirTargetMonsterId = body.action.targetId || body.playerMonsterId;
               const itemResult = await this.gameService.useItem(
                 runId, 
                 body.action.itemId, 
-                body.playerMonsterId
+                elixirTargetMonsterId
               );
               if (itemResult.success) {
                 allEffects.push(itemResult.message);

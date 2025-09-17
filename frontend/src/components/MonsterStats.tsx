@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MonsterInstance, Move, Ability } from '../api/types';
+import { StatStageCalculator } from '../api/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -86,20 +87,21 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
   };
 
   const getModifiedStatValue = (baseStat: number, statName: string): number => {
-    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
-    if (modifier && modifier !== 1) {
-      return Math.floor(baseStat * modifier);
+    const stage = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    if (stage && stage !== 0) {
+      const multiplier = StatStageCalculator.stageToMultiplier(stage);
+      return Math.floor(baseStat * multiplier);
     }
     return baseStat;
   };
 
   const getStatModifierColor = (baseStat: number, statName: string): string => {
-    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
-    if (!modifier || modifier === 1) {
+    const stage = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    if (!stage || stage === 0) {
       return getStatColor(baseStat);
     }
     
-    if (modifier > 1) {
+    if (stage > 0) {
       return 'text-green-500'; // Stat is boosted
     } else {
       return 'text-blue-500'; // Stat is reduced
@@ -107,16 +109,22 @@ const MonsterStats: React.FC<MonsterStatsProps> = ({
   };
 
   const renderStatValue = (baseStat: number, statName: string) => {
-    const modifier = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
+    const stage = monster.statModifiers?.[statName as keyof typeof monster.statModifiers];
     const modifiedValue = getModifiedStatValue(baseStat, statName);
-    const hasModifier = modifier && modifier !== 1;
+    const hasModifier = stage && stage !== 0;
     
     if (hasModifier) {
+      const stageIndicator = stage > 0 ? `+${stage}` : `${stage}`;
       return (
         <div className="flex flex-col items-end">
-          <span className={`font-bold ${getStatModifierColor(baseStat, statName)}`}>
-            {modifiedValue}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className={`font-bold ${getStatModifierColor(baseStat, statName)}`}>
+              {modifiedValue}
+            </span>
+            <span className={`text-xs ${stage > 0 ? 'text-green-400' : 'text-blue-400'}`}>
+              ({stageIndicator})
+            </span>
+          </div>
           <span className="text-xs text-muted-foreground line-through">
             {baseStat}
           </span>

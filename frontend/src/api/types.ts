@@ -179,11 +179,61 @@ export interface MoveSelectionRequest {
 }
 
 export interface StatModifiers {
-  attack?: number;
-  defense?: number;
-  specialAttack?: number;
-  specialDefense?: number;
-  speed?: number;
+  attack?: number; // Now represents stages (-6 to +6)
+  defense?: number; // Now represents stages (-6 to +6)
+  specialAttack?: number; // Now represents stages (-6 to +6)
+  specialDefense?: number; // Now represents stages (-6 to +6)
+  speed?: number; // Now represents stages (-6 to +6)
+}
+
+// Utility functions for stage-based stat calculations
+export class StatStageCalculator {
+  /**
+   * Convert stat stages to multiplier based on the formula:
+   * Positive stages: (2 + stages) / 2
+   * Negative stages: 2 / (2 + abs(stages))
+   * Stage 0: 1.0 (no change)
+   */
+  static stageToMultiplier(stage: number): number {
+    // Clamp stage to valid range (-6 to +6)
+    stage = Math.max(-6, Math.min(6, stage));
+    
+    if (stage === 0) {
+      return 1.0;
+    } else if (stage > 0) {
+      return (2 + stage) / 2;
+    } else {
+      return 2 / (2 + Math.abs(stage));
+    }
+  }
+
+  /**
+   * Get the multiplier for a specific stat stage
+   */
+  static getStageMultiplier(stages: StatModifiers, statType: keyof StatModifiers): number {
+    const stage = stages[statType] || 0;
+    return this.stageToMultiplier(stage);
+  }
+
+  /**
+   * Add stages to existing stat modifiers (clamped to -6/+6 range)
+   */
+  static addStages(
+    currentModifiers: StatModifiers,
+    stagesToAdd: Partial<StatModifiers>
+  ): StatModifiers {
+    const result = { ...currentModifiers };
+    
+    for (const [stat, stages] of Object.entries(stagesToAdd)) {
+      if (stages !== undefined && stages !== null) {
+        const currentStage = result[stat as keyof StatModifiers] || 0;
+        const newStage = Math.max(-6, Math.min(6, currentStage + stages));
+        result[stat as keyof StatModifiers] = newStage;
+      }
+    }
+    
+    return result;
+  }
 }
 
 export interface Encounter {

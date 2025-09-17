@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleContext, MoveCategory, TYPE_EFFECTIVENESS } from '../../types';
+import { MonsterInstance, BattleContext, MoveCategory, TYPE_EFFECTIVENESS, StatStageCalculator } from '../../types';
 import { MonsterService } from '../monster.service';
 import { StatusEffectService } from './status-effect.service';
 
@@ -52,33 +52,45 @@ export class DamageCalculationService {
       }
     }
 
-    // Apply battle context stat modifiers if available
+    // Apply battle context stat modifiers if available (now stage-based)
     if (battleContext) {
       const isPlayerAttacker = battleContext.playerMonster.id === attacker.id;
       const isPlayerDefender = battleContext.playerMonster.id === defender.id;
 
       if (isPlayerAttacker) {
-        const modifier = move.category === MoveCategory.PHYSICAL 
+        const stage = move.category === MoveCategory.PHYSICAL 
           ? battleContext.playerStatModifiers.attack 
           : battleContext.playerStatModifiers.specialAttack;
-        if (modifier !== undefined) attack = Math.floor(attack * modifier);
+        if (stage !== undefined) {
+          const multiplier = StatStageCalculator.stageToMultiplier(stage);
+          attack = Math.floor(attack * multiplier);
+        }
       } else {
-        const modifier = move.category === MoveCategory.PHYSICAL 
+        const stage = move.category === MoveCategory.PHYSICAL 
           ? battleContext.opponentStatModifiers.attack 
           : battleContext.opponentStatModifiers.specialAttack;
-        if (modifier !== undefined) attack = Math.floor(attack * modifier);
+        if (stage !== undefined) {
+          const multiplier = StatStageCalculator.stageToMultiplier(stage);
+          attack = Math.floor(attack * multiplier);
+        }
       }
 
       if (isPlayerDefender) {
-        const modifier = move.category === MoveCategory.PHYSICAL 
+        const stage = move.category === MoveCategory.PHYSICAL 
           ? battleContext.playerStatModifiers.defense 
           : battleContext.playerStatModifiers.specialDefense;
-        if (modifier !== undefined) defense = Math.floor(defense * modifier);
+        if (stage !== undefined) {
+          const multiplier = StatStageCalculator.stageToMultiplier(stage);
+          defense = Math.floor(defense * multiplier);
+        }
       } else {
-        const modifier = move.category === MoveCategory.PHYSICAL 
+        const stage = move.category === MoveCategory.PHYSICAL 
           ? battleContext.opponentStatModifiers.defense 
           : battleContext.opponentStatModifiers.specialDefense;
-        if (modifier !== undefined) defense = Math.floor(defense * modifier);
+        if (stage !== undefined) {
+          const multiplier = StatStageCalculator.stageToMultiplier(stage);
+          defense = Math.floor(defense * multiplier);
+        }
       }
     }
 

@@ -237,6 +237,7 @@ const BattleInterface: React.FC = () => {
             inBattle={true}
             activeMonster={playerMonster}
             movesData={movesData}
+            team={currentRun.team}
           />
         )}
 
