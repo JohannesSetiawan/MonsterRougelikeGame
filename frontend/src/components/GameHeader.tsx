@@ -51,16 +51,28 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
             </Button>
             {/* Debug mode button - only visible in development */}
             {process.env.NODE_ENV === 'development' && (
-              <Button 
-                variant="outline"
-                onClick={onDebugPage}
-                disabled={isLoading}
-                className="flex items-center gap-2 text-xs"
-                size="sm"
-                title="Debug Mode (Ctrl+Shift+D)"
-              >
-                🔧 Debug
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  onClick={onDebugPage}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 text-xs"
+                  size="sm"
+                  title="Debug Mode (Ctrl+Shift+D)"
+                >
+                  🔧 Debug
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open('/admin', '_blank')}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 text-xs"
+                  size="sm"
+                  title="Admin Panel"
+                >
+                  ⚙️ Admin
+                </Button>
+              </>
             )}
             <Button 
               variant="secondary"

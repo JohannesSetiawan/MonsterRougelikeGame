@@ -2,24 +2,49 @@
   "flamewyrm": {
     "id": "flamewyrm",
     "name": "Flamewyrm",
-    "type": ["fire"],
+    "type": [
+      "fire"
+    ],
     "baseStats": {
-      "hp": 65,
+      "hp": 70,
       "attack": 70,
       "defense": 50,
       "specialAttack": 85,
       "specialDefense": 60,
       "speed": 75
     },
-    "abilities": ["intimidate"],
+    "abilities": [
+      "intimidate"
+    ],
     "learnableMoves": [
-      ["scratch", 1],
-      ["ember", 5],
-      ["flame_burst", 12],
-      ["blast_burns", 18],
-      ["will_o_wisp", 23],
-      ["confuse_ray", 24],
-      ["sword_dance", 30]
+      [
+        "scratch",
+        1
+      ],
+      [
+        "ember",
+        5
+      ],
+      [
+        "flame_burst",
+        13
+      ],
+      [
+        "blast_burns",
+        18
+      ],
+      [
+        "will_o_wisp",
+        23
+      ],
+      [
+        "confuse_ray",
+        24
+      ],
+      [
+        "sword_dance",
+        30
+      ]
     ],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
     "rarity": "uncommon",
@@ -28,7 +53,9 @@
   "aquafin": {
     "id": "aquafin",
     "name": "Aquafin",
-    "type": ["water"],
+    "type": [
+      "water"
+    ],
     "baseStats": {
       "hp": 80,
       "attack": 55,
@@ -37,12 +64,27 @@
       "specialDefense": 70,
       "speed": 65
     },
-    "abilities": ["torrent", "swift_swim"],
+    "abilities": [
+      "torrent",
+      "swift_swim"
+    ],
     "learnableMoves": [
-      ["scratch", 1],
-      ["water_gun", 4],
-      ["bubble_beam", 11],
-      ["confuse_ray", 16]
+      [
+        "scratch",
+        1
+      ],
+      [
+        "water_gun",
+        4
+      ],
+      [
+        "bubble_beam",
+        11
+      ],
+      [
+        "confuse_ray",
+        16
+      ]
     ],
     "description": "A fish-like creature that can manipulate water currents. Very adaptable to aquatic environments.",
     "rarity": "uncommon",
@@ -51,7 +93,9 @@
   "pyroblast": {
     "id": "pyroblast",
     "name": "Pyroblast",
-    "type": ["fire"],
+    "type": [
+      "fire"
+    ],
     "baseStats": {
       "hp": 85,
       "attack": 95,
@@ -60,13 +104,30 @@
       "specialDefense": 75,
       "speed": 90
     },
-    "abilities": ["blaze"],
+    "abilities": [
+      "blaze"
+    ],
     "learnableMoves": [
-      ["scratch", 1],
-      ["ember", 1],
-      ["flame_burst", 8],
-      ["blast_burns", 15],
-      ["poison_sting", 22]
+      [
+        "scratch",
+        1
+      ],
+      [
+        "ember",
+        1
+      ],
+      [
+        "flame_burst",
+        8
+      ],
+      [
+        "blast_burns",
+        15
+      ],
+      [
+        "poison_sting",
+        22
+      ]
     ],
     "description": "The evolved form of Flamewyrm. Its flames burn so hot they can melt steel.",
     "rarity": "rare",
@@ -75,7 +136,9 @@
   "hydroking": {
     "id": "hydroking",
     "name": "Hydroking",
-    "type": ["water"],
+    "type": [
+      "water"
+    ],
     "baseStats": {
       "hp": 90,
       "attack": 75,
@@ -84,14 +147,34 @@
       "specialDefense": 90,
       "speed": 80
     },
-    "abilities": ["torrent"],
+    "abilities": [
+      "torrent"
+    ],
     "learnableMoves": [
-      ["scratch", 1],
-      ["water_gun", 1],
-      ["bubble_beam", 7],
-      ["hydro_pump", 14],
-      ["thunder_wave", 20],
-      ["sleep_powder", 26]
+      [
+        "scratch",
+        1
+      ],
+      [
+        "water_gun",
+        1
+      ],
+      [
+        "bubble_beam",
+        7
+      ],
+      [
+        "hydro_pump",
+        14
+      ],
+      [
+        "thunder_wave",
+        20
+      ],
+      [
+        "sleep_powder",
+        26
+      ]
     ],
     "description": "The evolved form of Aquafin. Said to command the seas and control massive tidal waves.",
     "rarity": "rare",

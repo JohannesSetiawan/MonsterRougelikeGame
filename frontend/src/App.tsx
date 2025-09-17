@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GameProvider, useGame } from './context/GameContext';
 import { useResponsive } from './hooks/useResponsive';
 import PlayerSetup from './components/PlayerSetup';
@@ -6,6 +7,7 @@ import StarterSelection from './components/StarterSelection';
 import GameInterface from './components/GameInterface';
 import BattleInterface from './components/BattleInterface';
 import OrientationHint from './components/OrientationHint';
+import AdminPage from './components/admin/AdminPage';
 
 const GameContent: React.FC = () => {
   const { state } = useGame();
@@ -51,23 +53,30 @@ function App() {
   const screenInfo = useResponsive();
 
   return (
-    <GameProvider>
-      <div className={`min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-foreground relative overflow-hidden ${
-        screenInfo.isLandscape ? 'landscape' : 'portrait'
-      } ${
-        screenInfo.isMobile ? 'mobile' : ''
-      } ${
-        screenInfo.isTablet ? 'tablet' : ''
-      } ${
-        screenInfo.isDesktop ? 'desktop' : ''
-      }`}>
-        {/* Background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.1)_0%,transparent_50%)] pointer-events-none" />
-        
-        <OrientationHint />
-        <GameContent />
-      </div>
-    </GameProvider>
+    <Router>
+      <Routes>
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/*" element={
+          <GameProvider>
+            <div className={`min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-foreground relative overflow-hidden ${
+              screenInfo.isLandscape ? 'landscape' : 'portrait'
+            } ${
+              screenInfo.isMobile ? 'mobile' : ''
+            } ${
+              screenInfo.isTablet ? 'tablet' : ''
+            } ${
+              screenInfo.isDesktop ? 'desktop' : ''
+            }`}>
+              {/* Background pattern */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.1)_0%,transparent_50%)] pointer-events-none" />
+              
+              <OrientationHint />
+              <GameContent />
+            </div>
+          </GameProvider>
+        } />
+      </Routes>
+    </Router>
   );
 }
 

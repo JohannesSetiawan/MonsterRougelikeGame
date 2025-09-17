@@ -5,11 +5,13 @@ import { GameController } from './controllers/game.controller';
 import { BattleController } from './controllers/battle.controller';
 import { DebugController } from './controllers/debug.controller';
 import { ShopController } from './controllers/shop.controller';
+import { AdminController } from './controllers/admin.controller';
 import { GameService } from './services/game.service';
 import { BattleService } from './services/battle.service';
 import { MonsterService } from './services/monster.service';
 import { DataLoaderService } from './services/data-loader.service';
 import { DatabaseService } from './services/database.service';
+import { JsonFileService } from './services/json-file.service';
 
 // Game module services
 import { 
@@ -56,13 +58,14 @@ import {
     }),
     TypeOrmModule.forFeature([PlayerEntity, GameRunEntity]),
   ],
-  controllers: [GameController, BattleController, DebugController, ShopController],
+  controllers: [GameController, BattleController, DebugController, ShopController, AdminController],
   providers: [
     GameService, 
     BattleService, 
     MonsterService, 
     DataLoaderService, 
     DatabaseService,
+    JsonFileService,
     // Game module services
     PlayerManagementService,
     GameRunService,
