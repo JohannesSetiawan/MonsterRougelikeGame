@@ -24,11 +24,12 @@ export class BattleActionsService {
         defense?: number;
         speed?: number;
       };
-    }
+    },
+    battleContext?: BattleContext
   ): BattleResult {
     switch (action.type) {
       case 'attack':
-        return this.processAttack(playerMonster, opponentMonster, action.moveId);
+        return this.processAttack(playerMonster, opponentMonster, action.moveId, battleContext);
       
       case 'catch':
         return this.processCatch(opponentMonster, battleModifiers?.catchRate);
@@ -144,8 +145,7 @@ export class BattleActionsService {
     if (move.category === MoveCategory.STATUS) {
       // For status moves, only process the status effect
       if (move.effect && move.effect_chance) {
-        const isTargetPlayer = battleContext ? battleContext.playerMonster.id === defender.id : false;
-        const effectResult = this.processMoveEffect(move, defender, battleContext, isTargetPlayer);
+        const effectResult = this.processMoveEffect(move, attacker, defender, battleContext);
         if (effectResult.applied) {
           effects.push(effectResult.message);
         } else {
@@ -199,8 +199,7 @@ export class BattleActionsService {
 
     // Process move effects (like status conditions) for damaging moves - only if target didn't faint
     if (move.effect && move.effect_chance && !battleEnded) {
-      const isTargetPlayer = battleContext ? battleContext.playerMonster.id === defender.id : false;
-      const effectResult = this.processMoveEffect(move, defender, battleContext, isTargetPlayer);
+      const effectResult = this.processMoveEffect(move, attacker, defender, battleContext);
       if (effectResult.applied) {
         effects.push(effectResult.message);
       }
@@ -332,10 +331,14 @@ export class BattleActionsService {
     return Math.min(95, finalRate);
   }
 
-  private processMoveEffect(move: any, target: MonsterInstance, battleContext?: BattleContext, isTargetPlayer?: boolean): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
+  private processMoveEffect(move: any, attacker: MonsterInstance, defender: MonsterInstance, battleContext?: BattleContext): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
     if (!move.effect || !move.effect_chance) {
       return { applied: false, message: '' };
     }
+
+    // Determine the actual target based on move.target field
+    const actualTarget = move.target === 'user' ? attacker : defender;
+    const isTargetPlayer = battleContext ? battleContext.playerMonster.id === actualTarget.id : false;
 
     // Roll for effect chance
     const roll = Math.random() * 100;
@@ -346,47 +349,173 @@ export class BattleActionsService {
     // Apply the effect based on type
     switch (move.effect) {
       case 'burn_chance':
-        const burnResult = this.statusEffectService.addStatusEffect(target, StatusEffect.BURN);
+        const burnResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.BURN);
         return { applied: burnResult.success, message: burnResult.message };
       
       case 'poison_chance':
-        const poisonResult = this.statusEffectService.addStatusEffect(target, StatusEffect.POISON);
+        const poisonResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.POISON);
         return { applied: poisonResult.success, message: poisonResult.message };
       
       case 'paralyze_chance':
-        const paralyzeResult = this.statusEffectService.addStatusEffect(target, StatusEffect.PARALYZE);
+        const paralyzeResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.PARALYZE);
         return { applied: paralyzeResult.success, message: paralyzeResult.message };
       
       case 'sleep_chance':
-        const sleepResult = this.statusEffectService.addStatusEffect(target, StatusEffect.SLEEP);
+        const sleepResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.SLEEP);
         return { applied: sleepResult.success, message: sleepResult.message };
       
       case 'confusion_chance':
-        const confusionResult = this.statusEffectService.addStatusEffect(target, StatusEffect.CONFUSION);
+        const confusionResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.CONFUSION);
         return { applied: confusionResult.success, message: confusionResult.message };
       
       case 'frostbite_chance':
-        const frostbiteResult = this.statusEffectService.addStatusEffect(target, StatusEffect.FROSTBITE);
+        const frostbiteResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.FROSTBITE);
         return { applied: frostbiteResult.success, message: frostbiteResult.message };
       
-      // Add more status effects as needed
+      // Stat lowering effects
+      case 'attack_lower_chance':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.attack || 0;
+          const newStage = Math.max(-6, currentStage - 1);
+          targetModifiers.attack = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s attack was lowered!`,
+            statChange: { stat: 'attack', stages: -1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s attack was lowered!` };
+
+      case 'defense_lower_chance':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.defense || 0;
+          const newStage = Math.max(-6, currentStage - 1);
+          targetModifiers.defense = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s defense was lowered!`,
+            statChange: { stat: 'defense', stages: -1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s defense was lowered!` };
+
+      case 'special_attack_lower_chance':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.specialAttack || 0;
+          const newStage = Math.max(-6, currentStage - 1);
+          targetModifiers.specialAttack = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s special attack was lowered!`,
+            statChange: { stat: 'specialAttack', stages: -1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s special attack was lowered!` };
+
+      case 'special_defense_lower_chance':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.specialDefense || 0;
+          const newStage = Math.max(-6, currentStage - 1);
+          targetModifiers.specialDefense = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s special defense was lowered!`,
+            statChange: { stat: 'specialDefense', stages: -1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s special defense was lowered!` };
+
       case 'speed_lower_chance':
-        // Apply -1 stage to speed stat
-        if (battleContext && isTargetPlayer !== undefined) {
+        if (battleContext) {
           const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
           const currentStage = targetModifiers.speed || 0;
           const newStage = Math.max(-6, currentStage - 1);
           targetModifiers.speed = newStage;
           return { 
             applied: true, 
-            message: `${target.name}'s speed was lowered!`,
+            message: `${actualTarget.name}'s speed was lowered!`,
             statChange: { stat: 'speed', stages: -1 }
           };
         }
-        return { applied: true, message: `${target.name}'s speed was lowered!` };
+        return { applied: true, message: `${actualTarget.name}'s speed was lowered!` };
+
+      // Stat boosting effects
+      case 'attack_boost':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.attack || 0;
+          const newStage = Math.min(6, currentStage + 1);
+          targetModifiers.attack = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s attack was raised!`,
+            statChange: { stat: 'attack', stages: 1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s attack was raised!` };
+
+      case 'defense_boost':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.defense || 0;
+          const newStage = Math.min(6, currentStage + 1);
+          targetModifiers.defense = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s defense was raised!`,
+            statChange: { stat: 'defense', stages: 1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s defense was raised!` };
+
+      case 'special_attack_boost':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.specialAttack || 0;
+          const newStage = Math.min(6, currentStage + 1);
+          targetModifiers.specialAttack = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s special attack was raised!`,
+            statChange: { stat: 'specialAttack', stages: 1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s special attack was raised!` };
+
+      case 'special_defense_boost':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.specialDefense || 0;
+          const newStage = Math.min(6, currentStage + 1);
+          targetModifiers.specialDefense = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s special defense was raised!`,
+            statChange: { stat: 'specialDefense', stages: 1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s special defense was raised!` };
+
+      case 'speed_boost':
+        if (battleContext) {
+          const targetModifiers = isTargetPlayer ? battleContext.playerStatModifiers : battleContext.opponentStatModifiers;
+          const currentStage = targetModifiers.speed || 0;
+          const newStage = Math.min(6, currentStage + 1);
+          targetModifiers.speed = newStage;
+          return { 
+            applied: true, 
+            message: `${actualTarget.name}'s speed was raised!`,
+            statChange: { stat: 'speed', stages: 1 }
+          };
+        }
+        return { applied: true, message: `${actualTarget.name}'s speed was raised!` };
       
       default:
-        return { applied: false, message: '' };
+        return { applied: true, message: 'UNDEFINED MOVE EFFECT' };
     }
   }
 }

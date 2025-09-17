@@ -36,6 +36,7 @@ export interface Move {
   description: string;
   effect?: string;
   effect_chance?: number;
+  target?: 'user' | 'opponent';
 }
 
 export enum StatusEffect {

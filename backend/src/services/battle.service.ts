@@ -58,13 +58,15 @@ export class BattleService {
         defense?: number;
         speed?: number;
       };
-    }
+    },
+    battleContext?: BattleContext
   ): BattleResult {
     return this.battleActionsService.processBattleAction(
       playerMonster,
       opponentMonster,
       action,
-      battleModifiers
+      battleModifiers,
+      battleContext
     );
   }
 

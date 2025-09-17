@@ -7,7 +7,8 @@
     "power": 40,
     "accuracy": 100,
     "pp": 35,
-    "description": "The target is raked with sharp claws or scythes to inflict damage."
+    "description": "The target is raked with sharp claws or scythes to inflict damage.",
+    "target": "opponent"
   },
   "ember": {
     "id": "ember",
@@ -19,7 +20,8 @@
     "pp": 25,
     "description": "The target is attacked with small flames that may also leave the target with a burn.",
     "effect": "burn_chance",
-    "effect_chance": 100
+    "effect_chance": 100,
+    "target": "opponent"
   },
   "flame_burst": {
     "id": "flame_burst",
@@ -29,7 +31,8 @@
     "power": 70,
     "accuracy": 100,
     "pp": 15,
-    "description": "The user attacks the target with a bursting flame that damages nearby allies."
+    "description": "The user attacks the target with a bursting flame that damages nearby allies.",
+    "target": "opponent"
   },
   "water_gun": {
     "id": "water_gun",
@@ -39,7 +42,8 @@
     "power": 40,
     "accuracy": 100,
     "pp": 25,
-    "description": "The target is blasted with a forceful shot of water."
+    "description": "The target is blasted with a forceful shot of water.",
+    "target": "opponent"
   },
   "bubble_beam": {
     "id": "bubble_beam",
@@ -51,7 +55,8 @@
     "pp": 20,
     "description": "A spray of bubbles is forcefully ejected at the target.",
     "effect": "speed_lower_chance",
-    "effect_chance": 10
+    "effect_chance": 10,
+    "target": "opponent"
   },
   "hydro_pump": {
     "id": "hydro_pump",
@@ -61,7 +66,8 @@
     "power": 110,
     "accuracy": 80,
     "pp": 5,
-    "description": "The target is blasted by a huge volume of water launched under great pressure."
+    "description": "The target is blasted by a huge volume of water launched under great pressure.",
+    "target": "opponent"
   },
   "blast_burns": {
     "id": "blast_burns",
@@ -73,7 +79,8 @@
     "pp": 10,
     "description": "The user unleashes a powerful blast of scorching flames that has a chance to burn the target.",
     "effect": "burn_chance",
-    "effect_chance": 15
+    "effect_chance": 15,
+    "target": "opponent"
   },
   "poison_sting": {
     "id": "poison_sting",
@@ -85,7 +92,8 @@
     "pp": 20,
     "description": "The user stabs the target with a poisonous stinger that may poison the target.",
     "effect": "poison_chance",
-    "effect_chance": 20
+    "effect_chance": 20,
+    "target": "opponent"
   },
   "thunder_wave": {
     "id": "thunder_wave",
@@ -97,7 +105,8 @@
     "pp": 20,
     "description": "A weak electric charge that paralyzes the target.",
     "effect": "paralyze_chance",
-    "effect_chance": 100
+    "effect_chance": 100,
+    "target": "opponent"
   },
   "sleep_powder": {
     "id": "sleep_powder",
@@ -109,7 +118,8 @@
     "pp": 15,
     "description": "A cloud of sleep-inducing powder that may put the target to sleep.",
     "effect": "sleep_chance",
-    "effect_chance": 100
+    "effect_chance": 100,
+    "target": "opponent"
   },
   "confuse_ray": {
     "id": "confuse_ray",
@@ -121,7 +131,8 @@
     "pp": 10,
     "description": "A sinister ray that confuses the target.",
     "effect": "confusion_chance",
-    "effect_chance": 100
+    "effect_chance": 100,
+    "target": "opponent"
   },
   "will_o_wisp": {
     "id": "will_o_wisp",
@@ -133,6 +144,20 @@
     "pp": 10,
     "description": "A sinister flame that burns the target.",
     "effect": "burn_chance",
-    "effect_chance": 100
+    "effect_chance": 100,
+    "target": "opponent"
+  },
+  "sword_dance": {
+    "id": "sword_dance",
+    "name": "Sword Dance",
+    "type": "normal",
+    "category": "status",
+    "power": 0,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "A dance that sharpens the user's attack.",
+    "effect": "attack_boost",
+    "effect_chance": 100,
+    "target": "user"
   }
 }

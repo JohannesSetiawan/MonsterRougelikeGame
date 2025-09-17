@@ -18,7 +18,8 @@
       ["flame_burst", 12],
       ["blast_burns", 18],
       ["will_o_wisp", 23],
-      ["confuse_ray", 24]
+      ["confuse_ray", 24],
+      ["sword_dance", 30]
     ],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
     "rarity": "uncommon",

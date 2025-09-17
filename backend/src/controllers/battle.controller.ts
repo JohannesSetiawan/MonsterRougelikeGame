@@ -157,7 +157,9 @@ export class BattleController {
         playerResult = this.battleService.processBattleAction(
           playerMonster,
           body.opponentMonster,
-          body.action
+          body.action,
+          undefined,
+          battleContext
         );
         allEffects.push(...(playerResult.effects || []));
       } else {
@@ -166,7 +168,9 @@ export class BattleController {
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
-          enemyAction
+          enemyAction,
+          undefined,
+          battleContext
         );
         allEffects.push(...(enemyResult.effects || []));
         
@@ -235,7 +239,9 @@ export class BattleController {
         playerResult = this.battleService.processBattleAction(
           playerMonster,
           body.opponentMonster,
-          body.action
+          body.action,
+          undefined,
+          battleContext
         );
         allEffects.push(...(playerResult.effects || []));
         
@@ -308,7 +314,9 @@ export class BattleController {
           enemyResult = this.battleService.processBattleAction(
             body.opponentMonster,
             newMonster,
-            enemyAction
+            enemyAction,
+            undefined,
+            battleContext
           );
 
           if (enemyResult.success && enemyResult.damage) {
@@ -551,7 +559,9 @@ export class BattleController {
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
-          enemyAction
+          enemyAction,
+          undefined,
+          battleContext
         );
 
         if (enemyResult.success && enemyResult.damage) {
