@@ -32,7 +32,8 @@ import {
   BattleAIService,
   ExperienceService,
   AbilityEffectsService,
-  TurnManagementService
+  TurnManagementService,
+  WeatherService
 } from './services/battle';
 
 @Module({
@@ -78,7 +79,8 @@ import {
     BattleAIService,
     ExperienceService,
     AbilityEffectsService,
-    TurnManagementService
+    TurnManagementService,
+    WeatherService
   ],
 })
 export class AppModule {}

@@ -20,7 +20,7 @@
   "swift_swim": {
     "id": "swift_swim",
     "name": "Swift Swim",
-    "description": "Boosts Speed in rain or water environments",
+    "description": "Doubles Speed during Rain weather",
     "effect": "speed_boost_water"
   }
 }

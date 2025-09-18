@@ -39,9 +39,9 @@ export class BattleController {
         run.temporaryEffects.usedStatBoosts = {};
       }
       
-      // Determine turn order with speed abilities applied
-      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
-      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
+      // Determine turn order with speed abilities applied (no weather context available yet)
+      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster, undefined);
+      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster, undefined);
       const playerGoesFirst = playerSpeed >= opponentSpeed;
 
       return {
@@ -51,7 +51,8 @@ export class BattleController {
         updatedOpponentMonster: body.opponentMonster,
         battleContext: {
           playerStatModifiers: battleContext.playerStatModifiers,
-          opponentStatModifiers: battleContext.opponentStatModifiers
+          opponentStatModifiers: battleContext.opponentStatModifiers,
+          weather: battleContext.weather
         }
       };
     } catch (error) {
@@ -69,6 +70,7 @@ export class BattleController {
       battleContext?: {
         playerStatModifiers?: any;
         opponentStatModifiers?: any;
+        weather?: any;
       };
       playerGoesFirst?: boolean;
     }
@@ -121,7 +123,8 @@ export class BattleController {
           playerMonster,
           opponentMonster: body.opponentMonster,
           playerStatModifiers: body.battleContext.playerStatModifiers || {},
-          opponentStatModifiers: body.battleContext.opponentStatModifiers || {}
+          opponentStatModifiers: body.battleContext.opponentStatModifiers || {},
+          weather: body.battleContext.weather
         };
       }
 
@@ -133,8 +136,8 @@ export class BattleController {
       let enemyResult: any;
 
       // Determine turn order based on speed (recalculate to be sure)
-      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster);
-      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster);
+      const playerSpeed = this.battleService.applySpeedAbilities(playerMonster, battleContext?.weather);
+      const opponentSpeed = this.battleService.applySpeedAbilities(body.opponentMonster, battleContext?.weather);
       
       // Items and catching always go first, regardless of speed (Pokemon rule)
       let playerGoesFirst: boolean;
@@ -147,8 +150,17 @@ export class BattleController {
         // Add a message indicating catching has priority
         allEffects.push(`⚾ Catching attempts are made with priority!`);
       } else {
-        // Attacks and fleeing use normal speed-based priority
-        playerGoesFirst = body.playerGoesFirst !== undefined ? body.playerGoesFirst : playerSpeed >= opponentSpeed;
+        // Attacks and fleeing use weather-aware speed-based priority
+        if (body.playerGoesFirst !== undefined) {
+          playerGoesFirst = body.playerGoesFirst;
+        } else if (battleContext) {
+          // Use weather-aware turn order determination
+          const turnOrder = this.battleService.determineTurnOrder(playerMonster, body.opponentMonster, battleContext);
+          playerGoesFirst = turnOrder === 'player';
+        } else {
+          // Fallback to basic speed comparison
+          playerGoesFirst = playerSpeed >= opponentSpeed;
+        }
       }
 
       // Execute actions based on turn order
@@ -595,7 +607,8 @@ export class BattleController {
                 playerGoesFirst,
                 battleContext: battleContext ? {
                   playerStatModifiers: {},
-                  opponentStatModifiers: battleContext.opponentStatModifiers
+                  opponentStatModifiers: battleContext.opponentStatModifiers,
+                  weather: battleContext.weather
                 } : undefined
               };
             } else {
@@ -616,7 +629,12 @@ export class BattleController {
 
       // Process end-of-turn status effects if battle is still ongoing
       if (!battleEnded && playerMonster.currentHp > 0 && body.opponentMonster.currentHp > 0) {
-        const endOfTurnResult = this.battleService.processEndOfTurn(playerMonster, body.opponentMonster);
+        const endOfTurnResult = this.battleService.processEndOfTurn(playerMonster, body.opponentMonster, battleContext);
+        
+        // Update battle context if weather changed
+        if (endOfTurnResult.updatedBattleContext) {
+          battleContext = endOfTurnResult.updatedBattleContext;
+        }
         
         // Add status effect messages to battle log
         if (endOfTurnResult.playerEffects.length > 0) {
@@ -730,7 +748,8 @@ export class BattleController {
         playerGoesFirst,
         battleContext: battleContext ? {
           playerStatModifiers: battleContext.playerStatModifiers,
-          opponentStatModifiers: battleContext.opponentStatModifiers
+          opponentStatModifiers: battleContext.opponentStatModifiers,
+          weather: battleContext.weather
         } : undefined
       };
 

@@ -46,7 +46,7 @@ const PlayerSetup: React.FC = () => {
         dispatch({ type: 'SET_CURRENT_RUN', payload: activeRun });
       } catch (runError) {
         // No active run found, that's okay
-        console.log('No active run found for player');
+        console.error('No active run found for player');
       }
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Invalid credentials' });

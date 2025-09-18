@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, MoveLearnEvent } from '../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, MoveLearnEvent, StatModifiers } from '../types';
 import { MonsterService } from './monster.service';
 
 // Battle module services
@@ -10,6 +10,7 @@ import { BattleAIService } from './battle/battle-ai.service';
 import { ExperienceService } from './battle/experience.service';
 import { AbilityEffectsService } from './battle/ability-effects.service';
 import { TurnManagementService } from './battle/turn-management.service';
+import { WeatherService } from './battle/weather.service';
 
 @Injectable()
 export class BattleService {
@@ -21,7 +22,8 @@ export class BattleService {
     private battleAIService: BattleAIService,
     private experienceService: ExperienceService,
     private abilityEffectsService: AbilityEffectsService,
-    private turnManagementService: TurnManagementService
+    private turnManagementService: TurnManagementService,
+    private weatherService: WeatherService
   ) {}
 
   // Delegate to damage calculation service
@@ -98,12 +100,44 @@ export class BattleService {
     return this.battleAIService.generateEnemyAction(enemy);
   }
 
-  // Delegate to ability effects service
+  // Initialize battle context with abilities and weather
   initializeBattleContext(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance
   ): { battleContext: BattleContext; effects: string[] } {
-    return this.abilityEffectsService.initializeBattleContext(playerMonster, opponentMonster);
+    // Get ability effects first
+    const { battleContext, effects } = this.abilityEffectsService.initializeBattleContext(playerMonster, opponentMonster);
+    
+    // Generate and apply weather
+    const weather = this.weatherService.generateRandomWeather();
+    battleContext.weather = weather;
+    
+    // Add weather initialization message
+    if (weather) {
+      effects.push(this.weatherService.getWeatherDescription(weather.weather));
+      
+      // Apply weather-based stat boosts
+      const playerWeatherBoosts = this.weatherService.applyWeatherStatBoosts(playerMonster, weather);
+      const opponentWeatherBoosts = this.weatherService.applyWeatherStatBoosts(opponentMonster, weather);
+      
+      // Apply player weather boosts
+      if (Object.keys(playerWeatherBoosts).length > 0) {
+        Object.entries(playerWeatherBoosts).forEach(([stat, boost]) => {
+          const currentBoost = battleContext.playerStatModifiers[stat as keyof StatModifiers] || 0;
+          battleContext.playerStatModifiers[stat as keyof StatModifiers] = currentBoost + boost;
+        });
+      }
+      
+      // Apply opponent weather boosts
+      if (Object.keys(opponentWeatherBoosts).length > 0) {
+        Object.entries(opponentWeatherBoosts).forEach(([stat, boost]) => {
+          const currentBoost = battleContext.opponentStatModifiers[stat as keyof StatModifiers] || 0;
+          battleContext.opponentStatModifiers[stat as keyof StatModifiers] = currentBoost + boost;
+        });
+      }
+    }
+    
+    return { battleContext, effects };
   }
 
   // Legacy method for compatibility - now deprecated
@@ -115,8 +149,8 @@ export class BattleService {
   }
 
   // Delegate to ability effects service
-  applySpeedAbilities(monster: MonsterInstance): number {
-    return this.abilityEffectsService.applySpeedAbilities(monster);
+  applySpeedAbilities(monster: MonsterInstance, weather?: any): number {
+    return this.abilityEffectsService.applySpeedAbilities(monster, weather);
   }
 
   // Delegate to status effect service
@@ -133,12 +167,20 @@ export class BattleService {
   }
 
   // Delegate to turn management service
-  processEndOfTurn(playerMonster: MonsterInstance, opponentMonster: MonsterInstance) {
-    return this.turnManagementService.processEndOfTurn(playerMonster, opponentMonster);
+  processEndOfTurn(
+    playerMonster: MonsterInstance, 
+    opponentMonster: MonsterInstance,
+    battleContext?: BattleContext
+  ) {
+    return this.turnManagementService.processEndOfTurn(playerMonster, opponentMonster, battleContext);
   }
 
-  determineTurnOrder(playerMonster: MonsterInstance, opponentMonster: MonsterInstance): 'player' | 'opponent' {
-    return this.turnManagementService.determineTurnOrder(playerMonster, opponentMonster);
+  determineTurnOrder(
+    playerMonster: MonsterInstance, 
+    opponentMonster: MonsterInstance,
+    battleContext?: BattleContext
+  ): 'player' | 'opponent' {
+    return this.turnManagementService.determineTurnOrder(playerMonster, opponentMonster, battleContext);
   }
 
   checkBattleEnd(playerMonster: MonsterInstance, opponentMonster: MonsterInstance) {

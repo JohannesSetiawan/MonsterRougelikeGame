@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleContext, StatModifiers } from '../../types';
+import { MonsterInstance, BattleContext, StatModifiers, Weather, WeatherCondition } from '../../types';
 import { MonsterService } from '../monster.service';
 
 @Injectable()
@@ -48,7 +48,7 @@ export class AbilityEffectsService {
   }
 
   // Apply speed-based abilities
-  applySpeedAbilities(monster: MonsterInstance): number {
+  applySpeedAbilities(monster: MonsterInstance, weather?: WeatherCondition): number {
     const abilityData = this.monsterService.getAbilityData(monster.ability);
     if (!abilityData) return monster.stats.speed;
 
@@ -56,8 +56,10 @@ export class AbilityEffectsService {
 
     switch (abilityData.effect) {
       case 'speed_boost_water':
-        // Swift Swim: Double speed in water environments (for now, just a 50% boost)
-        modifiedSpeed = Math.floor(modifiedSpeed * 1.5);
+        // Swift Swim: Double speed in rain weather
+        if (weather?.weather === Weather.RAIN) {
+          modifiedSpeed = Math.floor(modifiedSpeed * 2.0); // Double speed in rain
+        }
         break;
         
       default:

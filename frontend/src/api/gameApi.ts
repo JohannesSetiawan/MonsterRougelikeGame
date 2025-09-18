@@ -176,6 +176,7 @@ export const gameApi = {
     battleContext?: {
       playerStatModifiers?: any;
       opponentStatModifiers?: any;
+      weather?: any;
     },
     playerGoesFirst?: boolean
   ): Promise<BattleActionResponse> => {

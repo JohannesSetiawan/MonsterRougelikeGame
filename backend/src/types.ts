@@ -94,6 +94,20 @@ export enum StatusEffect {
   CONFUSION = 'confusion'
 }
 
+export enum Weather {
+  HARSH_SUNLIGHT = 'harsh_sunlight',
+  RAIN = 'rain',
+  SANDSTORM = 'sandstorm',
+  HAIL = 'hail',
+  FOG = 'fog',
+  STRONG_WINDS = 'strong_winds'
+}
+
+export interface WeatherCondition {
+  weather: Weather;
+  turnsRemaining?: number; // Optional: for weather with limited duration
+}
+
 export interface StatusCondition {
   effect: StatusEffect;
   duration?: number; // For effects that can last multiple turns
@@ -256,6 +270,7 @@ export interface BattleContext {
   opponentMonster: MonsterInstance;
   playerStatModifiers: StatModifiers;
   opponentStatModifiers: StatModifiers;
+  weather?: WeatherCondition;
 }
 
 // Type effectiveness chart

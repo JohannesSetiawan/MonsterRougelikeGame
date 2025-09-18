@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { MonsterInstance, BattleContext, MoveCategory, TYPE_EFFECTIVENESS, StatStageCalculator } from '../../types';
 import { MonsterService } from '../monster.service';
 import { StatusEffectService } from './status-effect.service';
+import { WeatherService } from './weather.service';
 
 @Injectable()
 export class DamageCalculationService {
   constructor(
     private monsterService: MonsterService,
-    private statusEffectService: StatusEffectService
+    private statusEffectService: StatusEffectService,
+    private weatherService: WeatherService
   ) {}
 
   calculateDamage(
@@ -100,7 +102,17 @@ export class DamageCalculationService {
     // Type effectiveness
     let effectiveness = 1;
     for (const defenderType of defenderData.type) {
-      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+      const baseEffectiveness = TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+      // Apply weather modifications to type effectiveness
+      const weatherModifiedEffectiveness = battleContext?.weather 
+        ? this.weatherService.getWeatherTypeEffectivenessMultiplier(
+            move.type, 
+            defenderType, 
+            baseEffectiveness, 
+            battleContext.weather
+          )
+        : baseEffectiveness;
+      effectiveness *= weatherModifiedEffectiveness;
     }
 
     // STAB (Same Type Attack Bonus)
@@ -114,12 +126,17 @@ export class DamageCalculationService {
     const isCritical = Math.random() < criticalHitChance;
     const criticalMultiplier = isCritical ? 2.0 : 1.0;
     
+    // Weather power multiplier
+    const weatherMultiplier = battleContext?.weather 
+      ? this.weatherService.getWeatherMovePowerMultiplier(move, battleContext.weather)
+      : 1.0;
+
     // Random factor (85-100%)
     const randomFactor = (Math.random() * 0.15) + 0.85;
 
     // Damage calculation
     const baseDamage = ((levelFactor * move.power * attack / defense) / 50 + 2);
-    const finalDamage = Math.floor(baseDamage * stab * effectiveness * criticalMultiplier * randomFactor);
+    const finalDamage = Math.floor(baseDamage * stab * effectiveness * criticalMultiplier * weatherMultiplier * randomFactor);
 
     return { damage: Math.max(1, finalDamage), isCritical };
   }

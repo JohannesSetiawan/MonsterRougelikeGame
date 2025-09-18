@@ -3,13 +3,15 @@ import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECT
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
+import { WeatherService } from './weather.service';
 
 @Injectable()
 export class BattleActionsService {
   constructor(
     private monsterService: MonsterService,
     private damageCalculationService: DamageCalculationService,
-    private statusEffectService: StatusEffectService
+    private statusEffectService: StatusEffectService,
+    private weatherService: WeatherService
   ) {}
 
   processBattleAction(
@@ -128,9 +130,13 @@ export class BattleActionsService {
       };
     }
 
-    // Check accuracy
+    // Check accuracy with weather effects
+    const weatherAccuracyMultiplier = battleContext?.weather 
+      ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+      : 1.0;
+    const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
     const hitChance = Math.random() * 100;
-    if (hitChance > move.accuracy) {
+    if (hitChance > effectiveAccuracy) {
       return { 
         success: false, 
         effects: [`${attacker.name} used ${move.name}, but it missed!`] 
@@ -369,6 +375,10 @@ export class BattleActionsService {
         return { applied: confusionResult.success, message: confusionResult.message };
       
       case 'frostbite_chance':
+        // Check if weather prevents this status effect
+        if (battleContext?.weather && this.weatherService.shouldPreventStatusEffect('frostbite', battleContext.weather)) {
+          return { applied: false, message: `${actualTarget.name} cannot be frozen in this weather!` };
+        }
         const frostbiteResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.FROSTBITE);
         return { applied: frostbiteResult.success, message: frostbiteResult.message };
       

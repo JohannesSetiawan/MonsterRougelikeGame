@@ -50,6 +50,20 @@ export enum StatusEffect {
   CONFUSION = 'confusion'
 }
 
+export enum Weather {
+  HARSH_SUNLIGHT = 'harsh_sunlight',
+  RAIN = 'rain',
+  SANDSTORM = 'sandstorm',
+  HAIL = 'hail',
+  FOG = 'fog',
+  STRONG_WINDS = 'strong_winds'
+}
+
+export interface WeatherCondition {
+  weather: Weather;
+  turnsRemaining?: number;
+}
+
 export interface StatusCondition {
   effect: StatusEffect;
   duration?: number;
@@ -260,6 +274,7 @@ export interface BattleActionResponse {
   battleContext?: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
+    weather?: WeatherCondition;
   };
 }
 
@@ -271,5 +286,6 @@ export interface BattleInitResponse {
   battleContext: {
     playerStatModifiers: StatModifiers;
     opponentStatModifiers: StatModifiers;
+    weather?: WeatherCondition;
   };
 }

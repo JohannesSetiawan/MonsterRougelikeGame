@@ -16,6 +16,7 @@ import BattleActions from './BattleActions';
 import MonsterSwitchModal from './MonsterSwitchModal';
 import MoveLearningModal from './MoveLearningModal';
 import MoveLearnedNotification from './MoveLearnedNotification';
+import WeatherDisplay from './WeatherDisplay';
 
 const BattleInterface: React.FC = () => {
   const { state } = useGame();
@@ -188,6 +189,9 @@ const BattleInterface: React.FC = () => {
             shouldDeferUpdates={isAnyModalOpen}
           />
         </div>
+
+        {/* Weather Display */}
+        <WeatherDisplay weather={battleContext?.weather} />
 
         {/* Turn Order Display */}
         <TurnOrderDisplay
