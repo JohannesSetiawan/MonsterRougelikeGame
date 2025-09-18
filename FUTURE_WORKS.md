@@ -4,11 +4,9 @@ This document contains all features that are not implemented, have default/place
 
 ## 🎮 Core Game Systems
 
-### Weather System
-- **Status**: Not implemented (mentioned in FUTURE_FEATURE.md)
-- **Description**: Weather effects that modify battle conditions
-- **Location**: TBA
-- **Impact**: Would affect move effectiveness, abilities like Swift Swim
+### Environtmen system
+- Cave, mountain, sea, lake, forest, grassland, city, etc.
+- affect which monster can be ecountered and some abilities like swift swim (only activated on lake or sea)
 
 ### Terrain System
 - **Status**: Not implemented (mentioned in FUTURE_FEATURE.md)
@@ -42,8 +40,6 @@ This document contains all features that are not implemented, have default/place
   - Weather-dependent move effects
   - Terrain-dependent move effects
   - Complex status effect interactions
-  - Critical hit system improvements
-  - More status effects beyond burn/poison/paralysis
 
 ### Monster Data Expansion
 - **Status**: Limited to 4 monsters
@@ -60,7 +56,6 @@ This document contains all features that are not implemented, have default/place
 - **File**: `backend/src/data/moves.json`
 - **Current**: Only 11 moves total
 - **Missing**:
-  - Status moves (stat boosters, status inflictors)
   - Multi-hit moves
   - Healing moves
   - Recoil moves
