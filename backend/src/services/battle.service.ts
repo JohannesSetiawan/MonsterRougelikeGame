@@ -140,14 +140,6 @@ export class BattleService {
     return { battleContext, effects };
   }
 
-  // Legacy method for compatibility - now deprecated
-  applyBattleStartEffects(
-    playerMonster: MonsterInstance, 
-    opponentMonster: MonsterInstance
-  ): string[] {
-    return this.abilityEffectsService.applyBattleStartEffects(playerMonster, opponentMonster);
-  }
-
   // Delegate to ability effects service
   applySpeedAbilities(monster: MonsterInstance, weather?: any): number {
     return this.abilityEffectsService.applySpeedAbilities(monster, weather);

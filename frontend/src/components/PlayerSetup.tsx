@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { gameApi } from '../api/gameApi';
+import { logger } from '../utils/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-const PlayerSetup: React.FC = () => {
+const PlayerSetup = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -46,7 +47,7 @@ const PlayerSetup: React.FC = () => {
         dispatch({ type: 'SET_CURRENT_RUN', payload: activeRun });
       } catch (runError) {
         // No active run found, that's okay
-        console.error('No active run found for player');
+        logger.debug('No active run found for player', 'PlayerSetup');
       }
     } catch (error: any) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Invalid credentials' });

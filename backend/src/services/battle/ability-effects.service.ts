@@ -38,15 +38,6 @@ export class AbilityEffectsService {
     return { battleContext, effects };
   }
 
-  // Legacy method for compatibility - now deprecated
-  applyBattleStartEffects(
-    playerMonster: MonsterInstance, 
-    opponentMonster: MonsterInstance
-  ): string[] {
-    const result = this.initializeBattleContext(playerMonster, opponentMonster);
-    return result.effects;
-  }
-
   // Apply speed-based abilities
   applySpeedAbilities(monster: MonsterInstance, weather?: WeatherCondition): number {
     const abilityData = this.monsterService.getAbilityData(monster.ability);

@@ -3,6 +3,7 @@ import { BattleService } from '../services/battle.service';
 import { GameService } from '../services/game.service';
 import { MonsterService } from '../services/monster.service';
 import { BattleAction, MonsterInstance, StatStageCalculator } from '../types';
+import { AppLogger } from '../utils/logger';
 
 @Controller('battle')
 export class BattleController {
@@ -799,7 +800,7 @@ export class BattleController {
       await this.gameService.savePlayerProgress(playerId);
       effects.push('💾 Progress automatically saved!');
     } catch (error) {
-      console.error('Autosave failed:', error);
+      AppLogger.error('Autosave failed:', error, 'BattleController');
       effects.push('⚠️ Autosave failed - please save manually');
     }
   }

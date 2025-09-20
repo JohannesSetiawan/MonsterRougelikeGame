@@ -44,7 +44,7 @@ export const useModalState = () => {
   };
 };
 
-export const ModalStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ModalStateProvider = ({ children }: { children: React.ReactNode }) => {
   const modalState = useModalState();
   
   return (

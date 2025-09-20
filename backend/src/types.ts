@@ -131,11 +131,6 @@ export interface GameRun {
   endedAt?: Date;
   permanentItems?: string[]; // Array of permanent item IDs
   temporaryEffects?: {
-    shinyBoost?: {
-      active: boolean;
-      duration: number;
-      multiplier: number;
-    };
     statBoosts?: {
       attack?: number;
       defense?: number;

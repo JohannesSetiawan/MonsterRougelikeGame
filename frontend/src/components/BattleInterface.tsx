@@ -1,9 +1,10 @@
-import React, { useState, memo, useCallback } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { useGame } from '../context/GameContext';
 import { useBattleState } from '../hooks/useBattleState';
 import { useBattleActions } from '../hooks/useBattleActions';
 import { useBattleInitialization } from '../hooks/useBattleInitialization';
 import { useMoveLearning } from '../hooks/useMoveLearning';
+import { logger } from '../utils/logger';
 import ItemBag from './ItemBag';
 import MonsterStatsModal from './MonsterStatsModal';
 import MoveInfo from './MoveInfo';
@@ -18,7 +19,7 @@ import MoveLearningModal from './MoveLearningModal';
 import MoveLearnedNotification from './MoveLearnedNotification';
 import WeatherDisplay from './WeatherDisplay';
 
-const BattleInterface: React.FC = () => {
+const BattleInterface = () => {
   const { state } = useGame();
   const [showItemBag, setShowItemBag] = useState(false);
   const [showPlayerStats, setShowPlayerStats] = useState(false);
@@ -149,7 +150,7 @@ const BattleInterface: React.FC = () => {
         moveToReplace
       );
     } catch (error) {
-      console.error('Error handling move learning:', error);
+      logger.error('Error handling move learning:', error, 'BattleInterface');
     }
   };
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Weather } from '../api/types';
 import type { WeatherCondition } from '../api/types';
 
@@ -75,7 +74,7 @@ const getWeatherInfo = (weather: Weather): WeatherInfo => {
   }
 };
 
-const WeatherDisplay: React.FC<WeatherDisplayProps> = ({ weather }) => {
+const WeatherDisplay = ({ weather }: WeatherDisplayProps) => {
   if (!weather) {
     return null; // Don't show anything if there's no weather
   }

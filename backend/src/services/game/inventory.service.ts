@@ -299,18 +299,6 @@ export class InventoryService {
         }
         break;
 
-      case 'boost_shiny_rate':
-        // Legacy temporary effect (keeping for backward compatibility)
-        if (!run.temporaryEffects) run.temporaryEffects = {};
-        run.temporaryEffects.shinyBoost = {
-          active: true,
-          duration: 10, // 10 encounters
-          multiplier: 5 // 5x shiny rate
-        };
-        success = true;
-        message = 'Shiny encounter rate increased for the next 10 encounters!';
-        break;
-
       case 'permanent_shiny_boost':
         // Add permanent luck charm effect
         if (!run.permanentItems) run.permanentItems = [];

@@ -60,36 +60,8 @@ export class EncounterService {
       const luckCharmCount = run.permanentItems.filter(item => item === 'luck_charm').length;
       shinyBoost *= Math.pow(2, luckCharmCount); // 2x multiplier per luck charm, stacks
     }
-    
-    // Check for temporary shiny boost (legacy)
-    if (run?.temporaryEffects?.shinyBoost?.active) {
-      shinyBoost *= run.temporaryEffects.shinyBoost.multiplier;
-      
-      // Decrease duration and deactivate if expired
-      run.temporaryEffects.shinyBoost.duration--;
-      if (run.temporaryEffects.shinyBoost.duration <= 0) {
-        run.temporaryEffects.shinyBoost.active = false;
-      }
-    }
 
     return shinyBoost;
-  }
-
-  applyTemporaryEffect(run: GameRun, effectType: string, duration: number, multiplier?: number): void {
-    if (!run.temporaryEffects) {
-      run.temporaryEffects = {};
-    }
-
-    switch (effectType) {
-      case 'shiny_boost':
-        run.temporaryEffects.shinyBoost = {
-          active: true,
-          duration,
-          multiplier: multiplier || 2
-        };
-        break;
-      // Add more temporary effects as needed
-    }
   }
 
   applyPermanentEffect(run: GameRun, effectType: string): void {
@@ -103,23 +75,5 @@ export class EncounterService {
         break;
       // Add more permanent effects as needed
     }
-  }
-
-
-
-  updateTemporaryEffects(run: GameRun): void {
-    if (!run.temporaryEffects) {
-      return;
-    }
-
-    // Update shiny boost duration
-    if (run.temporaryEffects.shinyBoost?.active) {
-      run.temporaryEffects.shinyBoost.duration--;
-      if (run.temporaryEffects.shinyBoost.duration <= 0) {
-        run.temporaryEffects.shinyBoost.active = false;
-      }
-    }
-
-    // Add more temporary effect updates as needed
   }
 }

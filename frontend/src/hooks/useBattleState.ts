@@ -1,31 +1,30 @@
-import { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import type { Move, StatModifiers, WeatherCondition } from '../api/types';
+
+type BattleLogEntry = {text: string, isCritical?: boolean};
+type BattleContextType = {
+  playerStatModifiers: StatModifiers;
+  opponentStatModifiers: StatModifiers;
+  weather?: WeatherCondition;
+} | null;
 
 interface BattleState {
   isProcessing: boolean;
-  battleLog: Array<{text: string, isCritical?: boolean}>;
+  battleLog: BattleLogEntry[];
   battleEnded: boolean;
   movesData: Record<string, Move>;
-  battleContext: {
-    playerStatModifiers: StatModifiers;
-    opponentStatModifiers: StatModifiers;
-    weather?: WeatherCondition;
-  } | null;
+  battleContext: BattleContextType;
   criticalHitEffect: 'player' | 'opponent' | null;
   playerGoesFirst: boolean;
   showTurnOrder: boolean;
 }
 
 interface UseBattleStateReturn extends BattleState {
-  setBattleLog: React.Dispatch<React.SetStateAction<Array<{text: string, isCritical?: boolean}>>>;
+  setBattleLog: React.Dispatch<React.SetStateAction<BattleLogEntry[]>>;
   setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>;
   setBattleEnded: React.Dispatch<React.SetStateAction<boolean>>;
   setMovesData: React.Dispatch<React.SetStateAction<Record<string, Move>>>;
-  setBattleContext: React.Dispatch<React.SetStateAction<{
-    playerStatModifiers: StatModifiers;
-    opponentStatModifiers: StatModifiers;
-    weather?: WeatherCondition;
-  } | null>>;
+  setBattleContext: React.Dispatch<React.SetStateAction<BattleContextType>>;
   setCriticalHitEffect: React.Dispatch<React.SetStateAction<'player' | 'opponent' | null>>;
   setPlayerGoesFirst: React.Dispatch<React.SetStateAction<boolean>>;
   setShowTurnOrder: React.Dispatch<React.SetStateAction<boolean>>;
