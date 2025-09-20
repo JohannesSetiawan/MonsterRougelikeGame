@@ -40,6 +40,45 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
     };
   };
 
+  // Check if player is committed to a two-turn move
+  const forcedMoveId = playerMonster.twoTurnMoveState?.phase === 'charging' 
+    ? playerMonster.twoTurnMoveState.moveId 
+    : null;
+
+  // Special handling for forced moves due to two-turn moves
+  if (forcedMoveId) {
+    const move = getMoveData(forcedMoveId);
+    return (
+      <Card className="lg:col-span-3 border-2 border-yellow-500/50 bg-yellow-950/20">
+        <CardHeader>
+          <CardTitle className="text-yellow-300">
+            Moves - Committed to Two-Turn Move
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center space-y-4">
+            <p className="text-yellow-200 text-sm">
+              You must continue with the charging move!
+            </p>
+            <div className="flex justify-center">
+              <Button
+                variant="default"
+                onClick={() => onAttack(forcedMoveId)}
+                disabled={isProcessing || battleEnded}
+                className="flex-col h-auto p-4 bg-yellow-600 hover:bg-yellow-700 border-yellow-500 min-w-[200px]"
+              >
+                <div className="font-semibold">{move.name}</div>
+                <div className="text-xs mt-1 opacity-80">
+                  ⚡ Executing charged attack!
+                </div>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="lg:col-span-3 border-2 border-primary/50">
       <CardHeader>

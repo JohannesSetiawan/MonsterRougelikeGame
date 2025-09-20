@@ -123,6 +123,33 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
               <StatusEffectsDisplay statusCondition={monster.statusCondition} />
             </div>
           )}
+
+          {/* Two-Turn Move State Display */}
+          {monster.twoTurnMoveState && (
+            <div className="space-y-1">
+              <span className={`${textColorSecondary} text-sm`}>Special State:</span>
+              <div className="flex flex-wrap gap-1">
+                {monster.twoTurnMoveState.phase === 'charging' && monster.twoTurnMoveState.semiInvulnerableState && (
+                  <Badge className={`${isPlayer ? 'bg-blue-500/20 text-blue-300 border-blue-500/50' : 'bg-red-500/20 text-red-300 border-red-500/50'} animate-pulse text-xs`}>
+                    {monster.twoTurnMoveState.semiInvulnerableState === 'flying' && '🌪️ Flying High'}
+                    {monster.twoTurnMoveState.semiInvulnerableState === 'underground' && '🕳️ Underground'}
+                    {monster.twoTurnMoveState.semiInvulnerableState === 'underwater' && '🌊 Underwater'}
+                    {monster.twoTurnMoveState.semiInvulnerableState === 'vanished' && '👻 Vanished'}
+                  </Badge>
+                )}
+                {monster.twoTurnMoveState.phase === 'charging' && !monster.twoTurnMoveState.semiInvulnerableState && (
+                  <Badge className={`${isPlayer ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50' : 'bg-orange-500/20 text-orange-300 border-orange-500/50'} animate-pulse text-xs`}>
+                    ⚡ Charging
+                  </Badge>
+                )}
+                {monster.twoTurnMoveState.phase === 'recharging' && (
+                  <Badge className={`${isPlayer ? 'bg-gray-500/20 text-gray-300 border-gray-500/50' : 'bg-gray-500/20 text-gray-300 border-gray-500/50'} text-xs`}>
+                    💤 Must Recharge
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

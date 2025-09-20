@@ -222,5 +222,128 @@
         "target": "user"
       }
     ]
+  },
+  "hyper_beam": {
+    "id": "hyper_beam",
+    "name": "Hyper Beam",
+    "type": "normal",
+    "category": "special",
+    "power": 150,
+    "accuracy": 90,
+    "pp": 5,
+    "description": "The user attacks the target with a powerful beam. The user must rest on the next turn to recharge.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "charging",
+      "chargingMessage": "is glowing with power!",
+      "rechargeRequired": true
+    }
+  },
+  "sky_attack": {
+    "id": "sky_attack",
+    "name": "Sky Attack",
+    "type": "flying",
+    "category": "physical",
+    "power": 140,
+    "accuracy": 90,
+    "pp": 5,
+    "description": "A second-turn attack move where critical hits land more easily. It may also cause the target to flinch.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "charging",
+      "chargingMessage": "is glowing with a bright light!"
+    },
+    "effects": [
+      {
+        "effect": "flinch_chance",
+        "chance": 100,
+        "target": "opponent"
+      }
+    ]
+  },
+  "fly": {
+    "id": "fly",
+    "name": "Fly",
+    "type": "flying",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 95,
+    "pp": 15,
+    "description": "The user soars up on the first turn, then strikes the target on the second turn.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "semi_invulnerable",
+      "chargingMessage": "flew up high!",
+      "semiInvulnerableState": "flying",
+      "counterMoves": ["gust", "hurricane", "sky_uppercut", "smack_down", "thunder", "twister"]
+    }
+  },
+  "dig": {
+    "id": "dig",
+    "name": "Dig",
+    "type": "ground",
+    "category": "physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "The user burrows underground on the first turn, then attacks on the second turn.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "semi_invulnerable",
+      "chargingMessage": "burrowed underground!",
+      "semiInvulnerableState": "underground",
+      "counterMoves": ["earthquake", "fissure", "magnitude"]
+    }
+  },
+  "dive": {
+    "id": "dive",
+    "name": "Dive",
+    "type": "water",
+    "category": "physical",
+    "power": 80,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "The user dives underwater on the first turn, then strikes on the second turn.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "semi_invulnerable",
+      "chargingMessage": "dove underwater!",
+      "semiInvulnerableState": "underwater",
+      "counterMoves": ["surf", "whirlpool"]
+    }
+  },
+  "phantom_force": {
+    "id": "phantom_force",
+    "name": "Phantom Force",
+    "type": "ghost",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 100,
+    "pp": 10,
+    "description": "The user vanishes somewhere, then strikes the target on the next turn. This move hits even if the target protects itself.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "semi_invulnerable",
+      "chargingMessage": "vanished instantly!",
+      "semiInvulnerableState": "vanished",
+      "counterMoves": []
+    }
+  },
+  "shadow_force": {
+    "id": "shadow_force",
+    "name": "Shadow Force",
+    "type": "ghost",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 100,
+    "pp": 5,
+    "description": "The user disappears, then strikes the target on the next turn. This move hits even if the target protects itself.",
+    "target": "opponent",
+    "twoTurnMove": {
+      "type": "semi_invulnerable",
+      "chargingMessage": "disappeared from sight!",
+      "semiInvulnerableState": "vanished",
+      "counterMoves": []
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory, MoveEffect } from '../../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory, MoveEffect, TwoTurnMoveType } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
@@ -64,6 +64,16 @@ export class BattleActionsService {
       };
     }
 
+    // Check if monster is in recharge phase
+    if (attacker.twoTurnMoveState?.phase === 'recharging') {
+      // Monster must recharge this turn
+      attacker.twoTurnMoveState = undefined; // Clear recharge state
+      return {
+        success: false,
+        effects: [`${attacker.name} must recharge!`]
+      };
+    }
+
     // Check if monster should skip turn due to status effects
     const skipResult = this.statusEffectService.shouldSkipTurn(attacker);
     if (skipResult.skip) {
@@ -77,6 +87,16 @@ export class BattleActionsService {
     
     if (!move) {
       return { success: false, effects: ['Move not found'] };
+    }
+
+    // Handle two-turn move continuation
+    if (attacker.twoTurnMoveState?.phase === 'charging' && attacker.twoTurnMoveState.moveId === moveId) {
+      return this.executeTwoTurnMoveSecondPhase(attacker, defender, move, battleContext);
+    }
+
+    // Handle new two-turn move
+    if (move.twoTurnMove) {
+      return this.initiateTwoTurnMoveFirstPhase(attacker, defender, move, battleContext);
     }
 
     // Check if the move has PP remaining
@@ -366,6 +386,194 @@ export class BattleActionsService {
     return this.processEffectByType(moveEffect.effect, actualTarget, isTargetPlayer, battleContext);
   }
 
+  private initiateTwoTurnMoveFirstPhase(
+    attacker: MonsterInstance,
+    defender: MonsterInstance,
+    move: any,
+    battleContext?: BattleContext
+  ): BattleResult {
+    // Check if the move has PP remaining
+    const remainingPP = attacker.movePP?.[move.id] || 0;
+    if (remainingPP <= 0) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
+      };
+    }
+
+    // Consume PP for the first turn
+    attacker.movePP[move.id] = Math.max(0, remainingPP - 1);
+
+    // Set up two-turn move state
+    attacker.twoTurnMoveState = {
+      moveId: move.id,
+      phase: 'charging',
+      semiInvulnerableState: move.twoTurnMove.semiInvulnerableState
+    };
+
+    const effects = [
+      `${attacker.name} used ${move.name}!`,
+      `${attacker.name} ${move.twoTurnMove.chargingMessage}`
+    ];
+
+    return {
+      success: true,
+      damage: 0,
+      isCritical: false,
+      effects,
+      battleEnded: false
+    };
+  }
+
+  private executeTwoTurnMoveSecondPhase(
+    attacker: MonsterInstance,
+    defender: MonsterInstance,
+    move: any,
+    battleContext?: BattleContext
+  ): BattleResult {
+    // Check if defender can be hit (semi-invulnerable state protection)
+    if (move.twoTurnMove.type === 'semi_invulnerable') {
+      const canHitSemiInvulnerable = this.canHitSemiInvulnerableTarget(
+        defender, 
+        move.id, 
+        move.twoTurnMove.counterMoves || []
+      );
+      
+      if (!canHitSemiInvulnerable.canHit) {
+        // Move misses due to semi-invulnerable state
+        attacker.twoTurnMoveState = undefined;
+        return {
+          success: false,
+          effects: [canHitSemiInvulnerable.reason || `${attacker.name} couldn't hit ${defender.name}!`]
+        };
+      }
+    }
+
+    // Check accuracy on the second turn
+    const weatherAccuracyMultiplier = battleContext?.weather 
+      ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+      : 1.0;
+    const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
+    const hitChance = Math.random() * 100;
+    
+    if (hitChance > effectiveAccuracy) {
+      attacker.twoTurnMoveState = undefined;
+      return { 
+        success: false, 
+        effects: [`${attacker.name}'s attack missed!`] 
+      };
+    }
+
+    const effects: string[] = [];
+
+    // Handle damaging moves
+    if (move.category !== 'status') {
+      const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, move.id, battleContext);
+      const newHp = Math.max(0, defender.currentHp - damage);
+      defender.currentHp = newHp;
+
+      if (isCritical) {
+        effects.push('Critical hit!');
+      }
+
+      effects.push(`It dealt ${damage} damage to ${defender.name}!`);
+
+      // Check for effectiveness messages
+      const defenderData = this.monsterService.getMonsterData(defender.monsterId);
+      let effectiveness = 1;
+      for (const defenderType of defenderData.type) {
+        effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+      }
+
+      if (effectiveness > 1) {
+        effects.push("It's super effective!");
+      } else if (effectiveness < 1) {
+        effects.push("It's not very effective...");
+      }
+
+      const battleEnded = newHp === 0;
+      if (battleEnded) {
+        effects.push(`${defender.name} fainted!`);
+      }
+
+      // Process move effects (like status conditions) for damaging moves - only if target didn't faint
+      this.processMoveEffects(move, attacker, defender, effects, battleEnded, battleContext);
+
+      // Handle recharge requirement
+      if (move.twoTurnMove.rechargeRequired) {
+        attacker.twoTurnMoveState = {
+          moveId: move.id,
+          phase: 'recharging'
+        };
+      } else {
+        attacker.twoTurnMoveState = undefined;
+      }
+
+      return {
+        success: true,
+        damage,
+        isCritical,
+        effects,
+        battleEnded,
+        winner: battleEnded ? 'player' : undefined
+      };
+    } else {
+      // Handle status moves
+      const anyEffectApplied = this.processMoveEffects(move, attacker, defender, effects, false, battleContext);
+      
+      if (!anyEffectApplied) {
+        effects.push(`But it failed!`);
+      }
+
+      attacker.twoTurnMoveState = undefined;
+
+      return {
+        success: anyEffectApplied,
+        damage: 0,
+        isCritical: false,
+        effects,
+        battleEnded: false
+      };
+    }
+  }
+
+  private canHitSemiInvulnerableTarget(
+    target: MonsterInstance, 
+    attackingMoveId: string, 
+    counterMoves: string[]
+  ): { canHit: boolean; reason?: string } {
+    // If target is not in semi-invulnerable state, can always hit
+    if (!target.twoTurnMoveState?.semiInvulnerableState) {
+      return { canHit: true };
+    }
+
+    // Check if attacking move is in counter moves list
+    if (counterMoves.includes(attackingMoveId)) {
+      return { canHit: true };
+    }
+
+    // Otherwise, can't hit
+    const state = target.twoTurnMoveState.semiInvulnerableState;
+    let reason = `${target.name} avoided the attack!`;
+    
+    switch (state) {
+      case 'flying':
+        reason = `${target.name} is too high to be hit!`;
+        break;
+      case 'underground':
+        reason = `${target.name} is underground and can't be hit!`;
+        break;
+      case 'underwater':
+        reason = `${target.name} is underwater and can't be hit!`;
+        break;
+      case 'vanished':
+        reason = `${target.name} is nowhere to be found!`;
+        break;
+    }
+
+    return { canHit: false, reason };
+  }
+
   private processEffectByType(effectType: string, actualTarget: MonsterInstance, isTargetPlayer: boolean, battleContext?: BattleContext): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
     switch (effectType) {
       case 'burn_chance':
@@ -537,6 +745,12 @@ export class BattleActionsService {
           };
         }
         return { applied: true, message: `${actualTarget.name}'s speed was raised!` };
+      
+      case 'flinch_chance':
+        // Flinching only works if the move hits and the target hasn't acted yet this turn
+        // For now, we'll just add it as a temporary status effect
+        // Note: Real flinching would require turn order tracking
+        return { applied: true, message: `${actualTarget.name} flinched!` };
       
       default:
         return { applied: true, message: 'UNDEFINED MOVE EFFECT' };

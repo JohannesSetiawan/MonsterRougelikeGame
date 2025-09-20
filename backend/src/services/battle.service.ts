@@ -11,6 +11,7 @@ import { ExperienceService } from './battle/experience.service';
 import { AbilityEffectsService } from './battle/ability-effects.service';
 import { TurnManagementService } from './battle/turn-management.service';
 import { WeatherService } from './battle/weather.service';
+import { TwoTurnMoveService } from './battle/two-turn-move.service';
 
 @Injectable()
 export class BattleService {
@@ -23,7 +24,8 @@ export class BattleService {
     private experienceService: ExperienceService,
     private abilityEffectsService: AbilityEffectsService,
     private turnManagementService: TurnManagementService,
-    private weatherService: WeatherService
+    private weatherService: WeatherService,
+    private twoTurnMoveService: TwoTurnMoveService
   ) {}
 
   // Delegate to damage calculation service
@@ -179,7 +181,24 @@ export class BattleService {
     return this.turnManagementService.checkBattleEnd(playerMonster, opponentMonster);
   }
 
+  // Delegate to two-turn move service
+  getForcedMove(monster: MonsterInstance): string | null {
+    return this.twoTurnMoveService.getForcedMove(monster);
+  }
 
+  mustRecharge(monster: MonsterInstance): boolean {
+    return this.twoTurnMoveService.mustRecharge(monster);
+  }
 
+  getTwoTurnMoveStatusMessage(monster: MonsterInstance): string | null {
+    return this.twoTurnMoveService.getStatusMessage(monster);
+  }
 
+  isSemiInvulnerable(monster: MonsterInstance): boolean {
+    return this.twoTurnMoveService.isSemiInvulnerable(monster);
+  }
+
+  isCommittedToTwoTurnMove(monster: MonsterInstance): boolean {
+    return this.twoTurnMoveService.isCommittedToTwoTurnMove(monster);
+  }
 }

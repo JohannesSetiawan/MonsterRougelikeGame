@@ -3,13 +3,15 @@ import { MonsterInstance, BattleContext } from '../../types';
 import { StatusEffectService } from './status-effect.service';
 import { WeatherService } from './weather.service';
 import { AbilityEffectsService } from './ability-effects.service';
+import { TwoTurnMoveService } from './two-turn-move.service';
 
 @Injectable()
 export class TurnManagementService {
   constructor(
     private statusEffectService: StatusEffectService,
     private weatherService: WeatherService,
-    private abilityEffectsService: AbilityEffectsService
+    private abilityEffectsService: AbilityEffectsService,
+    private twoTurnMoveService: TwoTurnMoveService
   ) {}
 
   /**
@@ -32,6 +34,10 @@ export class TurnManagementService {
     // Process natural recovery
     const playerRecovery = this.statusEffectService.processStatusRecovery(playerMonster);
     const opponentRecovery = this.statusEffectService.processStatusRecovery(opponentMonster);
+
+    // Process two-turn move end of turn effects
+    const playerTwoTurnEffects = this.twoTurnMoveService.processEndOfTurn(playerMonster);
+    const opponentTwoTurnEffects = this.twoTurnMoveService.processEndOfTurn(opponentMonster);
 
     // Process weather damage
     let playerWeatherDamage = 0;
@@ -69,10 +75,10 @@ export class TurnManagementService {
     }
 
     return {
-      playerEffects: [...playerStatusResult.effects, ...playerRecovery.effects, ...weatherEffects.filter(effect => 
+      playerEffects: [...playerStatusResult.effects, ...playerRecovery.effects, ...playerTwoTurnEffects, ...weatherEffects.filter(effect => 
         effect.includes(playerMonster.name) || (!effect.includes(opponentMonster.name) && !effect.includes('faded') && !effect.includes('stopped') && !effect.includes('subsided') && !effect.includes('cleared') && !effect.includes('died down'))
       )],
-      opponentEffects: [...opponentStatusResult.effects, ...opponentRecovery.effects, ...weatherEffects.filter(effect => 
+      opponentEffects: [...opponentStatusResult.effects, ...opponentRecovery.effects, ...opponentTwoTurnEffects, ...weatherEffects.filter(effect => 
         effect.includes(opponentMonster.name) || (!effect.includes(playerMonster.name) && (effect.includes('faded') || effect.includes('stopped') || effect.includes('subsided') || effect.includes('cleared') || effect.includes('died down')))
       )],
       playerDamage: playerStatusResult.damage + playerWeatherDamage,
@@ -144,5 +150,33 @@ export class TurnManagementService {
     }
 
     return { battleEnded: false };
+  }
+
+  /**
+   * Check if a monster is committed to a two-turn move and must use a specific move
+   */
+  getForcedMove(monster: MonsterInstance): string | null {
+    return this.twoTurnMoveService.getForcedMove(monster);
+  }
+
+  /**
+   * Check if a monster must recharge this turn
+   */
+  mustRecharge(monster: MonsterInstance): boolean {
+    return this.twoTurnMoveService.mustRecharge(monster);
+  }
+
+  /**
+   * Get the status message for a monster's two-turn move state
+   */
+  getTwoTurnMoveStatusMessage(monster: MonsterInstance): string | null {
+    return this.twoTurnMoveService.getStatusMessage(monster);
+  }
+
+  /**
+   * Check if a monster is in a semi-invulnerable state
+   */
+  isSemiInvulnerable(monster: MonsterInstance): boolean {
+    return this.twoTurnMoveService.isSemiInvulnerable(monster);
   }
 }

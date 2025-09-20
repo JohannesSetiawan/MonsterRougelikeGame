@@ -183,5 +183,71 @@
     "description": "The evolved form of Aquafin. Said to command the seas and control massive tidal waves.",
     "rarity": "rare",
     "growth_index": 2
+  },
+  "debug": {
+    "id": "debug",
+    "name": "DEBUG MONSTER ONLY!",
+    "type": [
+      "normal"
+    ],
+    "baseStats": {
+      "hp": 1000,
+      "attack": 70,
+      "defense": 50,
+      "specialAttack": 85,
+      "specialDefense": 60,
+      "speed": 75
+    },
+    "abilities": [
+      "intimidate"
+    ],
+    "learnableMoves": [
+      [
+        "scratch",
+        1
+      ],
+      [
+        "ember",
+        5
+      ],
+      [
+        "flame_burst",
+        13
+      ],
+      [
+        "blast_burns",
+        18
+      ],
+      [
+        "will_o_wisp",
+        23
+      ],
+      [
+        "confuse_ray",
+        24
+      ],
+      [
+        "sword_dance",
+        30
+      ],
+      [
+        "inferno",
+        35
+      ],[
+        "hyper_beam",
+        40
+      ],
+      [
+        "sky_attack",
+        45
+      ],
+      [
+        "phantom_force",
+        50
+      ]
+    ],
+    "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
+    "rarity": "uncommon",
+    "growth_index": 1
   }
 }

@@ -229,6 +229,8 @@ const BattleInterface = () => {
             isProcessing={isProcessing}
             battleEnded={battleEnded}
             canSwitch={canSwitch}
+            isCommittedToTwoTurnMove={playerMonster?.twoTurnMoveState?.phase === 'charging'}
+            mustRecharge={playerMonster?.twoTurnMoveState?.phase === 'recharging'}
           />
         </div>
 

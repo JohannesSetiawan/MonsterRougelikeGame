@@ -31,6 +31,25 @@ export interface MoveEffect {
   target: 'user' | 'opponent';
 }
 
+export enum TwoTurnMoveType {
+  CHARGING = 'charging',
+  SEMI_INVULNERABLE = 'semi_invulnerable'
+}
+
+export interface TwoTurnMoveData {
+  type: TwoTurnMoveType;
+  chargingMessage?: string;
+  rechargeRequired?: boolean;
+  semiInvulnerableState?: string;
+  counterMoves?: string[];
+}
+
+export interface TwoTurnMoveState {
+  moveId: string;
+  phase: 'charging' | 'executing' | 'recharging';
+  semiInvulnerableState?: string;
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -42,6 +61,7 @@ export interface Move {
   description: string;
   target?: 'user' | 'opponent'; // For moves without effects, to indicate basic targeting
   effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects
+  twoTurnMove?: TwoTurnMoveData; // Two-turn move data
 }
 
 export enum StatusEffect {
@@ -100,6 +120,7 @@ export interface MonsterInstance {
   experience: number;
   isShiny?: boolean;
   statusCondition?: StatusCondition; // Single status effect affecting this monster
+  twoTurnMoveState?: TwoTurnMoveState; // State for two-turn moves
   // Client-side only properties for display
   statModifiers?: StatModifiers;
 }

@@ -47,6 +47,19 @@ export interface MoveEffect {
   target: 'user' | 'opponent';
 }
 
+export enum TwoTurnMoveType {
+  CHARGING = 'charging',           // Moves like Hyper Beam, Sky Attack
+  SEMI_INVULNERABLE = 'semi_invulnerable' // Moves like Fly, Dig, Dive
+}
+
+export interface TwoTurnMoveData {
+  type: TwoTurnMoveType;
+  chargingMessage?: string;        // Message shown on charging turn
+  rechargeRequired?: boolean;      // Whether user must recharge after (like Hyper Beam)
+  semiInvulnerableState?: string;  // State during semi-invulnerable turn (e.g., 'flying', 'underground')
+  counterMoves?: string[];         // Moves that can hit during semi-invulnerable state
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -58,6 +71,7 @@ export interface Move {
   description: string;
   target?: 'user' | 'opponent'; // For moves without effects, to indicate basic targeting
   effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects
+  twoTurnMove?: TwoTurnMoveData; // Two-turn move data
 }
 
 export interface Monster {
@@ -70,6 +84,12 @@ export interface Monster {
   description: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
   growth_index: number;
+}
+
+export interface TwoTurnMoveState {
+  moveId: string;                  // The two-turn move being executed
+  phase: 'charging' | 'executing' | 'recharging'; // Current phase of the move
+  semiInvulnerableState?: string;  // State during semi-invulnerable phase
 }
 
 export interface MonsterInstance {
@@ -86,6 +106,7 @@ export interface MonsterInstance {
   experience: number;
   isShiny?: boolean;
   statusCondition?: StatusCondition; // Single status effect affecting this monster
+  twoTurnMoveState?: TwoTurnMoveState; // State for two-turn moves
 }
 
 export enum StatusEffect {

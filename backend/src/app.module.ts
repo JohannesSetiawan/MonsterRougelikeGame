@@ -33,7 +33,8 @@ import {
   ExperienceService,
   AbilityEffectsService,
   TurnManagementService,
-  WeatherService
+  WeatherService,
+  TwoTurnMoveService
 } from './services/battle';
 
 @Module({
@@ -80,7 +81,8 @@ import {
     ExperienceService,
     AbilityEffectsService,
     TurnManagementService,
-    WeatherService
+    WeatherService,
+    TwoTurnMoveService
   ],
 })
 export class AppModule {}
