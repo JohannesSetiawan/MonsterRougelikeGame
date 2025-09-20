@@ -19,9 +19,13 @@
     "accuracy": 100,
     "pp": 25,
     "description": "The target is attacked with small flames that may also leave the target with a burn.",
-    "effect": "burn_chance",
-    "effect_chance": 100,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "burn_chance",
+        "chance": 10,
+        "target": "opponent"
+      }
+    ]
   },
   "flame_burst": {
     "id": "flame_burst",
@@ -54,9 +58,13 @@
     "accuracy": 100,
     "pp": 20,
     "description": "A spray of bubbles is forcefully ejected at the target.",
-    "effect": "speed_lower_chance",
-    "effect_chance": 10,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "speed_lower_chance",
+        "chance": 10,
+        "target": "opponent"
+      }
+    ]
   },
   "hydro_pump": {
     "id": "hydro_pump",
@@ -78,9 +86,13 @@
     "accuracy": 100,
     "pp": 10,
     "description": "The user unleashes a powerful blast of scorching flames that has a chance to burn the target.",
-    "effect": "burn_chance",
-    "effect_chance": 15,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "burn_chance",
+        "chance": 15,
+        "target": "opponent"
+      }
+    ]
   },
   "poison_sting": {
     "id": "poison_sting",
@@ -91,9 +103,13 @@
     "accuracy": 100,
     "pp": 20,
     "description": "The user stabs the target with a poisonous stinger that may poison the target.",
-    "effect": "poison_chance",
-    "effect_chance": 20,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "poison_chance",
+        "chance": 20,
+        "target": "opponent"
+      }
+    ]
   },
   "thunder_wave": {
     "id": "thunder_wave",
@@ -104,9 +120,13 @@
     "accuracy": 90,
     "pp": 20,
     "description": "A weak electric charge that paralyzes the target.",
-    "effect": "paralyze_chance",
-    "effect_chance": 100,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "paralyze_chance",
+        "chance": 100,
+        "target": "opponent"
+      }
+    ]
   },
   "sleep_powder": {
     "id": "sleep_powder",
@@ -117,9 +137,13 @@
     "accuracy": 75,
     "pp": 15,
     "description": "A cloud of sleep-inducing powder that may put the target to sleep.",
-    "effect": "sleep_chance",
-    "effect_chance": 100,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "sleep_chance",
+        "chance": 100,
+        "target": "opponent"
+      }
+    ]
   },
   "confuse_ray": {
     "id": "confuse_ray",
@@ -130,9 +154,13 @@
     "accuracy": 100,
     "pp": 10,
     "description": "A sinister ray that confuses the target.",
-    "effect": "confusion_chance",
-    "effect_chance": 100,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "confusion_chance",
+        "chance": 100,
+        "target": "opponent"
+      }
+    ]
   },
   "will_o_wisp": {
     "id": "will_o_wisp",
@@ -143,9 +171,13 @@
     "accuracy": 100,
     "pp": 10,
     "description": "A sinister flame that burns the target.",
-    "effect": "burn_chance",
-    "effect_chance": 100,
-    "target": "opponent"
+    "effects": [
+      {
+        "effect": "burn_chance",
+        "chance": 100,
+        "target": "opponent"
+      }
+    ]
   },
   "sword_dance": {
     "id": "sword_dance",
@@ -156,8 +188,39 @@
     "accuracy": 100,
     "pp": 10,
     "description": "A dance that sharpens the user's attack.",
-    "effect": "attack_boost",
-    "effect_chance": 100,
-    "target": "user"
+    "effects": [
+      {
+        "effect": "attack_boost",
+        "chance": 100,
+        "target": "user"
+      }
+    ]
+  },
+  "inferno": {
+    "id": "inferno",
+    "name": "Inferno",
+    "type": "fire",
+    "category": "special",
+    "power": 100,
+    "accuracy": 100,
+    "pp": 5,
+    "description": "The user attacks with an intense blast of all-consuming fire that may burn the target, lower its special defense, and boost the user's special attack.",
+    "effects": [
+      {
+        "effect": "burn_chance",
+        "chance": 100,
+        "target": "opponent"
+      },
+      {
+        "effect": "special_defense_lower_chance",
+        "chance": 20,
+        "target": "opponent"
+      },
+      {
+        "effect": "special_attack_boost",
+        "chance": 20,
+        "target": "user"
+      }
+    ]
   }
 }

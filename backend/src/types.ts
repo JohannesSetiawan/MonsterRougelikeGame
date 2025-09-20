@@ -41,6 +41,12 @@ export interface Ability {
   effect: string;
 }
 
+export interface MoveEffect {
+  effect: string;
+  chance: number;
+  target: 'user' | 'opponent';
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -50,9 +56,8 @@ export interface Move {
   accuracy: number;
   pp: number;
   description: string;
-  effect?: string;
-  effect_chance?: number;
-  target?: 'user' | 'opponent';
+  target?: 'user' | 'opponent'; // For moves without effects, to indicate basic targeting
+  effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects
 }
 
 export interface Monster {

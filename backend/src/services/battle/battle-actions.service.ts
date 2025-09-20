@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory } from '../../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory, MoveEffect } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
@@ -149,20 +149,17 @@ export class BattleActionsService {
 
     // Handle status moves differently from damaging moves
     if (move.category === MoveCategory.STATUS) {
-      // For status moves, only process the status effect
-      if (move.effect && move.effect_chance) {
-        const effectResult = this.processMoveEffect(move, attacker, defender, battleContext);
-        if (effectResult.applied) {
-          effects.push(effectResult.message);
-        } else {
-          // Status move failed - this happens when target already has a status condition
-          effects.push(`But it failed!`);
-          return {
-            success: false,
-            effects,
-            battleEnded: false
-          };
-        }
+      // For status moves, process all effects
+      const anyEffectApplied = this.processMoveEffects(move, attacker, defender, effects, false, battleContext);
+      
+      if (!anyEffectApplied) {
+        // Status move failed - this happens when target already has a status condition or all effects failed
+        effects.push(`But it failed!`);
+        return {
+          success: false,
+          effects,
+          battleEnded: false
+        };
       }
 
       return {
@@ -204,12 +201,7 @@ export class BattleActionsService {
     }
 
     // Process move effects (like status conditions) for damaging moves - only if target didn't faint
-    if (move.effect && move.effect_chance && !battleEnded) {
-      const effectResult = this.processMoveEffect(move, attacker, defender, battleContext);
-      if (effectResult.applied) {
-        effects.push(effectResult.message);
-      }
-    }
+    this.processMoveEffects(move, attacker, defender, effects, battleEnded, battleContext);
 
     return {
       success: true,
@@ -337,23 +329,45 @@ export class BattleActionsService {
     return Math.min(95, finalRate);
   }
 
-  private processMoveEffect(move: any, attacker: MonsterInstance, defender: MonsterInstance, battleContext?: BattleContext): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
-    if (!move.effect || !move.effect_chance) {
-      return { applied: false, message: '' };
+  private processMoveEffects(move: any, attacker: MonsterInstance, defender: MonsterInstance, effects: string[], battleEnded: boolean, battleContext?: BattleContext): boolean {
+    let anyEffectApplied = false;
+
+    // Process multi-effect system
+    if (move.effects && Array.isArray(move.effects)) {
+      for (const moveEffect of move.effects) {
+        // Skip effects that target fainted monsters (except if they target the user and user isn't fainted)
+        if (battleEnded && moveEffect.target === 'opponent') {
+          continue;
+        }
+
+        const effectResult = this.processSingleMoveEffect(moveEffect, attacker, defender, battleContext);
+        if (effectResult.applied) {
+          effects.push(effectResult.message);
+          anyEffectApplied = true;
+        }
+      }
     }
 
-    // Determine the actual target based on move.target field
-    const actualTarget = move.target === 'user' ? attacker : defender;
+    return anyEffectApplied;
+  }
+
+  private processSingleMoveEffect(moveEffect: any, attacker: MonsterInstance, defender: MonsterInstance, battleContext?: BattleContext): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
+    // Determine the actual target based on moveEffect.target field
+    const actualTarget = moveEffect.target === 'user' ? attacker : defender;
     const isTargetPlayer = battleContext ? battleContext.playerMonster.id === actualTarget.id : false;
 
     // Roll for effect chance
     const roll = Math.random() * 100;
-    if (roll > move.effect_chance) {
+    if (roll > moveEffect.chance) {
       return { applied: false, message: '' };
     }
 
     // Apply the effect based on type
-    switch (move.effect) {
+    return this.processEffectByType(moveEffect.effect, actualTarget, isTargetPlayer, battleContext);
+  }
+
+  private processEffectByType(effectType: string, actualTarget: MonsterInstance, isTargetPlayer: boolean, battleContext?: BattleContext): { applied: boolean; message: string; statChange?: { stat: string; stages: number } } {
+    switch (effectType) {
       case 'burn_chance':
         const burnResult = this.statusEffectService.addStatusEffect(actualTarget, StatusEffect.BURN);
         return { applied: burnResult.success, message: burnResult.message };
@@ -528,4 +542,5 @@ export class BattleActionsService {
         return { applied: true, message: 'UNDEFINED MOVE EFFECT' };
     }
   }
+
 }
