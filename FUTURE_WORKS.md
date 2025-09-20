@@ -26,8 +26,6 @@ This document contains all features that are not implemented, have default/place
 - **Status**: Incomplete implementations
 - **File**: `backend/src/services/battle/ability-effects.service.ts`
 - **Issues**:
-  - Swift Swim: Currently only 50% speed boost instead of proper water environment detection
-  - Only 4 basic abilities implemented (Blaze, Torrent, Intimidate, Swift Swim)
   - No complex ability interactions
   - Legacy compatibility methods marked as deprecated
 

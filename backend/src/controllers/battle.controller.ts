@@ -291,6 +291,9 @@ export class BattleController {
           this.gameService.addMonsterToTeam(runId, body.opponentMonster);
           battleEnded = true;
           winner = 'player';
+          
+          // Autosave when monster is caught
+          await this.autosavePlayerProgress(run, allEffects);
         }
       }
 
@@ -298,6 +301,9 @@ export class BattleController {
         if (playerResult.success) {
           battleEnded = true;
           allEffects = [...(playerResult.effects || [])];
+          
+          // Autosave when fleeing successfully
+          await this.autosavePlayerProgress(run, allEffects);
         } else {
           // Flee failed, continue with enemy turn
           allEffects = [...(playerResult.effects || [])];
@@ -438,6 +444,9 @@ export class BattleController {
                 this.gameService.addMonsterToTeam(runId, body.opponentMonster);
                 battleEnded = true;
                 winner = 'player';
+                
+                // Autosave when monster is caught with monster ball
+                await this.autosavePlayerProgress(run, allEffects);
               }
               break;
 
@@ -456,6 +465,9 @@ export class BattleController {
                 this.gameService.addMonsterToTeam(runId, body.opponentMonster);
                 battleEnded = true;
                 winner = 'player';
+                
+                // Autosave when monster is caught with great ball
+                await this.autosavePlayerProgress(run, allEffects);
               }
               break;
 
@@ -474,6 +486,9 @@ export class BattleController {
                 this.gameService.addMonsterToTeam(runId, body.opponentMonster);
                 battleEnded = true;
                 winner = 'player';
+                
+                // Autosave when monster is caught with ultra ball
+                await this.autosavePlayerProgress(run, allEffects);
               }
               break;
 
@@ -490,6 +505,9 @@ export class BattleController {
               
               if (fleeResult.success) {
                 battleEnded = true;
+                
+                // Autosave when escaping with escape rope
+                await this.autosavePlayerProgress(run, allEffects);
               }
               break;
 
@@ -730,6 +748,11 @@ export class BattleController {
         allEffects.push(`Gained ${currencyReward} coins!`);
       }
 
+      // Autosave player progress when battle ends (win, lose, or catch)
+      if (battleEnded) {
+        await this.autosavePlayerProgress(run, allEffects);
+      }
+
       return {
         result: {
           success: playerResult?.success || false,
@@ -768,6 +791,17 @@ export class BattleController {
     return run.team.find(monster => 
       monster.id !== currentMonsterId && monster.currentHp > 0
     ) || null;
+  }
+
+  private async autosavePlayerProgress(run: any, effects: string[]): Promise<void> {
+    try {
+      const playerId = run.playerId;
+      await this.gameService.savePlayerProgress(playerId);
+      effects.push('💾 Progress automatically saved!');
+    } catch (error) {
+      console.error('Autosave failed:', error);
+      effects.push('⚠️ Autosave failed - please save manually');
+    }
   }
 
   private performAutoSwitch(
