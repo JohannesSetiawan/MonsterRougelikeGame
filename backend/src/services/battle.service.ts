@@ -186,9 +186,11 @@ export class BattleService {
   determineTurnOrder(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance,
+    playerMove?: { priority: number },
+    opponentMove?: { priority: number },
     battleContext?: BattleContext
   ): 'player' | 'opponent' {
-    return this.turnManagementService.determineTurnOrder(playerMonster, opponentMonster, battleContext);
+    return this.turnManagementService.determineTurnOrder(playerMonster, opponentMonster, playerMove, opponentMove, battleContext);
   }
 
   checkBattleEnd(playerMonster: MonsterInstance, opponentMonster: MonsterInstance) {

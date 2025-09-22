@@ -151,12 +151,38 @@ export class BattleController {
         // Add a message indicating catching has priority
         allEffects.push(`⚾ Catching attempts are made with priority!`);
       } else {
-        // Attacks and fleeing use weather-aware speed-based priority
+        // Attacks and fleeing use move priority first, then weather-aware speed-based priority
         if (body.playerGoesFirst !== undefined) {
           playerGoesFirst = body.playerGoesFirst;
         } else if (battleContext) {
-          // Use weather-aware turn order determination
-          const turnOrder = this.battleService.determineTurnOrder(playerMonster, body.opponentMonster, battleContext);
+          // Get move data to determine priority
+          let playerMove = null;  
+          let opponentMove = null;
+          
+          if (body.action.type === 'attack' && body.action.moveId) {
+            playerMove = this.monsterService.getMoveData(body.action.moveId);
+          }
+          
+          // For opponent move priority, we need to check if they have a forced move first
+          const forcedMoveId = this.battleService.getForcedMove(body.opponentMonster);
+          if (forcedMoveId) {
+            opponentMove = this.monsterService.getMoveData(forcedMoveId);
+          } else {
+            // Generate enemy action to get their move choice
+            const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+            if (enemyAction.type === 'attack' && enemyAction.moveId) {
+              opponentMove = this.monsterService.getMoveData(enemyAction.moveId);
+            }
+          }
+          
+          // Use priority-aware turn order determination
+          const turnOrder = this.battleService.determineTurnOrder(
+            playerMonster, 
+            body.opponentMonster, 
+            playerMove, 
+            opponentMove, 
+            battleContext
+          );
           playerGoesFirst = turnOrder === 'player';
         } else {
           // Fallback to basic speed comparison

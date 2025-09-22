@@ -20,14 +20,15 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
   isProcessing,
   battleEnded
 }) => {
-  const getMoveData = (moveId: string): { name: string; power: number; accuracy: number; pp: number } => {
+  const getMoveData = (moveId: string): { name: string; power: number; accuracy: number; pp: number; priority: number } => {
     // Use loaded moves data from API if available
     if (movesData[moveId]) {
       return {
         name: movesData[moveId].name,
         power: movesData[moveId].power,
         accuracy: movesData[moveId].accuracy,
-        pp: movesData[moveId].pp
+        pp: movesData[moveId].pp,
+        priority: movesData[moveId].priority || 0
       };
     }
     
@@ -36,7 +37,8 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
       name: moveId.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) + ' (Loading...)', 
       power: 0, 
       accuracy: 0,
-      pp: 0
+      pp: 0,
+      priority: 0
     };
   };
 
@@ -110,7 +112,16 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
                   disabled={isProcessing || battleEnded || isOutOfPP}
                   className={`flex-1 flex-col h-auto p-4 ${isOutOfPP ? 'opacity-50' : ''}`}
                 >
-                  <div className="font-semibold">{move.name}</div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="font-semibold">{move.name}</span>
+                    {move.priority !== 0 && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
+                        move.priority > 0 ? 'bg-purple-500 text-white' : 'bg-orange-500 text-white'
+                      }`}>
+                        {move.priority > 0 ? `+${move.priority}` : move.priority}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs mt-1 opacity-80">
                     PWR: {move.power} | ACC: {move.accuracy}% | PP: {currentPP}/{maxPP}
                   </div>

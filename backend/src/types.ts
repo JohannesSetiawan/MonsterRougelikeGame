@@ -101,6 +101,7 @@ export interface Move {
   power: number;
   accuracy: number;
   pp: number;
+  priority: number; // Move priority (-7 to +5, where 0 is normal priority)
   description: string;
   target?: 'user' | 'opponent'; // For moves without effects, to indicate basic targeting
   effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects

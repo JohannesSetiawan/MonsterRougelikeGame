@@ -130,23 +130,31 @@ const MoveInfo: React.FC<MoveInfoProps> = ({ moveId, onClose }) => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <Card>
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-3 text-center">
                 <div className="text-xs text-muted-foreground font-semibold uppercase mb-1">Power</div>
                 <div className="text-lg font-bold text-red-500">{getPowerDisplay(moveData.power)}</div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-3 text-center">
                 <div className="text-xs text-muted-foreground font-semibold uppercase mb-1">Accuracy</div>
                 <div className="text-lg font-bold text-green-500">{moveData.accuracy}%</div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 text-center">
+              <CardContent className="p-3 text-center">
                 <div className="text-xs text-muted-foreground font-semibold uppercase mb-1">PP</div>
                 <div className="text-lg font-bold text-blue-500">{moveData.pp}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <div className="text-xs text-muted-foreground font-semibold uppercase mb-1">Priority</div>
+                <div className={`text-lg font-bold ${moveData.priority > 0 ? 'text-purple-500' : moveData.priority < 0 ? 'text-orange-500' : 'text-gray-500'}`}>
+                  {moveData.priority > 0 ? `+${moveData.priority}` : moveData.priority}
+                </div>
               </CardContent>
             </Card>
           </div>

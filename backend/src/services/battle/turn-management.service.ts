@@ -98,13 +98,24 @@ export class TurnManagementService {
   }
 
   /**
-   * Determine turn order based on speed (with status effect and ability modifiers)
+   * Determine turn order based on move priority first, then speed (with status effect and ability modifiers)
    */
   determineTurnOrder(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance,
+    playerMove?: { priority: number },
+    opponentMove?: { priority: number },
     battleContext?: BattleContext
   ): 'player' | 'opponent' {
+    // First check move priority - higher priority goes first
+    const playerPriority = playerMove?.priority ?? 0;
+    const opponentPriority = opponentMove?.priority ?? 0;
+
+    if (playerPriority !== opponentPriority) {
+      return playerPriority > opponentPriority ? 'player' : 'opponent';
+    }
+
+    // If priorities are equal, determine by speed
     const playerModifiedStats = this.statusEffectService.getStatusModifiedStats(playerMonster);
     const opponentModifiedStats = this.statusEffectService.getStatusModifiedStats(opponentMonster);
 

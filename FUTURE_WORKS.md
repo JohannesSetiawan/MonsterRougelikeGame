@@ -33,8 +33,6 @@ This document contains all features that are not implemented, have default/place
 - **Status**: Basic implementation complete but lacks depth
 - **Files**: Various battle service files
 - **Missing Features**:
-  - Multi-turn moves
-  - Move priorities beyond basic speed
   - Weather-dependent move effects
   - Terrain-dependent move effects
   - Complex status effect interactions
@@ -54,11 +52,8 @@ This document contains all features that are not implemented, have default/place
 - **File**: `backend/src/data/moves.json`
 - **Current**: Only 11 moves total
 - **Missing**:
-  - Multi-hit moves
   - Healing moves
   - Recoil moves
-  - Charge moves (2-turn attacks)
-  - Priority moves
   - More type coverage
 
 ## 🎯 Feature Implementations
