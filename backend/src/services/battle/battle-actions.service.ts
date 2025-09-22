@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory, MoveEffect, TwoTurnMoveType } from '../../types';
+import { MonsterInstance, BattleAction, BattleResult, BattleContext, TYPE_EFFECTIVENESS, StatusEffect, MoveCategory, MoveEffect, TwoTurnMoveType, MultiTurnMoveType } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
 import { WeatherService } from './weather.service';
+import { MultiTurnMoveService } from './multi-turn-move.service';
 
 @Injectable()
 export class BattleActionsService {
@@ -11,7 +12,8 @@ export class BattleActionsService {
     private monsterService: MonsterService,
     private damageCalculationService: DamageCalculationService,
     private statusEffectService: StatusEffectService,
-    private weatherService: WeatherService
+    private weatherService: WeatherService,
+    private multiTurnMoveService: MultiTurnMoveService
   ) {}
 
   processBattleAction(
@@ -97,6 +99,21 @@ export class BattleActionsService {
     // Handle new two-turn move
     if (move.twoTurnMove) {
       return this.initiateTwoTurnMoveFirstPhase(attacker, defender, move, battleContext);
+    }
+
+    // Handle locking move continuation - check if this is a continuation of an existing locking move
+    const isLockedMove = attacker.lockingMoveState?.moveId === moveId && attacker.lockingMoveState.turnsRemaining > 0;
+
+    // Handle multi-turn moves
+    if (move.multiTurnMove) {
+      switch (move.multiTurnMove.type) {
+        case MultiTurnMoveType.MULTI_HIT:
+          return this.processMultiHitMove(attacker, defender, moveId, battleContext);
+        case MultiTurnMoveType.LOCKING:
+          return this.processLockingMove(attacker, defender, moveId, battleContext);
+        case MultiTurnMoveType.TRAPPING:
+          return this.processTrappingMove(attacker, defender, moveId, battleContext);
+      }
     }
 
     // Check if the move has PP remaining
@@ -324,6 +341,7 @@ export class BattleActionsService {
 
     // The actual monster switching logic will be handled by the controller
     // which has access to the game run and can validate the monster exists
+    // Note: Trapping checks will be handled at the game service level
     return {
       success: true,
       effects: [`Switching to new monster...`],
@@ -755,6 +773,454 @@ export class BattleActionsService {
       default:
         return { applied: true, message: 'UNDEFINED MOVE EFFECT' };
     }
+  }
+
+  /**
+   * Process multi-hit moves (like Bullet Seed, Triple Kick)
+   */
+  private processMultiHitMove(
+    attacker: MonsterInstance,
+    defender: MonsterInstance,
+    moveId: string,
+    battleContext?: BattleContext
+  ): BattleResult {
+    const move = this.monsterService.getMoveData(moveId);
+    
+    if (!move) {
+      return { success: false, effects: ['Move not found'] };
+    }
+
+    // Check PP
+    const remainingPP = attacker.movePP?.[moveId] || 0;
+    if (remainingPP <= 0) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
+      };
+    }
+
+    // Consume PP
+    attacker.movePP[moveId] = Math.max(0, remainingPP - 1);
+
+    // Check for confusion
+    const confusionResult = this.statusEffectService.shouldHitSelf(attacker);
+    if (confusionResult.hitSelf) {
+      const { damage } = this.damageCalculationService.calculateDamage(attacker, attacker, moveId, battleContext);
+      const newHp = Math.max(0, attacker.currentHp - damage);
+      attacker.currentHp = newHp;
+
+      const effects = [
+        `${attacker.name} used ${move.name}!`,
+        confusionResult.reason!,
+        `It dealt ${damage} damage to itself!`
+      ];
+
+      const battleEnded = newHp === 0;
+      if (battleEnded) {
+        effects.push(`${attacker.name} fainted!`);
+      }
+
+      return {
+        success: true,
+        damage,
+        isCritical: false,
+        effects,
+        battleEnded,
+        winner: battleEnded ? 'opponent' : undefined
+      };
+    }
+
+    // Process multi-hit move
+    const multiHitData = this.multiTurnMoveService.getMultiHitMoveData(moveId);
+    if (!multiHitData) {
+      return { success: false, effects: ['Multi-hit data not found!'] };
+    }
+
+    const maxHits = Math.floor(Math.random() * (multiHitData.maxHits - multiHitData.minHits + 1)) + multiHitData.minHits;
+    let totalDamage = 0;
+    let hitCount = 0;
+    const criticalHits: boolean[] = [];
+    const effects = [`${attacker.name} used ${move.name}!`];
+
+    // Single accuracy check for most multi-hit moves
+    if (multiHitData.accuracyType === 'single') {
+      const weatherAccuracyMultiplier = battleContext?.weather 
+        ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+        : 1.0;
+      const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
+      const hitChance = Math.random() * 100;
+      
+      if (hitChance > effectiveAccuracy) {
+        effects.push(`But it missed!`);
+        return { success: false, effects };
+      }
+
+      // All hits land
+      for (let i = 0; i < maxHits; i++) {
+        const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, moveId, battleContext);
+        const actualDamage = multiHitData.powerPerHit ? Math.floor(damage * (multiHitData.powerPerHit / move.power)) : damage;
+        
+        totalDamage += actualDamage;
+        hitCount++;
+        criticalHits.push(isCritical);
+        
+        if (defender.currentHp <= totalDamage) {
+          // Target would faint, stop hitting
+          break;
+        }
+      }
+    } else {
+      // Per-hit accuracy check (Triple Kick, Population Bomb)
+      for (let i = 0; i < maxHits; i++) {
+        const weatherAccuracyMultiplier = battleContext?.weather 
+          ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+          : 1.0;
+        const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
+        const hitChance = Math.random() * 100;
+        
+        if (hitChance > effectiveAccuracy) {
+          // Miss on this hit, stop the sequence
+          if (hitCount === 0) {
+            effects.push(`But it missed!`);
+          } else {
+            effects.push(`The attack stopped after ${hitCount} hit${hitCount === 1 ? '' : 's'}!`);
+          }
+          break;
+        }
+
+        const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, moveId, battleContext);
+        const actualDamage = multiHitData.powerPerHit ? Math.floor(damage * (multiHitData.powerPerHit / move.power)) : damage;
+        
+        totalDamage += actualDamage;
+        hitCount++;
+        criticalHits.push(isCritical);
+
+        if (defender.currentHp <= totalDamage) {
+          // Target would faint, stop hitting
+          break;
+        }
+      }
+    }
+
+    if (hitCount > 0) {
+      if (hitCount === 1) {
+        effects.push(`Hit once!`);
+      } else {
+        effects.push(`Hit ${hitCount} times!`);
+      }
+    }
+
+    if (hitCount === 0) {
+      return { success: false, effects };
+    }
+
+    // Apply damage
+    const newHp = Math.max(0, defender.currentHp - totalDamage);
+    defender.currentHp = newHp;
+
+    // Add critical hit messages
+    if (criticalHits.some(crit => crit)) {
+      const critCount = criticalHits.filter(crit => crit).length;
+      if (critCount === 1) {
+        effects.push('Critical hit!');
+      } else {
+        effects.push(`${critCount} critical hits!`);
+      }
+    }
+
+    effects.push(`It dealt ${totalDamage} total damage to ${defender.name}!`);
+
+    // Check effectiveness
+    const defenderData = this.monsterService.getMonsterData(defender.monsterId);
+    let effectiveness = 1;
+    for (const defenderType of defenderData.type) {
+      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+    }
+
+    if (effectiveness > 1) {
+      effects.push("It's super effective!");
+    } else if (effectiveness < 1) {
+      effects.push("It's not very effective...");
+    }
+
+    const battleEnded = newHp === 0;
+    if (battleEnded) {
+      effects.push(`${defender.name} fainted!`);
+    }
+
+    // Process move effects if target didn't faint
+    this.processMoveEffects(move, attacker, defender, effects, battleEnded, battleContext);
+
+    return {
+      success: true,
+      damage: totalDamage,
+      isCritical: criticalHits.some(crit => crit),
+      effects,
+      battleEnded,
+      winner: battleEnded ? 'player' : undefined
+    };
+  }
+
+  /**
+   * Process locking moves (like Outrage, Rollout)
+   */
+  private processLockingMove(
+    attacker: MonsterInstance,
+    defender: MonsterInstance,
+    moveId: string,
+    battleContext?: BattleContext
+  ): BattleResult {
+    const move = this.monsterService.getMoveData(moveId);
+    
+    if (!move) {
+      return { success: false, effects: ['Move not found'] };
+    }
+
+    let effects: string[] = [];
+    let isFirstTurn = false;
+
+    // Check if this is the first turn of the locking move
+    if (!attacker.lockingMoveState || attacker.lockingMoveState.moveId !== moveId) {
+      // Initialize locking move
+      const { effects: initEffects } = this.multiTurnMoveService.initializeLockingMove(attacker, moveId);
+      effects.push(...initEffects);
+      isFirstTurn = true;
+    }
+
+    // Check PP only on first turn
+    if (isFirstTurn) {
+      const remainingPP = attacker.movePP?.[moveId] || 0;
+      if (remainingPP <= 0) {
+        return { 
+          success: false, 
+          effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
+        };
+      }
+
+      // Consume PP
+      attacker.movePP[moveId] = Math.max(0, remainingPP - 1);
+    }
+
+    // Check for confusion
+    const confusionResult = this.statusEffectService.shouldHitSelf(attacker);
+    if (confusionResult.hitSelf) {
+      const { damage } = this.damageCalculationService.calculateDamage(attacker, attacker, moveId, battleContext);
+      const newHp = Math.max(0, attacker.currentHp - damage);
+      attacker.currentHp = newHp;
+
+      effects = [
+        `${attacker.name} used ${move.name}!`,
+        confusionResult.reason!,
+        `It dealt ${damage} damage to itself!`
+      ];
+
+      const battleEnded = newHp === 0;
+      if (battleEnded) {
+        effects.push(`${attacker.name} fainted!`);
+      }
+
+      // Clear locking state on confusion
+      attacker.lockingMoveState = undefined;
+
+      return {
+        success: true,
+        damage,
+        isCritical: false,
+        effects,
+        battleEnded,
+        winner: battleEnded ? 'opponent' : undefined
+      };
+    }
+
+    // Check accuracy - only on first turn or if first turn missed
+    let hitMove = false;
+    if (isFirstTurn) {
+      const weatherAccuracyMultiplier = battleContext?.weather 
+        ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+        : 1.0;
+      const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
+      const hitChance = Math.random() * 100;
+      hitMove = hitChance <= effectiveAccuracy;
+      this.multiTurnMoveService.setLockingMoveHit(attacker, hitMove);
+    } else {
+      // Subsequent turns automatically hit if first turn hit
+      hitMove = this.multiTurnMoveService.shouldLockingMoveAutoHit(attacker);
+    }
+
+    if (!hitMove) {
+      effects = [`${attacker.name} used ${move.name}, but it missed!`];
+      // Clear locking state on miss
+      attacker.lockingMoveState = undefined;
+      return { success: false, effects };
+    }
+
+    effects.push(`${attacker.name} used ${move.name}!`);
+
+    // Calculate damage with power multiplier
+    const powerMultiplier = this.multiTurnMoveService.getLockingMovePowerMultiplier(attacker);
+    const { damage: baseDamage, isCritical } = this.damageCalculationService.calculateDamage(
+      attacker, defender, moveId, battleContext
+    );
+    const damage = Math.floor(baseDamage * powerMultiplier);
+    
+    const newHp = Math.max(0, defender.currentHp - damage);
+    defender.currentHp = newHp;
+
+    if (isCritical) {
+      effects.push('Critical hit!');
+    }
+
+    if (powerMultiplier > 1) {
+      effects.push(`The power increased! (${powerMultiplier.toFixed(1)}x)`);
+    }
+
+    effects.push(`It dealt ${damage} damage to ${defender.name}!`);
+
+    // Check effectiveness
+    const defenderData = this.monsterService.getMonsterData(defender.monsterId);
+    let effectiveness = 1;
+    for (const defenderType of defenderData.type) {
+      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+    }
+
+    if (effectiveness > 1) {
+      effects.push("It's super effective!");
+    } else if (effectiveness < 1) {
+      effects.push("It's not very effective...");
+    }
+
+    const battleEnded = newHp === 0;
+    if (battleEnded) {
+      effects.push(`${defender.name} fainted!`);
+    }
+
+    // Process move effects if target didn't faint
+    this.processMoveEffects(move, attacker, defender, effects, battleEnded, battleContext);
+
+    return {
+      success: true,
+      damage,
+      isCritical,
+      effects,
+      battleEnded,
+      winner: battleEnded ? 'player' : undefined
+    };
+  }
+
+  /**
+   * Process trapping moves (like Fire Spin, Whirlpool)
+   */
+  private processTrappingMove(
+    attacker: MonsterInstance,
+    defender: MonsterInstance,
+    moveId: string,
+    battleContext?: BattleContext
+  ): BattleResult {
+    const move = this.monsterService.getMoveData(moveId);
+    
+    if (!move) {
+      return { success: false, effects: ['Move not found'] };
+    }
+
+    // Check PP
+    const remainingPP = attacker.movePP?.[moveId] || 0;
+    if (remainingPP <= 0) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} tried to use ${move.name}, but there's no PP left!`] 
+      };
+    }
+
+    // Consume PP
+    attacker.movePP[moveId] = Math.max(0, remainingPP - 1);
+
+    // Check for confusion
+    const confusionResult = this.statusEffectService.shouldHitSelf(attacker);
+    if (confusionResult.hitSelf) {
+      const { damage } = this.damageCalculationService.calculateDamage(attacker, attacker, moveId, battleContext);
+      const newHp = Math.max(0, attacker.currentHp - damage);
+      attacker.currentHp = newHp;
+
+      const effects = [
+        `${attacker.name} used ${move.name}!`,
+        confusionResult.reason!,
+        `It dealt ${damage} damage to itself!`
+      ];
+
+      const battleEnded = newHp === 0;
+      if (battleEnded) {
+        effects.push(`${attacker.name} fainted!`);
+      }
+
+      return {
+        success: true,
+        damage,
+        isCritical: false,
+        effects,
+        battleEnded,
+        winner: battleEnded ? 'opponent' : undefined
+      };
+    }
+
+    // Check accuracy
+    const weatherAccuracyMultiplier = battleContext?.weather 
+      ? this.weatherService.getWeatherAccuracyMultiplier(battleContext.weather)
+      : 1.0;
+    const effectiveAccuracy = move.accuracy * weatherAccuracyMultiplier;
+    const hitChance = Math.random() * 100;
+    if (hitChance > effectiveAccuracy) {
+      return { 
+        success: false, 
+        effects: [`${attacker.name} used ${move.name}, but it missed!`] 
+      };
+    }
+
+    const effects = [`${attacker.name} used ${move.name}!`];
+
+    // Calculate initial damage
+    const { damage, isCritical } = this.damageCalculationService.calculateDamage(attacker, defender, moveId, battleContext);
+    const newHp = Math.max(0, defender.currentHp - damage);
+    defender.currentHp = newHp;
+
+    if (isCritical) {
+      effects.push('Critical hit!');
+    }
+
+    effects.push(`It dealt ${damage} damage to ${defender.name}!`);
+
+    // Check effectiveness
+    const defenderData = this.monsterService.getMonsterData(defender.monsterId);
+    let effectiveness = 1;
+    for (const defenderType of defenderData.type) {
+      effectiveness *= TYPE_EFFECTIVENESS[move.type]?.[defenderType] ?? 1;
+    }
+
+    if (effectiveness > 1) {
+      effects.push("It's super effective!");
+    } else if (effectiveness < 1) {
+      effects.push("It's not very effective...");
+    }
+
+    const battleEnded = newHp === 0;
+    if (battleEnded) {
+      effects.push(`${defender.name} fainted!`);
+    } else {
+      // Initialize trapping effect if target didn't faint
+      const trappingEffects = this.multiTurnMoveService.initializeTrappingMove(attacker, defender, moveId, damage);
+      effects.push(...trappingEffects);
+    }
+
+    // Process move effects if target didn't faint
+    this.processMoveEffects(move, attacker, defender, effects, battleEnded, battleContext);
+
+    return {
+      success: true,
+      damage,
+      isCritical,
+      effects,
+      battleEnded,
+      winner: battleEnded ? 'player' : undefined
+    };
   }
 
 }

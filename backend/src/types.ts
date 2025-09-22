@@ -47,6 +47,39 @@ export interface MoveEffect {
   target: 'user' | 'opponent';
 }
 
+export enum MultiTurnMoveType {
+  LOCKING = 'locking',                 // Moves that lock the user (Outrage, Rollout)
+  MULTI_HIT = 'multi_hit',            // Moves that hit multiple times (Bullet Seed, Triple Kick)
+  TRAPPING = 'trapping'                // Moves that trap the opponent (Fire Spin)
+}
+
+export interface LockingMoveData {
+  minTurns: number;                    // Minimum number of turns (2 for Outrage)
+  maxTurns: number;                    // Maximum number of turns (3 for Outrage)
+  confusesAfter?: boolean;             // Whether user becomes confused after (Outrage: true, Rollout: false)
+  powerMultiplier?: number;            // Power multiplier per turn (Rollout: 2x each turn)
+}
+
+export interface MultiHitMoveData {
+  minHits: number;                     // Minimum number of hits
+  maxHits: number;                     // Maximum number of hits
+  accuracyType: 'single' | 'per_hit';  // How accuracy is checked
+  powerPerHit?: number;                // Power per hit (overrides base power)
+}
+
+export interface TrappingMoveData {
+  minTurns: number;                    // Minimum duration (4 turns)
+  maxTurns: number;                    // Maximum duration (5 turns)
+  damagePerTurn: number;               // Damage per turn (as fraction of max HP)
+}
+
+export interface MultiTurnMoveData {
+  type: MultiTurnMoveType;
+  lockingData?: LockingMoveData;
+  multiHitData?: MultiHitMoveData;
+  trappingData?: TrappingMoveData;
+}
+
 export enum TwoTurnMoveType {
   CHARGING = 'charging',           // Moves like Hyper Beam, Sky Attack
   SEMI_INVULNERABLE = 'semi_invulnerable' // Moves like Fly, Dig, Dive
@@ -72,6 +105,7 @@ export interface Move {
   target?: 'user' | 'opponent'; // For moves without effects, to indicate basic targeting
   effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects
   twoTurnMove?: TwoTurnMoveData; // Two-turn move data
+  multiTurnMove?: MultiTurnMoveData; // Multi-turn move data
 }
 
 export interface Monster {
@@ -82,7 +116,7 @@ export interface Monster {
   abilities: string[]; // ability ids
   learnableMoves: [string, number][]; // [move_id, level_learned] tuples
   description: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary' | 'debug';
   growth_index: number;
 }
 
@@ -90,6 +124,19 @@ export interface TwoTurnMoveState {
   moveId: string;                  // The two-turn move being executed
   phase: 'charging' | 'executing' | 'recharging'; // Current phase of the move
   semiInvulnerableState?: string;  // State during semi-invulnerable phase
+}
+
+export interface LockingMoveState {
+  moveId: string;                  // The locking move being executed
+  turnsRemaining: number;          // Number of turns remaining for this move
+  totalTurns: number;              // Total turns for this sequence
+  hitOnFirstTurn: boolean;         // Whether the move hit on the first turn
+}
+
+export interface TrappingMoveState {
+  moveId: string;                  // The trapping move that was used
+  turnsRemaining: number;          // Number of turns remaining for trap
+  damagePerTurn: number;           // Damage to deal each turn
 }
 
 export interface MonsterInstance {
@@ -107,6 +154,8 @@ export interface MonsterInstance {
   isShiny?: boolean;
   statusCondition?: StatusCondition; // Single status effect affecting this monster
   twoTurnMoveState?: TwoTurnMoveState; // State for two-turn moves
+  lockingMoveState?: LockingMoveState; // State for locking moves
+  trappedBy?: TrappingMoveState; // State when trapped by opponent's move
 }
 
 export enum StatusEffect {

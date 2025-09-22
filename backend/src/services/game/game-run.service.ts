@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { GameRun, MonsterInstance, MoveSelectionRequest } from '../../types';
 import { MonsterService } from '../monster.service';
 import { DatabaseService } from '../database.service';
+import { BattleService } from '../battle.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -10,7 +11,8 @@ export class GameRunService {
 
   constructor(
     private monsterService: MonsterService,
-    private databaseService: DatabaseService
+    private databaseService: DatabaseService,
+    private battleService: BattleService
   ) {}
 
   async startNewRun(playerId: string, starterId: string, unlockedStarters: string[], permanentCurrency: number): Promise<GameRun> {
@@ -222,15 +224,16 @@ export class GameRunService {
       throw new Error('Game run not found');
     }
 
-    // Fully restore HP and PP for all team members
+    // Fully restore HP, PP, and clear all status effects for all team members
     run.team.forEach(monster => {
       monster.currentHp = monster.maxHp; // Full HP restoration
       this.monsterService.restoreAllPP(monster); // Full PP restoration
+      this.battleService.clearAllStatusEffects(monster); // Clear all status effects
     });
 
     return { 
       success: true, 
-      message: 'Your team has been fully healed and all PP has been restored!',
+      message: 'Your team has been fully healed, all PP has been restored, and all status effects have been cured!',
       team: run.team 
     };
   }

@@ -150,6 +150,25 @@ const MonsterCard: React.FC<MonsterCardProps> = ({
               </div>
             </div>
           )}
+
+          {/* Multi-Turn Move State Display */}
+          {(monster.lockingMoveState || monster.trappedBy) && (
+            <div className="space-y-1">
+              <span className={`${textColorSecondary} text-sm`}>Multi-Turn State:</span>
+              <div className="flex flex-wrap gap-1">
+                {monster.lockingMoveState && monster.lockingMoveState.turnsRemaining > 0 && (
+                  <Badge className={`${isPlayer ? 'bg-purple-500/20 text-purple-300 border-purple-500/50' : 'bg-purple-500/20 text-purple-300 border-purple-500/50'} animate-pulse text-xs`}>
+                    🔒 Locked ({monster.lockingMoveState.turnsRemaining} turns)
+                  </Badge>
+                )}
+                {monster.trappedBy && monster.trappedBy.turnsRemaining > 0 && (
+                  <Badge className={`${isPlayer ? 'bg-red-600/20 text-red-300 border-red-600/50' : 'bg-red-600/20 text-red-300 border-red-600/50'} text-xs`}>
+                    🕸️ Trapped ({monster.trappedBy.turnsRemaining} turns)
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

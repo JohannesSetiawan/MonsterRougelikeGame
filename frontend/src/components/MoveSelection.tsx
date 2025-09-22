@@ -40,25 +40,35 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
     };
   };
 
-  // Check if player is committed to a two-turn move
-  const forcedMoveId = playerMonster.twoTurnMoveState?.phase === 'charging' 
-    ? playerMonster.twoTurnMoveState.moveId 
-    : null;
+  // Check if player is committed to a two-turn move or locked into a multi-turn move
+  const forcedMoveId = 
+    (playerMonster.twoTurnMoveState?.phase === 'charging' ? playerMonster.twoTurnMoveState.moveId : null) ||
+    (playerMonster.lockingMoveState && playerMonster.lockingMoveState.turnsRemaining > 0 ? playerMonster.lockingMoveState.moveId : null);
 
-  // Special handling for forced moves due to two-turn moves
+  // Special handling for forced moves due to two-turn moves or locking moves
   if (forcedMoveId) {
     const move = getMoveData(forcedMoveId);
+    const isTwoTurnMove = playerMonster.twoTurnMoveState?.phase === 'charging';
+    
+    const title = isTwoTurnMove ? "Committed to Two-Turn Move" : "Locked into Multi-Turn Move";
+    const description = isTwoTurnMove 
+      ? "You must continue with the charging move!" 
+      : `You're locked into this move! (${playerMonster.lockingMoveState?.turnsRemaining} turns remaining)`;
+    const buttonText = isTwoTurnMove 
+      ? "⚡ Executing charged attack!" 
+      : `🔒 Continue locked move (${playerMonster.lockingMoveState?.turnsRemaining} left)`;
+    
     return (
       <Card className="lg:col-span-3 border-2 border-yellow-500/50 bg-yellow-950/20">
         <CardHeader>
           <CardTitle className="text-yellow-300">
-            Moves - Committed to Two-Turn Move
+            Moves - {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center space-y-4">
             <p className="text-yellow-200 text-sm">
-              You must continue with the charging move!
+              {description}
             </p>
             <div className="flex justify-center">
               <Button
@@ -69,7 +79,7 @@ const MoveSelection: React.FC<MoveSelectionProps> = ({
               >
                 <div className="font-semibold">{move.name}</div>
                 <div className="text-xs mt-1 opacity-80">
-                  ⚡ Executing charged attack!
+                  {buttonText}
                 </div>
               </Button>
             </div>

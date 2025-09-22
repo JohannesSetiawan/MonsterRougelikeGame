@@ -50,6 +50,19 @@ export interface TwoTurnMoveState {
   semiInvulnerableState?: string;
 }
 
+export interface LockingMoveState {
+  moveId: string;
+  turnsRemaining: number;
+  totalTurns: number;
+  hitOnFirstTurn: boolean;
+}
+
+export interface TrappingMoveState {
+  moveId: string;
+  turnsRemaining: number;
+  damagePerTurn: number;
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -121,6 +134,8 @@ export interface MonsterInstance {
   isShiny?: boolean;
   statusCondition?: StatusCondition; // Single status effect affecting this monster
   twoTurnMoveState?: TwoTurnMoveState; // State for two-turn moves
+  lockingMoveState?: LockingMoveState; // State for locking moves
+  trappedBy?: TrappingMoveState; // State when trapped by opponent's move
   // Client-side only properties for display
   statModifiers?: StatModifiers;
 }

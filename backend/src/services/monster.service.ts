@@ -140,11 +140,12 @@ export class MonsterService {
       const monster = monsters[id];
       // Simple rarity-based availability
       if (stageLevel < 30) return monster.rarity === 'common' || monster.rarity === 'uncommon';
-      if (stageLevel < 600) return monster.rarity !== 'legendary';
-      return true;
+      if (stageLevel < 600) return monster.rarity !== 'legendary' && monster.rarity !== 'debug';
+      return monster.rarity !== 'debug';
     });
 
-    const randomId = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
+    var randomId = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
+    
     const level = Math.max(1, Math.ceil(stageLevel / 10) + Math.floor(Math.random() * 3) - 1); // ±1 level variance
     
     return this.createMonsterInstance(randomId, level, shinyBoost);

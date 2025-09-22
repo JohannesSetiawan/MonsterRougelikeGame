@@ -4,6 +4,7 @@ import { StatusEffectService } from './status-effect.service';
 import { WeatherService } from './weather.service';
 import { AbilityEffectsService } from './ability-effects.service';
 import { TwoTurnMoveService } from './two-turn-move.service';
+import { MultiTurnMoveService } from './multi-turn-move.service';
 
 @Injectable()
 export class TurnManagementService {
@@ -11,7 +12,8 @@ export class TurnManagementService {
     private statusEffectService: StatusEffectService,
     private weatherService: WeatherService,
     private abilityEffectsService: AbilityEffectsService,
-    private twoTurnMoveService: TwoTurnMoveService
+    private twoTurnMoveService: TwoTurnMoveService,
+    private multiTurnMoveService: MultiTurnMoveService
   ) {}
 
   /**
@@ -38,6 +40,14 @@ export class TurnManagementService {
     // Process two-turn move end of turn effects
     const playerTwoTurnEffects = this.twoTurnMoveService.processEndOfTurn(playerMonster);
     const opponentTwoTurnEffects = this.twoTurnMoveService.processEndOfTurn(opponentMonster);
+
+    // Process multi-turn move end of turn effects
+    const playerLockingEffects = this.multiTurnMoveService.processLockingMoveEndOfTurn(playerMonster);
+    const opponentLockingEffects = this.multiTurnMoveService.processLockingMoveEndOfTurn(opponentMonster);
+
+    // Process trapping damage
+    const playerTrappingResult = this.multiTurnMoveService.processTrappingDamage(playerMonster);
+    const opponentTrappingResult = this.multiTurnMoveService.processTrappingDamage(opponentMonster);
 
     // Process weather damage
     let playerWeatherDamage = 0;
@@ -75,14 +85,14 @@ export class TurnManagementService {
     }
 
     return {
-      playerEffects: [...playerStatusResult.effects, ...playerRecovery.effects, ...playerTwoTurnEffects, ...weatherEffects.filter(effect => 
+      playerEffects: [...playerStatusResult.effects, ...playerRecovery.effects, ...playerTwoTurnEffects, ...playerLockingEffects, ...playerTrappingResult.effects, ...weatherEffects.filter(effect => 
         effect.includes(playerMonster.name) || (!effect.includes(opponentMonster.name) && !effect.includes('faded') && !effect.includes('stopped') && !effect.includes('subsided') && !effect.includes('cleared') && !effect.includes('died down'))
       )],
-      opponentEffects: [...opponentStatusResult.effects, ...opponentRecovery.effects, ...opponentTwoTurnEffects, ...weatherEffects.filter(effect => 
+      opponentEffects: [...opponentStatusResult.effects, ...opponentRecovery.effects, ...opponentTwoTurnEffects, ...opponentLockingEffects, ...opponentTrappingResult.effects, ...weatherEffects.filter(effect => 
         effect.includes(opponentMonster.name) || (!effect.includes(playerMonster.name) && (effect.includes('faded') || effect.includes('stopped') || effect.includes('subsided') || effect.includes('cleared') || effect.includes('died down')))
       )],
-      playerDamage: playerStatusResult.damage + playerWeatherDamage,
-      opponentDamage: opponentStatusResult.damage + opponentWeatherDamage,
+      playerDamage: playerStatusResult.damage + playerWeatherDamage + playerTrappingResult.damage,
+      opponentDamage: opponentStatusResult.damage + opponentWeatherDamage + opponentTrappingResult.damage,
       updatedBattleContext
     };
   }
@@ -156,7 +166,14 @@ export class TurnManagementService {
    * Check if a monster is committed to a two-turn move and must use a specific move
    */
   getForcedMove(monster: MonsterInstance): string | null {
-    return this.twoTurnMoveService.getForcedMove(monster);
+    // Check for two-turn move forced moves first
+    const twoTurnForced = this.twoTurnMoveService.getForcedMove(monster);
+    if (twoTurnForced) {
+      return twoTurnForced;
+    }
+
+    // Check for multi-turn move forced moves
+    return this.multiTurnMoveService.getForcedMove(monster);
   }
 
   /**
@@ -171,6 +188,32 @@ export class TurnManagementService {
    */
   getTwoTurnMoveStatusMessage(monster: MonsterInstance): string | null {
     return this.twoTurnMoveService.getStatusMessage(monster);
+  }
+
+  /**
+   * Get the status message for a monster's multi-turn move state
+   */
+  getMultiTurnMoveStatusMessage(monster: MonsterInstance): string | null {
+    return this.multiTurnMoveService.getStatusMessage(monster);
+  }
+
+  /**
+   * Get all status messages for a monster's move states
+   */
+  getAllMoveStatusMessages(monster: MonsterInstance): string[] {
+    const messages: string[] = [];
+    
+    const twoTurnMessage = this.getTwoTurnMoveStatusMessage(monster);
+    if (twoTurnMessage) {
+      messages.push(twoTurnMessage);
+    }
+
+    const multiTurnMessage = this.getMultiTurnMoveStatusMessage(monster);
+    if (multiTurnMessage) {
+      messages.push(multiTurnMessage);
+    }
+
+    return messages;
   }
 
   /**

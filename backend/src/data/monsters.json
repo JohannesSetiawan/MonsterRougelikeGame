@@ -191,7 +191,7 @@
       "normal"
     ],
     "baseStats": {
-      "hp": 1000,
+      "hp": 10000,
       "attack": 70,
       "defense": 50,
       "specialAttack": 85,
@@ -244,10 +244,50 @@
       [
         "phantom_force",
         50
+      ],
+      [
+        "outrage",
+        50
+      ],
+      [
+        "rollout",
+        50
+      ],
+      [
+        "bullet_seed",
+        50
+      ],
+      [
+        "triple_kick",
+        50
+      ],
+      [
+        "population_bomb",
+        50
+      ],
+      [
+        "fire_spin",
+        50
+      ],
+      [
+        "whirlpool",
+        50
+      ],
+      [
+        "sand_tomb",
+        50
+      ],
+      [
+        "infestation",
+        50
+      ],
+      [
+        "magma_storm",
+        50
       ]
     ],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",
-    "rarity": "uncommon",
+    "rarity": "debug",
     "growth_index": 1
   }
 }

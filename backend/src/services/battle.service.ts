@@ -12,6 +12,7 @@ import { AbilityEffectsService } from './battle/ability-effects.service';
 import { TurnManagementService } from './battle/turn-management.service';
 import { WeatherService } from './battle/weather.service';
 import { TwoTurnMoveService } from './battle/two-turn-move.service';
+import { MultiTurnMoveService } from './battle/multi-turn-move.service';
 
 @Injectable()
 export class BattleService {
@@ -25,7 +26,8 @@ export class BattleService {
     private abilityEffectsService: AbilityEffectsService,
     private turnManagementService: TurnManagementService,
     private weatherService: WeatherService,
-    private twoTurnMoveService: TwoTurnMoveService
+    private twoTurnMoveService: TwoTurnMoveService,
+    private multiTurnMoveService: MultiTurnMoveService
   ) {}
 
   // Delegate to damage calculation service
@@ -107,6 +109,18 @@ export class BattleService {
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance
   ): { battleContext: BattleContext; effects: string[] } {
+    // Clear any existing multi-turn move states from previous battles
+    this.multiTurnMoveService.clearMultiTurnMoveStates(playerMonster);
+    this.multiTurnMoveService.clearMultiTurnMoveStates(opponentMonster);
+    
+    // Clear two-turn move states as well
+    this.twoTurnMoveService.clearTwoTurnMoveState(playerMonster);
+    this.twoTurnMoveService.clearTwoTurnMoveState(opponentMonster);
+
+    // Clear only confusion status effect at battle start (other status effects persist)
+    this.statusEffectService.clearConfusion(playerMonster);
+    this.statusEffectService.clearConfusion(opponentMonster);
+
     // Get ability effects first
     const { battleContext, effects } = this.abilityEffectsService.initializeBattleContext(playerMonster, opponentMonster);
     
@@ -181,9 +195,9 @@ export class BattleService {
     return this.turnManagementService.checkBattleEnd(playerMonster, opponentMonster);
   }
 
-  // Delegate to two-turn move service
+  // Delegate to turn management service for all forced moves
   getForcedMove(monster: MonsterInstance): string | null {
-    return this.twoTurnMoveService.getForcedMove(monster);
+    return this.turnManagementService.getForcedMove(monster);
   }
 
   mustRecharge(monster: MonsterInstance): boolean {
@@ -194,11 +208,45 @@ export class BattleService {
     return this.twoTurnMoveService.getStatusMessage(monster);
   }
 
+  getAllMoveStatusMessages(monster: MonsterInstance): string[] {
+    return this.turnManagementService.getAllMoveStatusMessages(monster);
+  }
+
+  // Delegate to status effect service
+  clearAllStatusEffects(monster: MonsterInstance): void {
+    this.statusEffectService.clearAllStatusEffects(monster);
+  }
+
+  clearConfusion(monster: MonsterInstance): void {
+    this.statusEffectService.clearConfusion(monster);
+  }
+
   isSemiInvulnerable(monster: MonsterInstance): boolean {
     return this.twoTurnMoveService.isSemiInvulnerable(monster);
   }
 
   isCommittedToTwoTurnMove(monster: MonsterInstance): boolean {
     return this.twoTurnMoveService.isCommittedToTwoTurnMove(monster);
+  }
+
+  // Delegate to multi-turn move service
+  isLockedIntoMove(monster: MonsterInstance): boolean {
+    return this.multiTurnMoveService.isLockedIntoMove(monster);
+  }
+
+  getMultiTurnForcedMove(monster: MonsterInstance): string | null {
+    return this.multiTurnMoveService.getForcedMove(monster);
+  }
+
+  isTrapped(monster: MonsterInstance): boolean {
+    return this.multiTurnMoveService.isTrapped(monster);
+  }
+
+  canSwitchOut(monster: MonsterInstance): { canSwitch: boolean; reason?: string } {
+    return this.multiTurnMoveService.canSwitchOut(monster);
+  }
+
+  getMultiTurnMoveStatusMessage(monster: MonsterInstance): string | null {
+    return this.multiTurnMoveService.getStatusMessage(monster);
   }
 }

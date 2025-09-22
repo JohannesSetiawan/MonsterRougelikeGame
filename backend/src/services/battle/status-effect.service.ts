@@ -255,6 +255,15 @@ export class StatusEffectService {
   }
 
   /**
+   * Clear only confusion status effect
+   */
+  clearConfusion(monster: MonsterInstance): void {
+    if (monster.statusCondition?.effect === StatusEffect.CONFUSION) {
+      monster.statusCondition = undefined;
+    }
+  }
+
+  /**
    * Check if monster has a specific status effect
    */
   hasStatusEffect(monster: MonsterInstance, effect: StatusEffect): boolean {

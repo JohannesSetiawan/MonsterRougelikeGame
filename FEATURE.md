@@ -2,49 +2,6 @@
 
 Multi-turn moves are a unique and strategic element in the world of Pokémon battles, offering powerful effects that unfold over more than one turn. These moves can be broadly categorized into several groups, each with its own distinct mechanics and methods for determining accuracy. Understanding how these moves work is crucial for any Pokémon trainer looking to gain a competitive edge.
 
-### Two-Turn Moves: Charging and Semi-Invulnerability
-
-Two-turn moves require a turn to prepare or execute before the main effect takes place on the subsequent turn. These are further divided into charging moves and semi-invulnerable moves.
-
-#### Charging Moves
-
-These moves require the user to spend the first turn gathering energy, during which they are typically unable to perform any other action and are vulnerable to attack. The move then unleashes its power on the second turn.
-
-**How they work:**
-* **Turn 1:** The Pokémon charges, and a message is displayed (e.g., "[Pokémon] is glowing!"). The user cannot switch out or use another move.
-* **Turn 2:** The move executes.
-
-**Accuracy Check:** The accuracy of a charging move is checked on the **second turn**, when the move is about to deal damage. If the move misses, the charging turn is still consumed.
-
-**Implemensb the move below:**
-
-| Move | Type | Power | Accuracy | Effect |
-| --- | --- | --- | --- | --- |
-| Hyper Beam | Normal | 150 | 90% | The user must recharge on the turn after it hits. |
-| Sky Attack | Flying | 140 | 90% | Has a 30% chance of causing the target to flinch. |
-
-#### Semi-Invulnerable Moves
-
-These moves make the user disappear from the field for the first turn, rendering them immune to most attacks. They then strike on the second turn.
-
-**How they work:**
-* **Turn 1:** The Pokémon uses the move and becomes semi-invulnerable (e.g., "[Pokémon] flew up high!"). During this time, they cannot be targeted by most moves.
-* **Turn 2:** The move deals damage.
-
-**Accuracy Check:** The accuracy for semi-invulnerable moves is also checked on the **second turn**, just before the damage is dealt.
-
-However, a key strategic element of these moves is that certain other moves can still hit a Pokémon in its semi-invulnerable state, often with increased power.
-
-**Notable Examples and Their Counters:**
-
-| Move | Type | Power | Accuracy | Semi-Invulnerable State | Can be hit by |
-| --- | --- | --- | --- | --- | --- |
-| Fly | Flying | 90 | 95% | In the air | Gust, Hurricane, Sky Uppercut, Smack Down, Thunder, Twister |
-| Dig | Ground | 80 | 100% | Underground | Earthquake, Fissure, Magnitude |
-| Dive | Water | 80 | 100% | Underwater | Surf, Whirlpool |
-| Phantom Force | Ghost | 90 | 100% | Vanished | Can bypass Protect and Detect. |
-| Shadow Force | Ghost | 120 | 100% | Vanished | Can bypass Protect and Detect. |
-
 ### Moves That Lock the User
 
 These moves force the user to repeatedly use the same attack for a set number of turns. The user is unable to switch out or choose another move during this period.
