@@ -95,6 +95,7 @@ export interface TwoTurnMoveData {
 
 export interface MoveRestrictions {
   firstTurnOnly?: boolean; // Move can only be used on first turn in battle (like Fake Out)
+  requiresOpponentAttack?: boolean; // Move fails if opponent is not using an attacking move (like Sucker Punch)
 }
 
 export interface Move {

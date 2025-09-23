@@ -70,7 +70,8 @@ export class BattleService {
         speed?: number;
       };
     },
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    opponentAction?: BattleAction
   ): BattleResult {
     return this.battleActionsService.processBattleAction(
       playerMonster,
@@ -78,7 +79,8 @@ export class BattleService {
       action,
       battleId,
       battleModifiers,
-      battleContext
+      battleContext,
+      opponentAction
     );
   }
 
@@ -88,9 +90,10 @@ export class BattleService {
     defender: MonsterInstance,
     moveId: string,
     battleId: string,
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    opponentAction?: BattleAction
   ): BattleResult {
-    return this.battleActionsService.processAttack(attacker, defender, moveId, battleId, battleContext);
+    return this.battleActionsService.processAttack(attacker, defender, moveId, battleId, battleContext, opponentAction);
   }
 
   // Delegate to experience service

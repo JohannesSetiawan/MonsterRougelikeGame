@@ -195,6 +195,9 @@ export class BattleController {
         }
       }
 
+      // Generate enemy action before execution for move validation (like Sucker Punch)
+      const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+
       // Execute actions based on turn order
       if (playerGoesFirst) {
         // Player goes first
@@ -204,19 +207,20 @@ export class BattleController {
           body.action,
           body.battleId,
           undefined,
-          battleContext
+          battleContext,
+          enemyAction // Pass enemy action for validation
         );
         allEffects.push(...(playerResult.effects || []));
       } else {
         // Enemy goes first
-        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
           enemyAction,
           body.battleId,
           undefined,
-          battleContext
+          battleContext,
+          body.action // Pass player action for validation
         );
         allEffects.push(...(enemyResult.effects || []));
         
@@ -288,7 +292,8 @@ export class BattleController {
           body.action,
           body.battleId,
           undefined,
-          battleContext
+          battleContext,
+          enemyAction // Pass enemy action for validation
         );
         allEffects.push(...(playerResult.effects || []));
         
@@ -368,14 +373,15 @@ export class BattleController {
         
         // Process enemy's attack on the new monster (switching gives opponent a free turn)
         if (!battleEnded && body.opponentMonster.currentHp > 0) {
-          const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+          const switchEnemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
           enemyResult = this.battleService.processBattleAction(
             body.opponentMonster,
             newMonster,
-            enemyAction,
+            switchEnemyAction,
             body.battleId,
             undefined,
-            battleContext
+            battleContext,
+            body.action // Pass player switch action for validation
           );
 
           if (enemyResult.success && enemyResult.damage) {
@@ -478,7 +484,8 @@ export class BattleController {
                 { type: 'catch' },
                 body.battleId,
                 undefined,
-                battleContext
+                battleContext,
+                enemyAction // Pass enemy action for validation
               );
               
               allEffects.push(...(catchResult.effects || []));
@@ -502,7 +509,8 @@ export class BattleController {
                 { type: 'catch' },
                 body.battleId,
                 { catchRate: 'improved' },
-                battleContext
+                battleContext,
+                enemyAction // Pass enemy action for validation
               );
               
               allEffects.push(...(greatBallResult.effects || []));
@@ -525,7 +533,8 @@ export class BattleController {
                 { type: 'catch' },
                 body.battleId,
                 { catchRate: 'excellent' },
-                battleContext
+                battleContext,
+                enemyAction // Pass enemy action for validation
               );
               
               allEffects.push(...(ultraBallResult.effects || []));
@@ -635,14 +644,15 @@ export class BattleController {
           !(body.action.type === 'flee' && playerResult.success) && 
           !playerResult.monsterCaught) {
         
-        const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
+        // Use the same enemy action that was generated earlier for consistency
         enemyResult = this.battleService.processBattleAction(
           body.opponentMonster,
           playerMonster,
           enemyAction,
           body.battleId,
           undefined,
-          battleContext
+          battleContext,
+          body.action // Pass player action for validation
         );
 
         if (enemyResult.success && enemyResult.damage) {

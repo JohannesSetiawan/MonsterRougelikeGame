@@ -625,7 +625,10 @@
     "pp": 5,
     "priority": 1,
     "description": "This move enables the user to attack first. This move fails if the target is not readying an attack.",
-    "target": "opponent"
+    "target": "opponent",
+    "restrictions": {
+      "requiresOpponentAttack": true
+    }
   },
   "bullet_punch": {
     "id": "bullet_punch",

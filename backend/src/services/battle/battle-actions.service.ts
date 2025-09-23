@@ -34,11 +34,12 @@ export class BattleActionsService {
         speed?: number;
       };
     },
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    opponentAction?: BattleAction
   ): BattleResult {
     switch (action.type) {
       case 'attack':
-        return this.processAttack(playerMonster, opponentMonster, action.moveId, battleId, battleContext);
+        return this.processAttack(playerMonster, opponentMonster, action.moveId, battleId, battleContext, opponentAction);
       
       case 'catch':
         return this.processCatch(opponentMonster, battleModifiers?.catchRate);
@@ -62,7 +63,8 @@ export class BattleActionsService {
     defender: MonsterInstance,
     moveId: string,
     battleId: string,
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    opponentAction?: BattleAction
   ): BattleResult {
     // Safety check: dead monsters can't attack
     if (attacker.currentHp <= 0) {
@@ -107,6 +109,29 @@ export class BattleActionsService {
     
     if (!move) {
       return { success: false, effects: ['Move not found'] };
+    }
+
+
+    // Special validation for Sucker Punch - must fail if opponent is not using an attacking move
+    if (move.restrictions?.requiresOpponentAttack && opponentAction) {
+      // Check if opponent is not attacking at all
+      if (opponentAction.type !== 'attack') {
+        return {
+          success: false,
+          effects: [`${attacker.name} used ${move.name}, but it failed because the target is not readying an attack!`]
+        };
+      }
+      
+      // Check if opponent is using a status move (non-damaging attack)
+      if (opponentAction.moveId) {
+        const opponentMove = this.monsterService.getMoveData(opponentAction.moveId);
+        if (opponentMove && opponentMove.category === MoveCategory.STATUS) {
+          return {
+            success: false,
+            effects: [`${attacker.name} used ${move.name}, but it failed because the target is not readying an attack!`]
+          };
+        }
+      }
     }
 
     // Handle two-turn move continuation
