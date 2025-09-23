@@ -5,6 +5,7 @@ import { WeatherService } from './weather.service';
 import { AbilityEffectsService } from './ability-effects.service';
 import { TwoTurnMoveService } from './two-turn-move.service';
 import { MultiTurnMoveService } from './multi-turn-move.service';
+import { FieldTrackerService } from './field-tracker.service';
 
 @Injectable()
 export class TurnManagementService {
@@ -13,7 +14,8 @@ export class TurnManagementService {
     private weatherService: WeatherService,
     private abilityEffectsService: AbilityEffectsService,
     private twoTurnMoveService: TwoTurnMoveService,
-    private multiTurnMoveService: MultiTurnMoveService
+    private multiTurnMoveService: MultiTurnMoveService,
+    private fieldTrackerService: FieldTrackerService
   ) {}
 
   /**
@@ -22,7 +24,8 @@ export class TurnManagementService {
   processEndOfTurn(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance,
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    battleId?: string
   ): {
     playerEffects: string[];
     opponentEffects: string[];
@@ -82,6 +85,11 @@ export class TurnManagementService {
       if (battleContext.weather && !updatedWeather) {
         weatherEffects.push(this.weatherService.getWeatherEndMessage(battleContext.weather.weather));
       }
+    }
+
+    // Process field tracking if battleId is provided
+    if (battleId) {
+      this.fieldTrackerService.processEndOfTurn(battleId);
     }
 
     return {

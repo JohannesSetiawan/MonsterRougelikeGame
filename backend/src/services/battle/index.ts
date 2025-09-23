@@ -8,5 +8,7 @@ export { TurnManagementService } from './turn-management.service';
 export { WeatherService } from './weather.service';
 export { TwoTurnMoveService } from './two-turn-move.service';
 export { MultiTurnMoveService } from './multi-turn-move.service';
+export { FieldTrackerService } from './field-tracker.service';
+export { MoveValidationService } from './move-validation.service';
 
 export * from './status-effect.types';

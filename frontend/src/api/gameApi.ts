@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Player, GameRun, Monster, BattleAction, MonsterInstance, BattleResult, Encounter, ProgressStageResponse, BattleActionResponse, BattleInitResponse } from './types';
+import type { Player, GameRun, Monster, BattleAction, MonsterInstance, Encounter, ProgressStageResponse, BattleActionResponse, BattleInitResponse } from './types';
 
 const API_BASE_URL = 'http://localhost:3001';
 
@@ -173,6 +173,7 @@ export const gameApi = {
     action: BattleAction,
     playerMonsterId: string,
     opponentMonster: MonsterInstance,
+    battleId: string,
     battleContext?: {
       playerStatModifiers?: any;
       opponentStatModifiers?: any;
@@ -184,6 +185,7 @@ export const gameApi = {
       action,
       playerMonsterId,
       opponentMonster,
+      battleId,
       battleContext,
       playerGoesFirst,
     });

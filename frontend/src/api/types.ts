@@ -316,6 +316,7 @@ export interface BattleActionResponse {
 }
 
 export interface BattleInitResponse {
+  battleId: string;
   effects: string[];
   playerGoesFirst: boolean;
   updatedPlayerMonster: MonsterInstance;

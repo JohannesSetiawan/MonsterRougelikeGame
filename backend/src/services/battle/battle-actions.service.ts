@@ -5,6 +5,8 @@ import { DamageCalculationService } from './damage-calculation.service';
 import { StatusEffectService } from './status-effect.service';
 import { WeatherService } from './weather.service';
 import { MultiTurnMoveService } from './multi-turn-move.service';
+import { MoveValidationService } from './move-validation.service';
+import { FieldTrackerService } from './field-tracker.service';
 
 @Injectable()
 export class BattleActionsService {
@@ -13,13 +15,16 @@ export class BattleActionsService {
     private damageCalculationService: DamageCalculationService,
     private statusEffectService: StatusEffectService,
     private weatherService: WeatherService,
-    private multiTurnMoveService: MultiTurnMoveService
+    private multiTurnMoveService: MultiTurnMoveService,
+    private moveValidationService: MoveValidationService,
+    private fieldTrackerService: FieldTrackerService
   ) {}
 
   processBattleAction(
     playerMonster: MonsterInstance,
     opponentMonster: MonsterInstance,
     action: BattleAction,
+    battleId: string,
     battleModifiers?: {
       catchRate?: 'improved' | 'excellent';
       guaranteedFlee?: boolean;
@@ -33,7 +38,7 @@ export class BattleActionsService {
   ): BattleResult {
     switch (action.type) {
       case 'attack':
-        return this.processAttack(playerMonster, opponentMonster, action.moveId, battleContext);
+        return this.processAttack(playerMonster, opponentMonster, action.moveId, battleId, battleContext);
       
       case 'catch':
         return this.processCatch(opponentMonster, battleModifiers?.catchRate);
@@ -56,6 +61,7 @@ export class BattleActionsService {
     attacker: MonsterInstance,
     defender: MonsterInstance,
     moveId: string,
+    battleId: string,
     battleContext?: BattleContext
   ): BattleResult {
     // Safety check: dead monsters can't attack
@@ -65,6 +71,18 @@ export class BattleActionsService {
         effects: [`${attacker.name} is unable to attack! (Fainted)`] 
       };
     }
+
+    // Validate move restrictions
+    const validation = this.moveValidationService.validateMove(battleId, attacker.id, moveId, attacker);
+    if (!validation.canUse) {
+      return {
+        success: false,
+        effects: [`${attacker.name} tried to use ${this.monsterService.getMoveData(moveId)?.name || moveId}, but ${validation.reason}`]
+      };
+    }
+    
+    // Record that this monster has taken an action (move attempt counts as using your turn)
+    this.fieldTrackerService.recordMonsterAction(battleId, attacker.id);
 
     // Check if monster is in recharge phase
     if (attacker.twoTurnMoveState?.phase === 'recharging') {

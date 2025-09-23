@@ -15,6 +15,7 @@ interface UseBattleActionsProps {
   playerGoesFirst: boolean;
   isProcessing: boolean;
   battleEnded: boolean;
+  battleId: string | null;
   setIsProcessing: React.Dispatch<React.SetStateAction<boolean>>;
   setBattleLog: React.Dispatch<React.SetStateAction<Array<{text: string, isCritical?: boolean}>>>;
   setBattleEnded: React.Dispatch<React.SetStateAction<boolean>>;
@@ -36,6 +37,7 @@ export const useBattleActions = ({
   playerGoesFirst,
   isProcessing,
   battleEnded,
+  battleId,
   setIsProcessing,
   setBattleLog,
   setBattleEnded,
@@ -50,6 +52,12 @@ export const useBattleActions = ({
   const handleBattleAction = useCallback(async (action: BattleAction) => {
     if (isProcessing || battleEnded) return;
     
+    if (!battleId) {
+      console.error('Battle ID is required for battle actions');
+      setBattleLog(prev => [...prev, { text: '⚠️ Battle not properly initialized - missing battle ID' }]);
+      return;
+    }
+    
     setIsProcessing(true);
     try {
       const result = await gameApi.performBattleAction(
@@ -57,6 +65,7 @@ export const useBattleActions = ({
         action,
         playerMonster.id,
         opponentMonster,
+        battleId,
         battleContext || undefined,
         playerGoesFirst
       );
@@ -183,7 +192,7 @@ export const useBattleActions = ({
       setIsProcessing(false);
     }
   }, [
-    isProcessing, battleEnded, currentRun, playerMonster, opponentMonster, 
+    isProcessing, battleEnded, battleId, currentRun, playerMonster, opponentMonster, 
     battleContext, playerGoesFirst, state.player, dispatch, setIsProcessing, 
     setBattleLog, setBattleEnded, setBattleContext, setCriticalHitEffect, resetBattleState, onMoveLearning
   ]);

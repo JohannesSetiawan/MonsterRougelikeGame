@@ -43,6 +43,7 @@ const BattleInterface = () => {
     criticalHitEffect,
     playerGoesFirst,
     showTurnOrder,
+    battleId,
     setBattleLog,
     setIsProcessing,
     setBattleEnded,
@@ -51,6 +52,7 @@ const BattleInterface = () => {
     setCriticalHitEffect,
     setPlayerGoesFirst,
     setShowTurnOrder,
+    setBattleId,
     battleInitializationRef,
     resetBattleState
   } = useBattleState();
@@ -66,7 +68,8 @@ const BattleInterface = () => {
     setBattleContext,
     setPlayerGoesFirst,
     setShowTurnOrder,
-    setMovesData
+    setMovesData,
+    setBattleId
   });
 
   // Callback to end battle after move learning is complete
@@ -100,6 +103,7 @@ const BattleInterface = () => {
     playerGoesFirst,
     isProcessing,
     battleEnded,
+    battleId,
     setIsProcessing,
     setBattleLog,
     setBattleEnded,

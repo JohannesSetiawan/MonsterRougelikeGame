@@ -23,6 +23,7 @@ interface UseBattleInitializationProps {
   setPlayerGoesFirst: React.Dispatch<React.SetStateAction<boolean>>;
   setShowTurnOrder: React.Dispatch<React.SetStateAction<boolean>>;
   setMovesData: React.Dispatch<React.SetStateAction<Record<string, Move>>>;
+  setBattleId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 export const useBattleInitialization = ({
@@ -35,7 +36,8 @@ export const useBattleInitialization = ({
   setBattleContext,
   setPlayerGoesFirst,
   setShowTurnOrder,
-  setMovesData
+  setMovesData,
+  setBattleId
 }: UseBattleInitializationProps) => {
   const { dispatch } = useGame();
 
@@ -96,6 +98,9 @@ export const useBattleInitialization = ({
 
       logger.debug('Battle initialization response received', 'BattleInterface');
 
+      // Store battle ID for subsequent actions
+      setBattleId(battleInit.battleId);
+
       if (battleInit.effects && battleInit.effects.length > 0) {
         setBattleLog(prev => [...prev, ...battleInit.effects.map(text => ({ text }))]);
       }
@@ -135,7 +140,7 @@ export const useBattleInitialization = ({
   }, [
     playerMonster, opponentMonster, currentRun, battleInitializationRef,
     setIsProcessing, setBattleLog, setBattleContext, setPlayerGoesFirst, 
-    setShowTurnOrder, dispatch
+    setShowTurnOrder, setBattleId, dispatch
   ]);
 
   // Initialize battle on first render

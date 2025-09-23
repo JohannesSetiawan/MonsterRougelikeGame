@@ -32,8 +32,11 @@ export class BattleController {
         throw new HttpException('Player monster not found', HttpStatus.BAD_REQUEST);
       }
 
+      // Generate unique battle ID for this battle session
+      const battleId = `battle_${runId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       // Initialize battle context with ability effects like Intimidate
-      const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster);
+      const { battleContext, effects: battleStartEffects } = this.battleService.initializeBattleContext(playerMonster, body.opponentMonster, battleId);
       
       // Reset stat boost usage for new battle
       if (run?.temporaryEffects?.usedStatBoosts) {
@@ -46,6 +49,7 @@ export class BattleController {
       const playerGoesFirst = playerSpeed >= opponentSpeed;
 
       return {
+        battleId,
         effects: battleStartEffects,
         playerGoesFirst,
         updatedPlayerMonster: playerMonster,
@@ -68,6 +72,7 @@ export class BattleController {
       action: BattleAction;
       playerMonsterId: string;
       opponentMonster: MonsterInstance;
+      battleId?: string;
       battleContext?: {
         playerStatModifiers?: any;
         opponentStatModifiers?: any;
@@ -197,6 +202,7 @@ export class BattleController {
           playerMonster,
           body.opponentMonster,
           body.action,
+          body.battleId,
           undefined,
           battleContext
         );
@@ -208,6 +214,7 @@ export class BattleController {
           body.opponentMonster,
           playerMonster,
           enemyAction,
+          body.battleId,
           undefined,
           battleContext
         );
@@ -279,6 +286,7 @@ export class BattleController {
           playerMonster,
           body.opponentMonster,
           body.action,
+          body.battleId,
           undefined,
           battleContext
         );
@@ -353,6 +361,11 @@ export class BattleController {
         // Switch is successful - update the active monster
         const switchEffects = [`${playerMonster.name}, come back!`, `Go, ${newMonster.name}!`];
         
+        // Update field tracking for the switch
+        if (body.battleId) {
+          this.battleService.switchMonsterInField(body.battleId, true, newMonster);
+        }
+        
         // Process enemy's attack on the new monster (switching gives opponent a free turn)
         if (!battleEnded && body.opponentMonster.currentHp > 0) {
           const enemyAction = this.battleService.generateEnemyAction(body.opponentMonster);
@@ -360,6 +373,7 @@ export class BattleController {
             body.opponentMonster,
             newMonster,
             enemyAction,
+            body.battleId,
             undefined,
             battleContext
           );
@@ -461,7 +475,10 @@ export class BattleController {
               const catchResult = this.battleService.processBattleAction(
                 playerMonster,
                 body.opponentMonster,
-                { type: 'catch' }
+                { type: 'catch' },
+                body.battleId,
+                undefined,
+                battleContext
               );
               
               allEffects.push(...(catchResult.effects || []));
@@ -483,7 +500,9 @@ export class BattleController {
                 playerMonster,
                 body.opponentMonster,
                 { type: 'catch' },
-                { catchRate: 'improved' }
+                body.battleId,
+                { catchRate: 'improved' },
+                battleContext
               );
               
               allEffects.push(...(greatBallResult.effects || []));
@@ -504,7 +523,9 @@ export class BattleController {
                 playerMonster,
                 body.opponentMonster,
                 { type: 'catch' },
-                { catchRate: 'excellent' }
+                body.battleId,
+                { catchRate: 'excellent' },
+                battleContext
               );
               
               allEffects.push(...(ultraBallResult.effects || []));
@@ -525,7 +546,9 @@ export class BattleController {
                 playerMonster,
                 body.opponentMonster,
                 { type: 'flee' },
-                { guaranteedFlee: true }
+                body.battleId,
+                { guaranteedFlee: true },
+                battleContext
               );
               
               allEffects.push(...(fleeResult.effects || []));
@@ -617,6 +640,7 @@ export class BattleController {
           body.opponentMonster,
           playerMonster,
           enemyAction,
+          body.battleId,
           undefined,
           battleContext
         );
@@ -674,7 +698,7 @@ export class BattleController {
 
       // Process end-of-turn status effects if battle is still ongoing
       if (!battleEnded && playerMonster.currentHp > 0 && body.opponentMonster.currentHp > 0) {
-        const endOfTurnResult = this.battleService.processEndOfTurn(playerMonster, body.opponentMonster, battleContext);
+        const endOfTurnResult = this.battleService.processEndOfTurn(playerMonster, body.opponentMonster, battleContext, body.battleId);
         
         // Update battle context if weather changed
         if (endOfTurnResult.updatedBattleContext) {
@@ -778,6 +802,11 @@ export class BattleController {
       // Autosave player progress when battle ends (win, lose, or catch)
       if (battleEnded) {
         await this.autosavePlayerProgress(run, allEffects);
+        
+        // Clean up battle tracking data
+        if (body.battleId) {
+          this.battleService.cleanupBattleField(body.battleId);
+        }
       }
 
       return {

@@ -93,6 +93,10 @@ export interface TwoTurnMoveData {
   counterMoves?: string[];         // Moves that can hit during semi-invulnerable state
 }
 
+export interface MoveRestrictions {
+  firstTurnOnly?: boolean; // Move can only be used on first turn in battle (like Fake Out)
+}
+
 export interface Move {
   id: string;
   name: string;
@@ -107,6 +111,7 @@ export interface Move {
   effects?: MoveEffect[]; // Multi-effect system - optional for moves without effects
   twoTurnMove?: TwoTurnMoveData; // Two-turn move data
   multiTurnMove?: MultiTurnMoveData; // Multi-turn move data
+  restrictions?: MoveRestrictions; // Move usage restrictions
 }
 
 export interface Monster {

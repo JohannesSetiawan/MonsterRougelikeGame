@@ -17,6 +17,7 @@ interface BattleState {
   criticalHitEffect: 'player' | 'opponent' | null;
   playerGoesFirst: boolean;
   showTurnOrder: boolean;
+  battleId: string | null;
 }
 
 interface UseBattleStateReturn extends BattleState {
@@ -28,6 +29,7 @@ interface UseBattleStateReturn extends BattleState {
   setCriticalHitEffect: React.Dispatch<React.SetStateAction<'player' | 'opponent' | null>>;
   setPlayerGoesFirst: React.Dispatch<React.SetStateAction<boolean>>;
   setShowTurnOrder: React.Dispatch<React.SetStateAction<boolean>>;
+  setBattleId: React.Dispatch<React.SetStateAction<string | null>>;
   battleInitializationRef: React.MutableRefObject<{
     isInitialized: boolean;
     isInitializing: boolean;
@@ -49,6 +51,7 @@ export const useBattleState = (): UseBattleStateReturn => {
   const [criticalHitEffect, setCriticalHitEffect] = useState<'player' | 'opponent' | null>(null);
   const [playerGoesFirst, setPlayerGoesFirst] = useState<boolean>(true);
   const [showTurnOrder, setShowTurnOrder] = useState<boolean>(false);
+  const [battleId, setBattleId] = useState<string | null>(null);
   
   const battleInitializationRef = useRef<{
     isInitialized: boolean;
@@ -63,6 +66,7 @@ export const useBattleState = (): UseBattleStateReturn => {
   const resetBattleState = useCallback(() => {
     setBattleLog([]);
     setBattleEnded(false);
+    setBattleId(null);
     battleInitializationRef.current.isInitialized = false;
     battleInitializationRef.current.runId = null;
   }, []);
@@ -76,6 +80,7 @@ export const useBattleState = (): UseBattleStateReturn => {
     criticalHitEffect,
     playerGoesFirst,
     showTurnOrder,
+    battleId,
     setBattleLog,
     setIsProcessing,
     setBattleEnded,
@@ -84,6 +89,7 @@ export const useBattleState = (): UseBattleStateReturn => {
     setCriticalHitEffect,
     setPlayerGoesFirst,
     setShowTurnOrder,
+    setBattleId,
     battleInitializationRef,
     resetBattleState
   };

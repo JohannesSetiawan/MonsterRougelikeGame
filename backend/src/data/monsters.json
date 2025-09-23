@@ -219,71 +219,8 @@
         18
       ],
       [
-        "will_o_wisp",
+        "fake_out",
         23
-      ],
-      [
-        "confuse_ray",
-        24
-      ],
-      [
-        "sword_dance",
-        30
-      ],
-      [
-        "inferno",
-        35
-      ],[
-        "hyper_beam",
-        40
-      ],
-      [
-        "sky_attack",
-        45
-      ],
-      [
-        "phantom_force",
-        50
-      ],
-      [
-        "outrage",
-        50
-      ],
-      [
-        "rollout",
-        50
-      ],
-      [
-        "bullet_seed",
-        50
-      ],
-      [
-        "triple_kick",
-        50
-      ],
-      [
-        "population_bomb",
-        50
-      ],
-      [
-        "fire_spin",
-        50
-      ],
-      [
-        "whirlpool",
-        50
-      ],
-      [
-        "sand_tomb",
-        50
-      ],
-      [
-        "infestation",
-        50
-      ],
-      [
-        "magma_storm",
-        50
       ]
     ],
     "description": "A small dragon-like creature with flames on its tail. Known for its fierce determination.",

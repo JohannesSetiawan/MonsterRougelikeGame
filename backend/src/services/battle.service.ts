@@ -13,6 +13,8 @@ import { TurnManagementService } from './battle/turn-management.service';
 import { WeatherService } from './battle/weather.service';
 import { TwoTurnMoveService } from './battle/two-turn-move.service';
 import { MultiTurnMoveService } from './battle/multi-turn-move.service';
+import { FieldTrackerService } from './battle/field-tracker.service';
+import { MoveValidationService } from './battle/move-validation.service';
 
 @Injectable()
 export class BattleService {
@@ -27,7 +29,9 @@ export class BattleService {
     private turnManagementService: TurnManagementService,
     private weatherService: WeatherService,
     private twoTurnMoveService: TwoTurnMoveService,
-    private multiTurnMoveService: MultiTurnMoveService
+    private multiTurnMoveService: MultiTurnMoveService,
+    private fieldTrackerService: FieldTrackerService,
+    private moveValidationService: MoveValidationService
   ) {}
 
   // Delegate to damage calculation service
@@ -56,6 +60,7 @@ export class BattleService {
     playerMonster: MonsterInstance,
     opponentMonster: MonsterInstance,
     action: BattleAction,
+    battleId: string,
     battleModifiers?: {
       catchRate?: 'improved' | 'excellent';
       guaranteedFlee?: boolean;
@@ -71,6 +76,7 @@ export class BattleService {
       playerMonster,
       opponentMonster,
       action,
+      battleId,
       battleModifiers,
       battleContext
     );
@@ -81,9 +87,10 @@ export class BattleService {
     attacker: MonsterInstance,
     defender: MonsterInstance,
     moveId: string,
+    battleId: string,
     battleContext?: BattleContext
   ): BattleResult {
-    return this.battleActionsService.processAttack(attacker, defender, moveId, battleContext);
+    return this.battleActionsService.processAttack(attacker, defender, moveId, battleId, battleContext);
   }
 
   // Delegate to experience service
@@ -107,8 +114,14 @@ export class BattleService {
   // Initialize battle context with abilities and weather
   initializeBattleContext(
     playerMonster: MonsterInstance, 
-    opponentMonster: MonsterInstance
+    opponentMonster: MonsterInstance,
+    battleId?: string
   ): { battleContext: BattleContext; effects: string[] } {
+    // Initialize field tracking if battleId is provided
+    if (battleId) {
+      this.fieldTrackerService.initializeBattle(battleId, playerMonster, opponentMonster);
+    }
+
     // Clear any existing multi-turn move states from previous battles
     this.multiTurnMoveService.clearMultiTurnMoveStates(playerMonster);
     this.multiTurnMoveService.clearMultiTurnMoveStates(opponentMonster);
@@ -178,9 +191,10 @@ export class BattleService {
   processEndOfTurn(
     playerMonster: MonsterInstance, 
     opponentMonster: MonsterInstance,
-    battleContext?: BattleContext
+    battleContext?: BattleContext,
+    battleId?: string
   ) {
-    return this.turnManagementService.processEndOfTurn(playerMonster, opponentMonster, battleContext);
+    return this.turnManagementService.processEndOfTurn(playerMonster, opponentMonster, battleContext, battleId);
   }
 
   determineTurnOrder(
@@ -250,5 +264,43 @@ export class BattleService {
 
   getMultiTurnMoveStatusMessage(monster: MonsterInstance): string | null {
     return this.multiTurnMoveService.getStatusMessage(monster);
+  }
+
+  // Delegate to field tracker service
+  switchMonsterInField(battleId: string, isPlayer: boolean, newMonster: MonsterInstance): void {
+    this.fieldTrackerService.switchMonster(battleId, isPlayer, newMonster);
+  }
+
+  processFieldTurnEnd(battleId: string): void {
+    this.fieldTrackerService.processEndOfTurn(battleId);
+  }
+
+  isFirstTurnOnField(battleId: string, monsterId: string): boolean {
+    return this.fieldTrackerService.isFirstTurnOnField(battleId, monsterId);
+  }
+
+  cleanupBattleField(battleId: string): void {
+    this.fieldTrackerService.cleanupBattle(battleId);
+  }
+
+  // Delegate to move validation service
+  validateMove(battleId: string, monsterId: string, moveId: string, monster?: MonsterInstance): { canUse: boolean; reason?: string } {
+    return this.moveValidationService.validateMove(battleId, monsterId, moveId, monster);
+  }
+
+  getUsableMoves(battleId: string, monster: MonsterInstance): { moveId: string; reason?: string }[] {
+    return this.moveValidationService.getUsableMoves(battleId, monster);
+  }
+
+  hasUsableMoves(battleId: string, monster: MonsterInstance): boolean {
+    return this.moveValidationService.hasUsableMoves(battleId, monster);
+  }
+
+  getFirstUsableMove(battleId: string, monster: MonsterInstance): string | null {
+    return this.moveValidationService.getFirstUsableMove(battleId, monster);
+  }
+
+  recordMonsterAction(battleId: string, monsterId: string): void {
+    this.fieldTrackerService.recordMonsterAction(battleId, monsterId);
   }
 }
